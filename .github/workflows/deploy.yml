@@ -1,0 +1,54 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  # runs on every PR and every push. The required status check.
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: ./tools/js-is-current.sh        # the committed JS matches src/
+      - run: node tools/words-check.mjs      # a headline survives being split
+      - run: python3 tools/content-check.py  # the client's publication rules hold
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: zola@0.23.6
+      - run: zola build
+
+      # only the real deploy publishes an artifact — a PR build that
+      # uploaded one would contend with an in-flight deploy
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    # scoped to this job, and never cancelled: killing a deploy
+    # mid-flight leaves Pages serving stale output
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
