@@ -1,0 +1,120 @@
+NOTICE — WHO OWNS WHAT
+======================
+
+This repository contains work with more than one owner, and on this
+project there are three parties rather than two. Read this before
+assuming anything about any of them.
+
+--------------------------------------------------------------------
+THE SOFTWARE  —  Bernardo Cohen / deLapatada Software
+--------------------------------------------------------------------
+The myArtisticProject engine: templates/, static/css/, src/,
+config.toml, tsconfig.json, tools/, the build workflow, and the
+content architecture that turns a Markdown file into a numbered,
+animated single page.
+
+Copyright (c) 2026 Bernardo Cohen. Proprietary. See LICENSE.
+
+Not a work made for hire. The Author retains the right to reuse this
+engine for other clients. See LICENSE sections 1 and 2.
+
+--------------------------------------------------------------------
+THE VISUAL IDENTITY  —  the client's designer
+--------------------------------------------------------------------
+Logo, typographies, palette, iconography and the graphic elements of
+the finished site are authored by a graphic designer engaged
+separately by the client, and belong to their author.
+
+The Author integrates that identity. Integrating a design does not
+transfer it. Equally, commissioning an integration does not transfer
+the engine that integrates it.
+
+Nothing currently in static/css/ is that identity. The palette and
+type stack in site.css are the Author's placeholders, chosen to be
+replaced.
+
+--------------------------------------------------------------------
+THE CREATIVE ASSETS AND COPY  —  the client
+--------------------------------------------------------------------
+Photographs, films, showreel, project references and the copy that
+describes them belong to the client and appear here solely to build
+and operate their website.
+
+They are NOT licensed for any other use. They may not be copied,
+reproduced, redistributed, scraped, or used for machine-learning
+training, datasets or derivative works without written permission.
+Publication on a public web page does not place them in the public
+domain.
+
+The Author retains the right to display this work as a portfolio
+reference of the engineering engagement.
+
+--------------------------------------------------------------------
+CLIENT MATERIAL IS NOT IN THIS REPOSITORY
+--------------------------------------------------------------------
+Briefs, maquettes, mood boards and design sources sent by the client
+live in _client_input/ and _ref/, which are git-ignored. This
+repository is PUBLIC. If a client sent it, it is not ours to publish.
+
+--------------------------------------------------------------------
+CURRENT ASSET STATUS  -  placeholders, not the client's work
+--------------------------------------------------------------------
+NO IMAGE IN THIS REPOSITORY IS THE CLIENT'S WORK.
+
+Every photograph is a stand-in fetched by tools/placeholders.py from
+Lorem Picsum, which serves photography from Unsplash. They are here to
+test layout, legibility, proportion and loading against real pictures,
+because a grey rectangle cannot answer those questions.
+
+They are used under the Unsplash License: free for commercial and
+non-commercial use, no permission required, no attribution required.
+That licence permits this use. It is not the reason they are leaving.
+
+THEY MUST BE REMOVED BEFORE LAUNCH, and not because of any licence —
+because a portfolio built from someone else's photographs
+misrepresents the artist whose name is on it. A visitor cannot tell a
+stand-in from a real piece, and one borrowed image quietly devalues
+every real one beside it. This is why the site also carries no client
+name while `live = false` in config.toml.
+
+Every placeholder is listed in content/PLACEHOLDERS.txt, so removing
+them is one command with nothing left to wonder about:
+
+    python3 tools/placeholders.py --purge
+
+--------------------------------------------------------------------
+THE BRAND ON THIS DEMO IS A STAND-IN
+--------------------------------------------------------------------
+The client's brand is an established trademark. A public repository and
+a public Pages URL carrying it would compete with his own referencing
+for his own name, so nothing here uses it — not the rendered page, and
+not the content files, which are readable on GitHub whatever the page
+chooses to render.
+
+10MILES is the stand-in, and it is deliberately not a near-miss of the
+real mark: a name that half-matches is worse than one that does not
+match at all. The six professional references are numbered rather than
+named, and the three original formats are unnamed, for the same reason.
+
+The real identity, organisations, roles and formats are supplied at
+handover, into a checkout that is not this public one.
+tools/content-check.py refuses to let them be committed here. The terms
+it guards live in _ref/identifiers.txt, which is untracked — a tripwire
+that names the thing it guards would be the leak it is trying to
+prevent.
+
+--------------------------------------------------------------------
+NO INVENTED REFERENCES
+--------------------------------------------------------------------
+The client's brief requires that missing content stays visibly flagged
+and is never replaced by fictional references in anything public. No
+company, role, date or credit may be invented to fill a gap — not even
+temporarily, and not even while `live = false`.
+
+--------------------------------------------------------------------
+THIS IS NOT THE AGREEMENT
+--------------------------------------------------------------------
+These files declare the intended position. They are not a signed
+contract between the parties and are not legal advice. The terms
+above should be restated in a short engagement letter signed by the
+Author and the Client before the site goes live.

@@ -1,0 +1,40 @@
+# macOS
+.DS_Store
+
+# secrets
+.env
+.env.*
+
+# build output (zola)
+/public/
+
+# zola writes resized images here during the build
+/static/processed_images/
+
+# Source maps are a developer's convenience. The .js files themselves ARE
+# committed — see "Why the compiled JS is in the repo" in README.
+/static/js/*.js.map
+
+node_modules/
+
+# ---------------------------------------------------------------
+# CLIENT MATERIAL — never commit. Briefs, decks, mood boards and design
+# sources belong to the client. They live in _ref/, local only.
+# ---------------------------------------------------------------
+/_ref/
+*.pdf
+!/content/**/*.pdf
+*.ai
+*.psd
+*.sketch
+*.fig
+*.indd
+*.afdesign
+*.afphoto
+
+# where the client drops material before it is placed in content/
+/_client_input/
+
+# The spec quotes the brief and names the client. It lives in _ref/
+# with the other client-derived documents.
+/specs/
