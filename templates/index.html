@@ -1,0 +1,246 @@
+{# One switch picks who this site belongs to — see config.toml. #}
+{% if config.extra.live %}{% set_global id = config.extra.real %}
+{% else %}{% set_global id = config.extra.demo %}{% endif %}
+{% set e = section.extra %}
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ id.title }}</title>
+{% if not config.extra.live %}<meta name="robots" content="noindex, nofollow">{% endif %}
+{% if e.roles %}<meta name="description" content="{{ e.roles }}">{% endif %}
+<meta property="og:title" content="{{ id.title }}">
+{% if e.roles %}<meta property="og:description" content="{{ e.roles }}">{% endif %}
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+
+{# Most hosts serve no headers, so this is a meta tag. It is not an
+   anti-XSS measure — nothing a visitor types is rendered back. What it
+   buys: connect-src 'none' means a script that somehow got in could not
+   send what it found anywhere. #}
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  img-src 'self' data:;
+  style-src 'self';
+  script-src 'self';
+  connect-src 'none';
+  base-uri 'none';
+  object-src 'none'">
+
+<link rel="stylesheet" href="{{ get_url(path='css/site.css') }}">
+</head>
+<body>
+
+{# ---- the bar ------------------------------------------------------
+   The menu is <details>, so it opens, closes and takes the keyboard
+   with no script at all. A phone with a dead network still gets a
+   working menu. #}
+<header class="bar">
+  <a class="bar-name" href="#top">{{ id.name }}</a>
+  {% if e.nav %}
+  <details class="menu">
+    <summary aria-label="Menu">Menu</summary>
+    <nav class="menu-items">
+      {% for item in e.nav %}<a href="{{ item.href }}">{{ item.label }}</a>{% endfor %}
+    </nav>
+  </details>
+  {% endif %}
+</header>
+
+{# ---- 01 hero ------------------------------------------------------ #}
+<header class="hero" id="top">
+  <canvas class="hero-wash" aria-hidden="true"></canvas>
+  <div class="hero-text">
+    {% if e.issue %}<span class="label">{{ e.issue }}{% if e.place %}<span class="label-sep">·</span>{{ e.place }}{% endif %}</span>{% endif %}
+    {% if e.eyebrow %}<p class="eyebrow">{{ e.eyebrow }}</p>{% endif %}
+    <h1>{{ id.name }}</h1>
+    {% if e.roles %}<p class="tagline">{{ e.roles }}</p>{% endif %}
+    {% if e.intro %}<p class="intro">{{ e.intro }}</p>{% endif %}
+    <p class="hero-actions">
+      {% if e.cta_work %}<a class="cta" href="#work">{{ e.cta_work }}</a>{% endif %}
+      {% if e.cta_contact %}<a class="cta cta-quiet" href="#contact">{{ e.cta_contact }}</a>{% endif %}
+    </p>
+  </div>
+</header>
+
+<main>
+
+{# ---- 02 approach + showreel --------------------------------------- #}
+{% if e.approach_title %}
+<section class="band" id="approach">
+  <p class="label">01 <span class="label-sep">/</span> Approach</p>
+  <h2>{{ e.approach_title }}</h2>
+  <p class="lead">{{ id.approach_lead }}</p>
+
+  {# No video yet, so no player and no decorative play button — the
+     client's own production note. The slot keeps the page's proportions
+     honest in the meantime instead of pretending the video is coming. #}
+  <figure class="showreel{% if not e.video %} showreel-empty{% endif %}">
+    {% if e.video %}
+    <video controls preload="none" {% if e.poster %}poster="{{ get_url(path=e.poster) }}"{% endif %}>
+      <source src="{{ get_url(path=e.video) }}" type="video/mp4">
+    </video>
+    {% else %}
+    <figcaption>
+      <span class="label">{{ e.showreel_label }}</span>
+      <span class="showreel-spec">{{ e.showreel_spec }}</span>
+    </figcaption>
+    {% endif %}
+  </figure>
+</section>
+{% endif %}
+
+{# ---- 03 capabilities ---------------------------------------------- #}
+{% if e.services %}
+<section class="band" id="services">
+  <p class="label">02 <span class="label-sep">/</span> Expertise</p>
+  <h2>{{ e.services_title }}</h2>
+  <ol class="grid">
+    {% for s in e.services %}
+    <li>
+      <span class="num">{% if loop.index < 10 %}0{% endif %}{{ loop.index }}</span>
+      <h3>{{ s.name }}</h3>
+      <p>{{ s.text }}</p>
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
+
+{# ---- 04 selected work ---------------------------------------------
+   A trajectory rather than a grid: the entries are ordered by widening
+   discipline, and the number is the position in that journey.
+
+   Names and roles render only when `live` is true. While it is false
+   this is a demonstration of the engine, and describing a real person's
+   career on a demo is exactly what NOTICE says we will not do.
+
+   An unverified role is SHOWN AS UNVERIFIED rather than quietly
+   dropped. Hiding it would lose the one piece of information that
+   matters — that somebody still has to check it. #}
+{% if e.work %}
+<section class="band" id="work">
+  <p class="label">03 <span class="label-sep">/</span> Selected Work</p>
+  <h2>{{ e.work_title }}</h2>
+  {% if config.extra.live %}<p class="lead">{{ e.work_lead }}</p>{% endif %}
+
+  <ol class="work">
+    {% for w in e.work %}
+    <li>
+      <figure class="shot{% if not w.image %} shot-empty{% endif %}">
+        {% if w.image and config.extra.live %}
+          {% set img = resize_image(path="@/" ~ w.image, width=900, op="fit_width", format="webp") %}
+          <img src="{{ img.url }}" width="{{ img.width }}" height="{{ img.height }}" alt="" loading="lazy" decoding="async">
+        {% elif w.image %}
+          {% set img = resize_image(path="@/" ~ w.image, width=900, op="fit_width", format="webp") %}
+          <img src="{{ img.url }}" width="{{ img.width }}" height="{{ img.height }}" alt="" loading="lazy" decoding="async">
+          <figcaption class="stand-in">stand-in photograph</figcaption>
+        {% else %}
+          <figcaption>Image / case study</figcaption>
+        {% endif %}
+      </figure>
+      <div class="work-text">
+        <span class="num">{% if loop.index < 10 %}0{% endif %}{{ loop.index }}</span>
+        <p class="domain">{{ w.domain }}</p>
+        <h3>{% if config.extra.live %}{{ w.name }}{% else %}Reference {% if loop.index < 10 %}0{% endif %}{{ loop.index }}{% endif %}</h3>
+        {% if config.extra.live %}
+          <p>{{ w.text }}</p>
+          <p class="role{% if not w.verified %} role-unverified{% endif %}">{{ w.role }}</p>
+        {% else %}
+          <p class="role role-unverified">role withheld until verified</p>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+
+  {# Legal, not editorial. It ships intact. #}
+  {% if e.work_note and config.extra.live %}<p class="note">{{ e.work_note }}</p>{% endif %}
+</section>
+{% endif %}
+
+{# ---- 05 original concepts ------------------------------------------ #}
+{% if e.concepts %}
+<section class="band" id="concepts">
+  <p class="label">04 <span class="label-sep">/</span> Original Concepts</p>
+  <h2>{{ e.concepts_title }}</h2>
+  <p class="lead">{{ e.concepts_lead }}</p>
+  <ol class="grid grid-wide">
+    {% for c in e.concepts %}
+    <li>
+      {# The status is the point of this section: a concept must never
+         read as a commission already delivered. #}
+      <span class="status">{{ c.status }}</span>
+      <h3>{{ c.name }}</h3>
+      <p>{{ c.text }}</p>
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
+
+{# ---- 06 professional ecosystem -------------------------------------- #}
+{% if e.ecosystem_title %}
+<section class="band" id="ecosystem">
+  <p class="label">05 <span class="label-sep">/</span> Professional Ecosystem</p>
+  <h2>{{ e.ecosystem_title }}</h2>
+  <p class="lead">{{ e.ecosystem_lead }}</p>
+  {% if e.ecosystem_fields %}
+  <ul class="fields">
+    {% for f in e.ecosystem_fields %}<li>{{ f }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endif %}
+
+{# ---- 07 about -------------------------------------------------------- #}
+{% if e.about_title %}
+<section class="band" id="about">
+  <p class="label">06 <span class="label-sep">/</span> About</p>
+  <h2>{{ e.about_title }}</h2>
+  <p class="lead">{{ id.about_lead }}</p>
+  {% if e.about_text and config.extra.live %}<p>{{ e.about_text }}</p>{% endif %}
+  {% if e.about_pillars %}
+  <ul class="pillars">
+    {% for p in e.about_pillars %}
+    <li><h3>{{ p.name }}</h3><p>{{ p.text }}</p></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endif %}
+
+{# ---- 08 contact ------------------------------------------------------
+   No placeholder address, ever — the client's own instruction. With no
+   verified address configured the section says so plainly instead of
+   offering a button that goes nowhere. #}
+{% if e.contact_title %}
+<section class="band band-last" id="contact">
+  <p class="label">07 <span class="label-sep">/</span> Contact</p>
+  <h2>{{ e.contact_title }}</h2>
+  <p class="lead">{{ e.contact_lead }}</p>
+  {% if config.extra.contact.email %}
+  <p class="hero-actions">
+    <a class="cta" href="mailto:{{ config.extra.contact.email }}">{{ config.extra.contact.email }}</a>
+    <button class="cta cta-quiet" type="button" data-copy="{{ config.extra.contact.email }}">{{ e.contact_copy }}</button>
+  </p>
+  {% else %}
+  <p class="pending">{{ e.contact_pending }}</p>
+  {% endif %}
+</section>
+{% endif %}
+
+</main>
+
+<footer class="credit">
+  <a href="{{ config.extra.author_url }}" rel="author">site by {{ config.extra.author }}</a>
+  {# The credit is a condition of the client licence, not decoration —
+     LICENSE §4. It may be discreet; it may not be removed or hidden
+     from assistive technology. #}
+  {% if config.extra.studio %}<span class="credit-studio">{{ config.extra.studio }}</span>{% endif %}
+</footer>
+
+<script type="module" src="{{ get_url(path='js/landing.js') }}"></script>
+</body>
+</html>

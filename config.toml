@@ -1,0 +1,72 @@
+# One page. Change the two names below and it is the client's site.
+#
+# Language: "en" is a placeholder guess — one line to change. To add a
+# second language, uncomment the block at the bottom and run
+# `zola build`; Zola then looks for content/_index.<code>.md.
+default_language = "en"
+base_url = "https://bdcbqa314159.github.io/myArtisticProject"
+title = "myArtisticProject"
+compile_sass = false
+build_search_index = false
+minify_html = true
+
+[markdown]
+smart_punctuation = true
+lazy_async_image = true
+
+[extra]
+# NOT LIVE YET. While false, the page tells search engines to stay away,
+# so placeholder content misrepresents nobody. Flip when the real name
+# and the real assets are both in.
+live = false
+
+author = "Bernardo Cohen"
+author_url = "https://github.com/bdcbqa314159"
+studio = "deLapatadaSoftware"
+
+# French is live, not a comment. The client writes in French and the
+# maquettes are in English, so both exist from the start: `en` is the
+# default at /, `fr` is at /fr/. Zola builds whichever content files are
+# there — content/_index.md for en, content/_index.fr.md for fr.
+[languages.fr]
+title = "myArtisticProject"
+build_search_index = false
+
+# ---------------------------------------------------------------
+# THE BRAND ON THIS DEMO IS A STAND-IN.
+#
+# The client's brand is an established trademark. A public repository
+# and a public Pages URL carrying it would compete with his own
+# referencing for his own name — so nothing here uses it, and that
+# includes the content files, which are readable on GitHub whatever the
+# page renders.
+#
+# 10MILES is the stand-in. It is deliberately not a near-miss of the
+# real mark: a name that half-matches is worse than one that does not
+# match at all.
+#
+# The real identity, the real organisations and the real roles are
+# supplied at handover, into a checkout that is not this public one.
+# tools/content-check.py refuses to let them be committed here.
+# ---------------------------------------------------------------
+[extra.demo]
+name = "10MILES"
+person = "the artist"
+title = "10MILES — a one-page editorial site engine"
+approach_lead = "This deployment demonstrates the engine. It carries no client's name, and what follows is structure rather than anyone's portfolio."
+about_lead = "The artist's own account of their practice goes here."
+
+# Kept so `live = true` has something to resolve, and deliberately
+# identical to the demo: the real values do not live in this repository.
+[extra.real]
+name = "10MILES"
+person = "the artist"
+title = "10MILES — a one-page editorial site engine"
+approach_lead = "This deployment demonstrates the engine. It carries no client's name, and what follows is structure rather than anyone's portfolio."
+about_lead = "The artist's own account of their practice goes here."
+
+# The real address is supplied before launch. An empty string renders
+# the contact section's own "to configure" state rather than a dead
+# mailto: — the brief forbids publishing a placeholder address.
+[extra.contact]
+email = ""
