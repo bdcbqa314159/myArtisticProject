@@ -197,6 +197,58 @@ function heroWash(canvas) {
         run(!document.hidden && canvas.getBoundingClientRect().bottom > 0);
     });
 }
+/* ---- the bar ----------------------------------------------------------
+ * Above 800px the maquette's bar is an inline row of links; below it,
+ * a disclosure. One <details> serves both, but not by styling its
+ * closed state: Safari and Chrome now hide a closed details through
+ * `::details-content` with `content-visibility`, which no `display`
+ * rule on the children can reach. Overriding it worked once and
+ * silently stopped working, leaving the desktop bar as a lone wordmark.
+ *
+ * So the element is genuinely opened instead. Honest, and it cannot be
+ * undone by a UA stylesheet.
+ */
+const WIDE = matchMedia("(min-width: 50rem)");
+function syncBar() {
+    const menu = document.querySelector(".menu");
+    if (!menu)
+        return;
+    menu.open = WIDE.matches;
+}
+/* ---- which section you are in -----------------------------------------
+ * The link for the section in view is marked, so the bar says where you
+ * are rather than only where you could go. Cheap: one observer, no
+ * scroll handler.
+ *
+ * The band near the top is deliberately narrow — a section counts as
+ * "current" while its heading is in the upper part of the screen, which
+ * is where a reader's attention is, rather than whenever any pixel of it
+ * is visible. Without that, two sections are current at once on a tall
+ * desktop window and the mark flickers between them.
+ */
+function markCurrentSection() {
+    const links = new Map();
+    for (const a of document.querySelectorAll(".links a")) {
+        const id = a.getAttribute("href")?.replace("#", "");
+        if (id)
+            links.set(id, a);
+    }
+    if (links.size === 0)
+        return;
+    const seen = new IntersectionObserver((entries) => {
+        for (const e of entries) {
+            const a = links.get(e.target.id);
+            if (!a)
+                continue;
+            a.classList.toggle("current", e.isIntersecting);
+        }
+    }, { rootMargin: "-10% 0px -70% 0px" });
+    for (const id of links.keys()) {
+        const section = document.getElementById(id);
+        if (section)
+            seen.observe(section);
+    }
+}
 /* ---- the menu closes behind you --------------------------------------
  * <details> does the opening, the closing and the keyboard on its own.
  * The one thing it cannot know is that following an anchor means the
@@ -208,7 +260,11 @@ function closeMenuOnNavigate() {
     if (!menu)
         return;
     menu.addEventListener("click", (ev) => {
-        if (ev.target.closest(".menu-items a"))
+        // Only below the breakpoint. Closing it on a wide screen would take
+        // the whole bar away on the first click.
+        if (WIDE.matches)
+            return;
+        if (ev.target.closest(".links a"))
             menu.open = false;
     });
 }
@@ -272,6 +328,15 @@ else {
     window.addEventListener("load", uncover, { once: true });
     setTimeout(uncover, UNCOVER_CAP_MS);
 }
+/* Script is present. The bar's wide-screen styling depends on this
+ * class, so that with no script the disclosure button stays visible and
+ * the menu still works natively — hiding the button and relying on JS to
+ * open the panel would leave a scriptless visitor with no navigation at
+ * all. No flash: the loader is still over the page when this runs. */
+document.documentElement.classList.add("js");
+syncBar();
+WIDE.addEventListener("change", syncBar);
+markCurrentSection();
 closeMenuOnNavigate();
 copyButtons();
 const wash = document.querySelector(".hero-wash");
