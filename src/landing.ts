@@ -281,8 +281,23 @@ function copyButtons(): void {
  */
 const UNCOVER_CAP_MS = 2600;
 
+let uncovered = false;
+
 function uncover(): void {
+  // Both the load event and the cap can call this; the second call must
+  // not replay the motion.
+  if (uncovered) return;
+  uncovered = true;
   document.documentElement.classList.remove("booting");
+
+  // Started here, not at parse time. Observers fire on what is in the
+  // viewport whether or not anyone can see it, so motion set up behind
+  // the cover would have finished playing by the time the cover lifted —
+  // the reveal would exist and never be seen.
+  if (!reduced) {
+    splitHeadlines();
+    revealOnScroll();
+  }
 }
 
 if (document.readyState === "complete") {
@@ -294,11 +309,6 @@ if (document.readyState === "complete") {
 
 closeMenuOnNavigate();
 copyButtons();
-
-if (!reduced) {
-  splitHeadlines();
-  revealOnScroll();
-}
 
 const wash = document.querySelector<HTMLCanvasElement>(".hero-wash");
 if (wash) heroWash(wash);
