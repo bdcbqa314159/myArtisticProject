@@ -34,6 +34,10 @@ jobs:
           tool: zola@0.23.6
       - run: zola build
 
+      # The only check here that runs the page rather than reading it.
+      # Uses the runner's own Chrome — no dependency, nothing installed.
+      - run: python3 tools/render-check.py
+
       # only the real deploy publishes an artifact — a PR build that
       # uploaded one would contend with an in-flight deploy
       - uses: actions/upload-pages-artifact@v3
