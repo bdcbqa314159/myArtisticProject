@@ -3,7 +3,7 @@
 {% else %}{% set_global id = config.extra.demo %}{% endif %}
 {% set e = section.extra %}
 <!doctype html>
-<html lang="{{ lang }}" class="booting">
+<html lang="{{ lang }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -48,23 +48,6 @@
 <link rel="stylesheet" href="{{ get_url(path='css/site.css') }}">
 </head>
 <body>
-
-{# Held in front of the page until it is actually ready, so it arrives in
-   one piece instead of assembling itself in front of the visitor —
-   photographs landing one after another is what a slow connection looks
-   like, whatever the connection is really doing.
-
-   `booting` is in the markup rather than set by a script, because the
-   CSP carries no 'unsafe-inline' and a class added after first paint
-   would flash the page before hiding it. Two failsafes behind it, both
-   in CSS, because a portfolio must never stay blank:
-     - scripting disabled → the loader is never shown at all
-     - script present but broken → it uncovers itself after 5s
-   See site.css. #}
-<div class="loader" aria-hidden="true">
-  <span class="loader-name">{{ id.name }}</span>
-  <span class="dots"><i></i><i></i><i></i></span>
-</div>
 
 {# ---- the bar -------------------------------------------------------
    The maquette toggles a class with script; this is <details>, which

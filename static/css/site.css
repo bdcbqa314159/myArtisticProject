@@ -606,104 +606,133 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
   .links a { font-size: 0.85rem; }
 }
 
+/* The loader is gone.
+ *
+ * It was added so photographs could not trickle in one after another.
+ * That problem was solved by a different change in the same PR —
+ * `loading="lazy"` came off the content images, so they are all in
+ * flight from the start — and the cover itself went on to produce a
+ * succession of artefacts: a page that appeared and blanked, a
+ * background that switched, a black frame on reload, and finally the
+ * content painting before the cover reached it.
+ *
+ * Five fixes for a decoration is four too many. If a held arrival is
+ * wanted later it should be built deliberately and tested on a throttled
+ * connection, not tuned blind. The note is in the spec.
+ */
+
 /* ============================================================================
-   THE LOADER
-
-   The page is held behind this until it is whole. Photographs arriving one
-   after another is what a slow connection looks like to a visitor, whatever
-   the connection is actually doing — and this page gets handed to someone at
-   an event, where the network is bad and somebody is watching over a
-   shoulder. Better a short wait that looks deliberate than a long one that
-   looks broken.
-
-   `booting` is written into the markup, so there is no frame where the page
-   shows before being covered. Two failsafes, both in CSS, because a
-   portfolio must never stay blank:
-     - scripting disabled: never shown at all
-     - script present but broken: uncovers itself after 5s
+   MOTION — a fade, a rise, and a word-by-word reveal. Together these are the
+   whole motion vocabulary of the reference sites.
    ============================================================================ */
 
-.loader {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: 1.5rem;
-  background: var(--bg);
-  /* The failsafe. 0s duration, 5s delay, `forwards` — so it does nothing
-     at all until the delay elapses and then stays uncovered. If the
-     script works, `booting` is gone long before this fires. */
-  animation: loader-failsafe 0s 5s forwards;
-}
-
-/* The loader simply dissolves. Nothing else moves with it.
- *
- * It used to cross-fade with the page: the cover went down while the
- * content came up from transparent, and the reveal blocks animated at
- * the same time. Three overlapping transitions read as mush rather than
- * as an arrival, and the ground appeared to change when it had not.
- *
- * Now there is one thing happening: a flat ground dissolving onto the
- * same flat ground, which is as close to no transition as a transition
- * gets. The content underneath is already in place; the reveals then
- * play as themselves, which is what they were for. */
-html:not(.booting) .loader {
+.reveal {
   opacity: 0;
-  visibility: hidden;
-  transition: opacity 360ms ease, visibility 0s 360ms;
+  transform: translateY(1.25rem);
+  transition: opacity 650ms cubic-bezier(.22,.61,.36,1),
+              transform 650ms cubic-bezier(.22,.61,.36,1);
 }
 
-@keyframes loader-failsafe {
-  to { opacity: 0; visibility: hidden; }
+.reveal.in { opacity: 1; transform: none; }
+
+/* Script wraps each word in `.w` (a clipping box) around `.wi` (the word,
+   pushed below it). `.in` releases them. Both classes come from script: with
+   none there is no `.split`, and a heading is a heading.
+
+   `overflow: clip` would cut descenders, so the box is given room below the
+   baseline and takes it back in margin. */
+
+.split .w {
+  display: inline-block;
+  overflow: clip;
+  vertical-align: top;
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
 }
 
-/* No script, no loader — rather than a five-second wait for a page that
-   was never going to need one. */
-@media (scripting: none) {
-  .loader { display: none; }
+.split .wi {
+  display: inline-block;
+  transform: translateY(110%);
+  transition: transform 720ms cubic-bezier(.22,.61,.36,1);
 }
 
-.loader-name {
-  color: var(--ink);
-  font: 500 0.9375rem/1 var(--sans);
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  /* The tracking adds a trailing space the eye reads as off-centre. */
-  text-indent: 0.24em;
-}
+.split.in .wi { transform: none; }
 
-.dots { display: flex; gap: 0.45rem; }
-
-.dots i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--faint);
-  animation: dot 1.1s ease-in-out infinite;
-}
-
-.dots i:nth-child(2) { animation-delay: 0.16s; }
-.dots i:nth-child(3) { animation-delay: 0.32s; }
-
-@keyframes dot {
-  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
-  30%           { opacity: 1;    transform: translateY(-3px); }
-}
+/* The stagger. nth-child rather than an inline custom property, because
+   `style-src 'self'` carries no 'unsafe-inline' — see the CSP.
+   ponytail: capped at 14 words; word 15 onward arrives with 14. A display
+   headline longer than fourteen words is a paragraph. */
+.split.in .w:nth-child(1)  .wi { transition-delay:   0ms }
+.split.in .w:nth-child(2)  .wi { transition-delay:  45ms }
+.split.in .w:nth-child(3)  .wi { transition-delay:  90ms }
+.split.in .w:nth-child(4)  .wi { transition-delay: 135ms }
+.split.in .w:nth-child(5)  .wi { transition-delay: 180ms }
+.split.in .w:nth-child(6)  .wi { transition-delay: 225ms }
+.split.in .w:nth-child(7)  .wi { transition-delay: 270ms }
+.split.in .w:nth-child(8)  .wi { transition-delay: 315ms }
+.split.in .w:nth-child(9)  .wi { transition-delay: 360ms }
+.split.in .w:nth-child(10) .wi { transition-delay: 405ms }
+.split.in .w:nth-child(11) .wi { transition-delay: 450ms }
+.split.in .w:nth-child(12) .wi { transition-delay: 495ms }
+.split.in .w:nth-child(13) .wi { transition-delay: 540ms }
+.split.in .w:nth-child(n+14) .wi { transition-delay: 585ms }
 
 @media (prefers-reduced-motion: reduce) {
-  /* Still three dots, still clearly a wait — they just stop moving. */
-  .dots i { animation: none; opacity: 0.5; }
-  html:not(.booting) .loader { transition: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .split .wi { transform: none; transition: none; }
+  .btn { transition: none; }
 }
 
-/* The legal page: one column, reading width, no grid. It is read, not
-   scanned, and it is the only page here that is prose. */
-.prose-page { max-width: 62ch; }
-.prose-page h3 { margin: 2.75rem 0 0.75rem; font-size: 1rem; }
-.prose-page p { margin: 0 0 1rem; }
-.prose-page .actions { margin-top: 3rem; }
+/* ============================================================================
+   WIDER — the maquette's own breakpoints, 560px and 800px, read upwards.
+   ============================================================================ */
+
+@media (min-width: 35rem) {            /* the maquette's 560px */
+  /* Spacing is already fluid — --gutter and --band are clamps — so
+     widening only changes what sits beside what. */
+  .grid.three, .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .placeholder { min-height: 320px; }
+  .video { min-height: 0; }
+}
+
+@media (min-width: 50rem) {            /* the maquette's 800px */
+  /* The blur lives up here only.
+     `backdrop-filter` makes an element a containing block for every
+     `position: fixed` descendant — so with it on the header, a
+     full-screen sheet inside the bar resolved `inset: 0` against the
+     64px bar instead of the viewport: enormous type in a sliver, the
+     close button out of reach, and the scroll lock still on. There is
+     no sheet at this width, so the blur is free here and nowhere
+     else. */
+  header { backdrop-filter: blur(8px); }
+
+  .hero-grid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.6fr); gap: 3.5rem; }
+  .about { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3.5rem; }
+  .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  /* The maquette's inline row.
+     The <details> is genuinely opened by script here rather than having
+     its closed state styled — Safari and Chrome hide a closed details
+     through `::details-content` with `content-visibility`, which no
+     `display` rule on the children can reach. See src/landing.ts.
+
+     `html.js` guards the hidden button: with no script the disclosure
+     stays visible and works natively, instead of a scriptless visitor
+     getting no navigation at all. */
+  html.js .menu > summary { display: none; }
+
+  .links {
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    gap: 22px;
+    padding: 0;
+    background: none;
+    border: 0;
+  }
+
+  .links a { font-size: 0.85rem; }
+}
 
 /* ============================================================================
    THE MENU, BELOW THE BREAKPOINT

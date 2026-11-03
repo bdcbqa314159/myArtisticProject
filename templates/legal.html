@@ -2,7 +2,7 @@
 {% else %}{% set_global id = config.extra.demo %}{% endif %}
 {% set L = config.extra.legal %}
 <!doctype html>
-<html lang="{{ lang }}" class="booting">
+<html lang="{{ lang }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -29,11 +29,6 @@
 <link rel="stylesheet" href="{{ get_url(path='css/site.css') }}">
 </head>
 <body>
-
-<div class="loader" aria-hidden="true">
-  <span class="loader-name">{{ id.name }}</span>
-  <span class="dots"><i></i><i></i><i></i></span>
-</div>
 
 <header>
   <div class="wrap nav">

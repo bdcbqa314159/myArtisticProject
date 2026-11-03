@@ -248,35 +248,6 @@ function copyButtons(): void {
   }
 }
 
-/* ---- uncovering the page ---------------------------------------------
- * `load` rather than `DOMContentLoaded`: the point is to wait for the
- * photographs, not merely for the markup. With no lazy attribute left on
- * them they are all in flight from the start, so this is the moment the
- * page is genuinely whole.
- *
- * Capped, because "whole" is not worth any amount of waiting. One slow
- * image on a venue's network must not hold the rest hostage — past the
- * cap the page is shown and the stragglers arrive into it, which is the
- * ordinary behaviour we were avoiding, not a broken one.
- */
-const UNCOVER_CAP_MS = 2600;
-
-let uncovered = false;
-
-function uncover(): void {
-  // Both the load event and the cap can call this; the second call must
-  // not replay the motion.
-  if (uncovered) return;
-  uncovered = true;
-  document.documentElement.classList.remove("booting");
-
-  // Started here, not at parse time. Observers fire on what is in the
-  // viewport whether or not anyone can see it, so motion set up behind
-  // the cover would have finished playing by the time the cover lifted —
-  // the reveal would exist and never be seen.
-  if (!reduced) startMotion();
-}
-
 /* Script is present. The bar's wide-screen styling depends on this
  * class, so that with no script the disclosure button stays visible and
  * the menu still works natively — hiding the button and relying on JS to
@@ -293,8 +264,10 @@ document.documentElement.classList.add("js");
  * only sensible place to arrive. */
 if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 
-/* Prepared under the cover, started when it lifts. Doing both at once is
- * what blanked the page after it had already appeared. */
+/* Marked, then started. Still two steps: the marking must be in place
+ * before anything observes it, and observeReveals() reveals whatever is
+ * already on screen synchronously, so no frame is painted with visible
+ * content still transparent. */
 function prepareMotion(): void {
   splitHeadlines();
   markReveals();
@@ -305,7 +278,10 @@ function startMotion(): void {
   observeReveals();
 }
 
-if (!reduced) prepareMotion();
+if (!reduced) {
+  prepareMotion();
+  startMotion();
+}
 
 syncBar();
 WIDE.addEventListener("change", syncBar);
@@ -313,18 +289,3 @@ markCurrentSection();
 closeMenuOnNavigate();
 copyButtons();
 
-/* LAST, deliberately.
- *
- * On a warm reload the document is often already `complete` when this
- * module runs, so `uncover()` fires on this very line. Everything it
- * needs must therefore already have happened — with this block higher up
- * the page was uncovered first, the motion started with nothing
- * prepared, and the preparation then blanked a page the visitor was
- * already looking at. Which is exactly how it behaved on refresh.
- */
-if (document.readyState === "complete") {
-  uncover();
-} else {
-  window.addEventListener("load", uncover, { once: true });
-  setTimeout(uncover, UNCOVER_CAP_MS);
-}
