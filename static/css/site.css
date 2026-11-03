@@ -607,62 +607,32 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
 }
 
 /* ============================================================================
-   THE LOADER
+   THE LOADER  — the myBureau arrangement, which works.
 
-   The page is held behind this until it is whole. Photographs arriving one
-   after another is what a slow connection looks like to a visitor, whatever
-   the connection is actually doing — and this page gets handed to someone at
-   an event, where the network is bad and somebody is watching over a
-   shoulder. Better a short wait that looks deliberate than a long one that
-   looks broken.
+   The overlay exists only while `.booting` is set (by the inline script in
+   the head, before first paint), or while it is leaving. So a browser with
+   no JavaScript never sees it and cannot be stranded behind it, and there is
+   no frame in which the page shows before being covered.
 
-   `booting` is written into the markup, so there is no frame where the page
-   shows before being covered. Two failsafes, both in CSS, because a
-   portfolio must never stay blank:
-     - scripting disabled: never shown at all
-     - script present but broken: uncovers itself after 5s
+   Leaving is the important half: `booting` comes off and `.is-leaving` keeps
+   the overlay painted while it fades, and then it is REMOVED from the
+   document. Nothing is left behind holding a stale state.
    ============================================================================ */
 
-.loader {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
+.loader { display: none; }
+
+.booting .loader,
+.loader.is-leaving {
   display: grid;
   place-content: center;
   justify-items: center;
   gap: 1.5rem;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  /* the page's own ground, so the reveal is a fade and not a flash of
+     the wrong colour */
   background: var(--bg);
-  /* The failsafe. 0s duration, 5s delay, `forwards` — so it does nothing
-     at all until the delay elapses and then stays uncovered. If the
-     script works, `booting` is gone long before this fires. */
-  animation: loader-failsafe 0s 5s forwards;
-}
-
-/* The loader simply dissolves. Nothing else moves with it.
- *
- * It used to cross-fade with the page: the cover went down while the
- * content came up from transparent, and the reveal blocks animated at
- * the same time. Three overlapping transitions read as mush rather than
- * as an arrival, and the ground appeared to change when it had not.
- *
- * Now there is one thing happening: a flat ground dissolving onto the
- * same flat ground, which is as close to no transition as a transition
- * gets. The content underneath is already in place; the reveals then
- * play as themselves, which is what they were for. */
-html:not(.booting) .loader {
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 360ms ease, visibility 0s 360ms;
-}
-
-@keyframes loader-failsafe {
-  to { opacity: 0; visibility: hidden; }
-}
-
-/* No script, no loader — rather than a five-second wait for a page that
-   was never going to need one. */
-@media (scripting: none) {
-  .loader { display: none; }
 }
 
 .loader-name {
@@ -684,8 +654,8 @@ html:not(.booting) .loader {
   animation: dot 1.1s ease-in-out infinite;
 }
 
-.dots i:nth-child(2) { animation-delay: 0.16s; }
-.dots i:nth-child(3) { animation-delay: 0.32s; }
+.dots i:nth-child(2) { animation-delay: -0.77s; }
+.dots i:nth-child(3) { animation-delay: -0.45s; }
 
 @keyframes dot {
   0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
@@ -693,17 +663,8 @@ html:not(.booting) .loader {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* Still three dots, still clearly a wait — they just stop moving. */
-  .dots i { animation: none; opacity: 0.5; }
-  html:not(.booting) .loader { transition: none; }
+  .dots i { animation: none; opacity: 0.6; }
 }
-
-/* The legal page: one column, reading width, no grid. It is read, not
-   scanned, and it is the only page here that is prose. */
-.prose-page { max-width: 62ch; }
-.prose-page h3 { margin: 2.75rem 0 0.75rem; font-size: 1rem; }
-.prose-page p { margin: 0 0 1rem; }
-.prose-page .actions { margin-top: 3rem; }
 
 /* ============================================================================
    THE MENU, BELOW THE BREAKPOINT

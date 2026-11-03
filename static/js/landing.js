@@ -270,7 +270,39 @@ function uncover() {
  * the menu still works natively — hiding the button and relying on JS to
  * open the panel would leave a scriptless visitor with no navigation at
  * all. No flash: the loader is still over the page when this runs. */
-document.documentElement.classList.add("js");
+/* ---- showing the page -------------------------------------------------
+ * myBureau's sequence, which is the one that works:
+ *
+ *   `.is-leaving` keeps the overlay painted while `booting` comes off,
+ *   it fades, and then it is REMOVED from the document.
+ *
+ * Removing it matters. Left in place with `visibility: hidden` it is a
+ * covered page one stale class away from being covered again, and it
+ * holds a state nothing else can see.
+ *
+ * The page underneath is finished the whole time — the fade of the cover
+ * IS the transition, and nothing else moves with it.
+ */
+function reveal() {
+    const loader = document.querySelector(".loader");
+    if (!loader) {
+        document.documentElement.classList.remove("booting");
+        return;
+    }
+    loader.classList.add("is-leaving");
+    document.documentElement.classList.remove("booting");
+    if (reduced) {
+        loader.remove();
+        return;
+    }
+    void loader
+        .animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: 420,
+        easing: "cubic-bezier(.4,0,.6,1)",
+        fill: "forwards",
+    })
+        .finished.then(() => loader.remove());
+}
 /* Start at the top, every time.
  *
  * Browsers restore the previous scroll position on reload, which happens
@@ -313,4 +345,17 @@ else {
     window.addEventListener("load", uncover, { once: true });
     setTimeout(uncover, UNCOVER_CAP_MS);
 }
+/* `load`, not `DOMContentLoaded`: the point of covering the page is to
+ * wait for the photographs. With no lazy attribute on them they are all
+ * in flight from the start, so this is the moment it is genuinely whole.
+ * The 6s failsafe in the head covers anything that goes wrong here. */
+function show() {
+    reveal();
+    if (!reduced)
+        startMotion();
+}
+if (document.readyState === "complete")
+    show();
+else
+    window.addEventListener("load", show, { once: true });
 //# sourceMappingURL=landing.js.map
