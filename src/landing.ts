@@ -44,6 +44,21 @@ function markReveals(): void {
 function observeReveals(): void {
   const blocks = document.querySelectorAll<HTMLElement>(".reveal");
 
+  // Anything already on screen is revealed NOW, synchronously, before a
+  // single frame is painted.
+  //
+  // IntersectionObserver callbacks are asynchronous. Creating the
+  // observer and waiting for it means at least one frame where blocks
+  // that are plainly in view are still `opacity: 0` — and if the reader
+  // is part-way down the page, that frame is a bare ground with nothing
+  // on it. On a reload, with the scroll position restored under the
+  // cover, that is the whole screen: the loader ends and there is
+  // blackness until the callbacks land.
+  for (const el of blocks) {
+    const box = el.getBoundingClientRect();
+    if (box.top < window.innerHeight && box.bottom > 0) el.classList.add("in");
+  }
+
   const seen = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
@@ -268,6 +283,15 @@ function uncover(): void {
  * open the panel would leave a scriptless visitor with no navigation at
  * all. No flash: the loader is still over the page when this runs. */
 document.documentElement.classList.add("js");
+
+/* Start at the top, every time.
+ *
+ * Browsers restore the previous scroll position on reload, which happens
+ * underneath the cover — so the cover would lift onto wherever the
+ * reader had got to last time, mid-section, with the hero never seen. On
+ * a one-page site that is held back until it is whole, the top is the
+ * only sensible place to arrive. */
+if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 
 /* Prepared under the cover, started when it lifts. Doing both at once is
  * what blanked the page after it had already appeared. */
