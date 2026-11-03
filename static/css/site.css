@@ -182,7 +182,25 @@ header {
   border-bottom: 1px solid var(--line);
 }
 
-.links a { font-size: 0.95rem; text-decoration: none; }
+.links a {
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+/* Where you are, not only where you could go. */
+.links a.current { color: var(--ink); }
+
+@media (min-width: 50rem) {
+  .links a { color: var(--muted); }
+  .links a:hover, .links a:focus-visible { color: var(--ink); }
+  .links a.current {
+    color: var(--ink);
+    /* A rule under the current one rather than a weight change, so the
+       row does not reflow as you scroll past each section. */
+    box-shadow: 0 1px 0 0 currentColor;
+  }
+}
 
 /* ---- type -------------------------------------------------------------
    The maquette's scale, which is the aggressive one: h1 at 27vw on a
@@ -553,9 +571,17 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
   .about { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3.5rem; }
   .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
-  /* The bar becomes the maquette's inline row: the panel is always
-     shown and the button is gone, so <details> costs nothing here. */
-  .menu > summary { display: none; }
+  /* The maquette's inline row.
+     The <details> is genuinely opened by script here rather than having
+     its closed state styled — Safari and Chrome hide a closed details
+     through `::details-content` with `content-visibility`, which no
+     `display` rule on the children can reach. See src/landing.ts.
+
+     `html.js` guards the hidden button: with no script the disclosure
+     stays visible and works natively, instead of a scriptless visitor
+     getting no navigation at all. */
+  html.js .menu > summary { display: none; }
+
   .links {
     position: static;
     flex-direction: row;
@@ -565,7 +591,7 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
     background: none;
     border: 0;
   }
-  .menu:not([open]) > .links { display: flex; }
+
   .links a { font-size: 0.85rem; }
 }
 
@@ -604,7 +630,32 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
 html:not(.booting) .loader {
   opacity: 0;
   visibility: hidden;
-  transition: opacity 420ms ease, visibility 0s 420ms;
+  transition: opacity 620ms cubic-bezier(.33, 0, .2, 1), visibility 0s 620ms;
+}
+
+/* The hand-off, which is the part that was wrong.
+ *
+ * The page underneath was fully opaque the whole time, so the cover
+ * lifting was a step rather than a transition — a veil passing over
+ * finished artwork. It read as a switch being thrown, because that is
+ * what it was.
+ *
+ * Now the two cross-fade: the page starts at nothing and comes up as the
+ * cover goes down, on a slightly longer curve and a small delay, so
+ * neither is ever at full strength alone and there is no instant where
+ * the change happens. */
+body > :not(.loader) {
+  opacity: 1;
+  transition: opacity 760ms 110ms cubic-bezier(.33, 0, .2, 1);
+}
+
+html.booting body > :not(.loader) { opacity: 0; }
+
+/* The wordmark and dots leave a little ahead of the ground they sit on,
+   so they are not still legible over a page that has arrived. */
+html:not(.booting) .loader > * {
+  opacity: 0;
+  transition: opacity 280ms ease;
 }
 
 @keyframes loader-failsafe {
@@ -647,7 +698,9 @@ html:not(.booting) .loader {
 @media (prefers-reduced-motion: reduce) {
   /* Still three dots, still clearly a wait — they just stop moving. */
   .dots i { animation: none; opacity: 0.5; }
-  html:not(.booting) .loader { transition: none; }
+  html:not(.booting) .loader,
+  html:not(.booting) .loader > *,
+  body > :not(.loader) { transition: none; }
 }
 
 /* The legal page: one column, reading width, no grid. It is read, not
@@ -656,3 +709,65 @@ html:not(.booting) .loader {
 .prose-page h3 { margin: 2.75rem 0 0.75rem; font-size: 1rem; }
 .prose-page p { margin: 0 0 1rem; }
 .prose-page .actions { margin-top: 3rem; }
+
+/* ============================================================================
+   THE MENU, BELOW THE BREAKPOINT — a page, not a strip.
+
+   It used to be a panel positioned under the bar, which covered part of the
+   page and left the rest visible: a half state, and the section you had just
+   asked for sat behind it. Full screen is unambiguous — the menu is either
+   the whole screen or it is gone — and it lets the list be set at a size
+   worth reading rather than squeezed into a utility strip.
+
+   Scoped to a max-width query on purpose: above the breakpoint the bar is
+   the maquette's inline row and none of this should apply.
+   ============================================================================ */
+
+@media (max-width: 49.9375rem) {
+  .menu[open] > .links {
+    position: fixed;
+    inset: 0;
+    /* Above the page. The sticky header already carries z-index 10 and so
+       forms the stacking context this sits in, which is what puts the
+       overlay over everything outside it. */
+    z-index: 50;
+    display: grid;
+    align-content: center;
+    gap: 0;
+    padding: var(--gutter);
+    background: var(--bg);
+    border: 0;
+    counter-reset: navitem;
+  }
+
+  /* The close button has to stay reachable over the sheet it opened. */
+  .menu[open] > summary { position: relative; z-index: 60; }
+
+  .menu[open] > .links a {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    counter-increment: navitem;
+    font: 400 clamp(2rem, 9vw, 3rem)/1.25 var(--serif);
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+
+  /* The same numbering the sections carry, so the menu reads as a table of
+     contents rather than as a list of buttons. */
+  .menu[open] > .links a::before {
+    content: counter(navitem, decimal-leading-zero);
+    color: var(--faint);
+    font: 500 0.6875rem/1 var(--sans);
+    letter-spacing: var(--track-label);
+  }
+
+  /* No scrolling the page behind the sheet. */
+  html:has(.menu[open]) { overflow: hidden; }
+}
+
+/* One label, two words, no script. */
+.menu > summary .is-open { display: none; }
+.menu[open] > summary .is-shut { display: none; }
+.menu[open] > summary .is-open { display: inline; }

@@ -70,7 +70,10 @@
     <a class="logo" href="#top">{{ id.name }}</a>
     {% if e.nav %}
     <details class="menu">
-      <summary aria-label="Menu">Menu</summary>
+      {# Both words are rendered and CSS shows one. A script swapping the
+         label would be a script the bar does not otherwise need, and the
+         button must keep working when there is none. #}
+      <summary><span class="is-shut">Menu</span><span class="is-open">Close</span></summary>
       <nav class="links">
         {% for item in e.nav %}<a href="{{ item.href }}">{{ item.label }}</a>{% endfor %}
       </nav>
