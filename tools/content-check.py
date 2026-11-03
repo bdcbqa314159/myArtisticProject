@@ -14,6 +14,7 @@ paragraphs:
     a flag someone remembers flipping
   * no placeholder email address, ever (brief §4.08)
   * no stand-in photograph on a live site (NOTICE)
+  * no legal notice with blanks in it, and the icons exist
   * concepts in development stay marked as such (brief §4.05)
 
 While `live = false` these are warnings: the demo is allowed to be
@@ -27,6 +28,11 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def value_in(cfg: str, key: str) -> str:
+    m = re.search(rf'^{key}\s*=\s*"([^"]*)"', cfg, re.M)
+    return m.group(1).strip() if m else ""
 
 
 def front_matter(p: Path) -> str:
@@ -95,6 +101,18 @@ def main() -> int:
         problems.append("no contact address configured")
     elif re.search(r"example\.(com|org)|@example|placeholder|todo|xxx", address, re.I):
         problems.append(f"placeholder contact address: {address}")
+
+    # --- the legal notice -------------------------------------------------
+    # Required of a publisher established in France whoever the audience
+    # is, and a notice with gaps in it is worse than an honest absence —
+    # so the blanks block `live` rather than being published as blanks.
+    for field in ("entity", "status", "registration", "address", "publisher"):
+        if not value_in(cfg, field):
+            problems.append(f"legal notice incomplete: {field} is empty")
+
+    for f in ("favicon.svg", "icon-180.png", "og.png"):
+        if not (ROOT / "static" / f).exists():
+            problems.append(f"static/{f} is missing (python3 tools/icons.py)")
 
     # --- the saveable contact ---------------------------------------------
     # Offered on the page only when a name is configured, so the failure

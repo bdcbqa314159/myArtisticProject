@@ -84,3 +84,22 @@ vcard_role = ""        # "Artist & Creative Director"
 vcard_org = ""         # the entity
 vcard_phone = ""       # optional, international format: "+33 ..."
 vcard_url = ""         # optional
+
+# ---------------------------------------------------------------
+# MENTIONS LÉGALES — required of a publisher established in France,
+# whoever the audience is. Filled in at handover; the build refuses to
+# go live while any of it is blank, because a legal notice with gaps in
+# it is worse than an honest absence.
+#
+# The host's details are a fact about where the site is served and are
+# filled in already.
+# ---------------------------------------------------------------
+[extra.legal]
+entity = ""            # the legal name of the publisher
+status = ""            # e.g. "Entrepreneur individuel", "SASU"
+registration = ""      # SIRET / RCS
+address = ""           # the registered address
+publisher = ""         # directeur de la publication
+host_name = "GitHub, Inc."
+host_address = "88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, United States"
+host_url = "https://github.com"

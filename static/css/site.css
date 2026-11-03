@@ -649,3 +649,10 @@ html:not(.booting) .loader {
   .dots i { animation: none; opacity: 0.5; }
   html:not(.booting) .loader { transition: none; }
 }
+
+/* The legal page: one column, reading width, no grid. It is read, not
+   scanned, and it is the only page here that is prose. */
+.prose-page { max-width: 62ch; }
+.prose-page h3 { margin: 2.75rem 0 0.75rem; font-size: 1rem; }
+.prose-page p { margin: 0 0 1rem; }
+.prose-page .actions { margin-top: 3rem; }
