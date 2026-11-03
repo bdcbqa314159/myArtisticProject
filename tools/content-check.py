@@ -96,6 +96,15 @@ def main() -> int:
     elif re.search(r"example\.(com|org)|@example|placeholder|todo|xxx", address, re.I):
         problems.append(f"placeholder contact address: {address}")
 
+    # --- the saveable contact ---------------------------------------------
+    # Offered on the page only when a name is configured, so the failure
+    # being guarded is the opposite one: a card promised and missing.
+    if re.search(r'^vcard_name\s*=\s*"(?!")', cfg, re.M) and not (ROOT / "static" / "contact.vcf").exists():
+        problems.append(
+            "vcard_name is set but static/contact.vcf is missing "
+            "(python3 tools/vcard.py)"
+        )
+
     # --- stand-in photographs --------------------------------------------
     ledger = ROOT / "content" / "PLACEHOLDERS.txt"
     if ledger.exists():

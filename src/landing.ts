@@ -125,11 +125,23 @@ type Wash = {
   phase: number;
 };
 
+/* Near-neutral, and cold.
+ *
+ * This used to be hues 18, 44 and 352 at 85% saturation — orange, amber
+ * and red — which is where the warmth in the hero was actually coming
+ * from. It is painted on a canvas, so no amount of editing the
+ * stylesheet could reach it, and the palette looked unchanged.
+ *
+ * Now the same family as the rest of the page: hues either side of 240
+ * at a saturation low enough that it reads as a shift in the grey
+ * rather than as a colour. See the palette note in site.css. */
+const WASH_SATURATION = 26;
+
 const WASH: readonly Wash[] = [
-  { hue: 18,  radius: 0.75, orbit: 0.18, speed: 0.013, phase: 0.0 },
-  { hue: 352, radius: 0.60, orbit: 0.24, speed: 0.019, phase: 1.7 },
-  { hue: 44,  radius: 0.65, orbit: 0.21, speed: 0.011, phase: 3.4 },
-  { hue: 205, radius: 0.55, orbit: 0.27, speed: 0.023, phase: 5.1 },
+  { hue: 232, radius: 0.75, orbit: 0.18, speed: 0.013, phase: 0.0 },
+  { hue: 248, radius: 0.60, orbit: 0.24, speed: 0.019, phase: 1.7 },
+  { hue: 214, radius: 0.65, orbit: 0.21, speed: 0.011, phase: 3.4 },
+  { hue: 260, radius: 0.55, orbit: 0.27, speed: 0.023, phase: 5.1 },
 ];
 
 function heroWash(canvas: HTMLCanvasElement): void {
@@ -164,9 +176,9 @@ function heroWash(canvas: HTMLCanvasElement): void {
       const r = b.radius * short;
 
       const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      g.addColorStop(0, `hsl(${b.hue} 85% 60% / 0.55)`);
-      g.addColorStop(0.55, `hsl(${b.hue} 85% 55% / 0.18)`);
-      g.addColorStop(1, `hsl(${b.hue} 85% 50% / 0)`);
+      g.addColorStop(0, `hsl(${b.hue} ${WASH_SATURATION}% 58% / 0.42)`);
+      g.addColorStop(0.55, `hsl(${b.hue} ${WASH_SATURATION}% 54% / 0.14)`);
+      g.addColorStop(1, `hsl(${b.hue} ${WASH_SATURATION}% 50% / 0)`);
       ctx.fillStyle = g;
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);

@@ -244,6 +244,13 @@
     {% if config.extra.contact.email %}
     <div class="actions">
       <a class="btn primary" href="mailto:{{ config.extra.contact.email }}">{{ config.extra.contact.email }}</a>
+      {# The saveable card. In the moment this page is actually used — a
+         phone handed across a table — the useful action is the one that
+         KEEPS him, not one that sends into a void. Built by
+         tools/vcard.py, which writes nothing while no address is set. #}
+      {% if config.extra.contact.vcard_name %}
+      <a class="btn" href="{{ get_url(path='contact.vcf') }}" download>{{ e.contact_save }}</a>
+      {% endif %}
       <button class="btn" type="button" data-copy="{{ config.extra.contact.email }}">{{ e.contact_copy }}</button>
     </div>
     {% else %}

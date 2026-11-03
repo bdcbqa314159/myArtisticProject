@@ -70,3 +70,17 @@ about_lead = "The artist's own account of their practice goes here."
 # mailto: — the brief forbids publishing a placeholder address.
 [extra.contact]
 email = ""
+
+# The saveable contact. In the moment this page is actually used — handed
+# across a table at an event — the useful action is not a form that sends
+# into a void, it is one that KEEPS him: a card the visitor saves to their
+# phone before they put it down.
+#
+# Filled in at handover, like the address. While `email` is empty nothing
+# is generated and nothing is offered, because a vCard with placeholder
+# details is the same mistake as a placeholder mailto:.
+vcard_name = ""        # "Given Family", as it should appear in a phonebook
+vcard_role = ""        # "Artist & Creative Director"
+vcard_org = ""         # the entity
+vcard_phone = ""       # optional, international format: "+33 ..."
+vcard_url = ""         # optional
