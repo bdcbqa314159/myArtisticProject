@@ -278,17 +278,17 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
 
 .hero-grid { display: grid; gap: 2.5rem; align-items: end; }
 
-.hero-wash {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  /* A backdrop, not a picture: soft-light keeps it off the text in
-     either colour scheme. */
-  mix-blend-mode: soft-light;
-  opacity: 0.8;
-}
+/* The hero carried an animated canvas wash. It is gone, and not for
+   performance: it used `mix-blend-mode: soft-light`, and the page's
+   cross-fade gives `.hero` a fractional opacity, which creates a
+   stacking context and isolates the blend. So the wash showed as a raw
+   bright gradient for the length of the fade and then collapsed to
+   almost nothing the instant opacity reached exactly 1 — the background
+   changing dramatically at the end of the arrival.
 
+   It could have been tuned. It was decoration on a page whose real
+   visual identity is someone else's to design, and it had already cost
+   two rounds of this, so it is deleted instead. */
 .hero-grid > * { position: relative; }
 
 .hero-meta { display: grid; gap: 10px; align-content: end; }
