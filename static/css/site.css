@@ -621,6 +621,20 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
 
 .loader { display: none; }
 
+/* AND the page beneath is hidden while the cover is up.
+ *
+ * The cover alone is not enough, and this is the rule whose loss caused
+ * the page to flash before the loader for several rounds. A browser can
+ * paint the document before the stylesheet that positions the cover has
+ * applied, and on a reload Safari keeps the previous rendering on screen
+ * until the new one is ready. Either way the page is seen first.
+ *
+ * `visibility`, not opacity, and deliberately NOT transitioned: when
+ * `booting` comes off the page is simply there, and the only thing that
+ * animates is the cover fading off it. Transitioning this as well is
+ * what made the arrival read as mush. */
+.booting body > :not(.loader) { visibility: hidden; }
+
 .booting .loader,
 .loader.is-leaving {
   display: grid;
