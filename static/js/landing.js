@@ -238,38 +238,6 @@ function copyButtons() {
         });
     }
 }
-/* ---- uncovering the page ---------------------------------------------
- * `load` rather than `DOMContentLoaded`: the point is to wait for the
- * photographs, not merely for the markup. With no lazy attribute left on
- * them they are all in flight from the start, so this is the moment the
- * page is genuinely whole.
- *
- * Capped, because "whole" is not worth any amount of waiting. One slow
- * image on a venue's network must not hold the rest hostage — past the
- * cap the page is shown and the stragglers arrive into it, which is the
- * ordinary behaviour we were avoiding, not a broken one.
- */
-const UNCOVER_CAP_MS = 2600;
-let uncovered = false;
-function uncover() {
-    // Both the load event and the cap can call this; the second call must
-    // not replay the motion.
-    if (uncovered)
-        return;
-    uncovered = true;
-    document.documentElement.classList.remove("booting");
-    // Started here, not at parse time. Observers fire on what is in the
-    // viewport whether or not anyone can see it, so motion set up behind
-    // the cover would have finished playing by the time the cover lifted —
-    // the reveal would exist and never be seen.
-    if (!reduced)
-        startMotion();
-}
-/* Script is present. The bar's wide-screen styling depends on this
- * class, so that with no script the disclosure button stays visible and
- * the menu still works natively — hiding the button and relying on JS to
- * open the panel would leave a scriptless visitor with no navigation at
- * all. No flash: the loader is still over the page when this runs. */
 /* ---- showing the page -------------------------------------------------
  * myBureau's sequence, which is the one that works:
  *
@@ -329,23 +297,16 @@ WIDE.addEventListener("change", syncBar);
 markCurrentSection();
 closeMenuOnNavigate();
 copyButtons();
-/* LAST, deliberately.
+/* LAST, and the ONLY place the page is shown.
  *
- * On a warm reload the document is often already `complete` when this
- * module runs, so `uncover()` fires on this very line. Everything it
- * needs must therefore already have happened — with this block higher up
- * the page was uncovered first, the motion started with nothing
- * prepared, and the preparation then blanked a page the visitor was
- * already looking at. Which is exactly how it behaved on refresh.
- */
-if (document.readyState === "complete") {
-    uncover();
-}
-else {
-    window.addEventListener("load", uncover, { once: true });
-    setTimeout(uncover, UNCOVER_CAP_MS);
-}
-/* `load`, not `DOMContentLoaded`: the point of covering the page is to
+ * There must be exactly one of these. There were briefly two — an older
+ * `uncover()` alongside this — and they ran in order: the first removed
+ * `booting`, which takes the cover away instantly because `.loader` is
+ * `display: none` without it; the second then added `.is-leaving`, which
+ * put the cover BACK so it could fade. Page, loader, page. If a second
+ * way to reveal the page is ever added, this one must go.
+ *
+ * `load`, not `DOMContentLoaded`: the point of covering the page is to
  * wait for the photographs. With no lazy attribute on them they are all
  * in flight from the start, so this is the moment it is genuinely whole.
  * The 6s failsafe in the head covers anything that goes wrong here. */
