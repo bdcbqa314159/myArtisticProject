@@ -191,6 +191,7 @@ h3 {
 .eyebrow {
   display: block;
   margin: 0 0 1.5rem;
+  text-wrap: pretty;
   color: var(--muted);
   font: 500 0.6875rem/1.4 var(--sans);
   letter-spacing: var(--track-label);
@@ -252,6 +253,8 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
 
 .hero-meta { display: grid; gap: 10px; align-content: end; }
 
+.hero-intro { max-width: 42ch; margin: 0; }
+
 /* ---- buttons ------------------------------------------------------------
    Square, not pills — the maquette has no rounded corner anywhere, and
    the 46px minimum is the one-handed target. */
@@ -266,12 +269,12 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
   align-items: center;
   justify-content: center;
   min-height: 46px;
-  padding: 0.75em 1.5em;
+  padding: 0.7em 1.35em;
   border: 1px solid currentColor;
   border-radius: 2em;
   background: transparent;
   color: var(--accent);
-  font: 500 0.875rem/1 var(--sans);
+  font: 500 0.8125rem/1 var(--sans);
   text-decoration: none;
   transition: background-color 180ms ease, color 180ms ease;
 }
@@ -283,7 +286,23 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
 
 /* ---- grids and cards ----------------------------------------------------- */
 
-.grid { display: grid; gap: clamp(2rem, 4vw, 3rem); }
+/* minmax(0, 1fr), never a bare 1fr.
+   `1fr` means `minmax(auto, 1fr)`, and that `auto` minimum is the item's
+   MIN-CONTENT — which for a 900px-wide <img> is 900px. The track is then
+   forbidden to be narrower than the picture's intrinsic width, so one
+   column overflows a phone and two columns blow out to ~1800px on a
+   desktop. The columns compute correctly and the content sits outside
+   them, which is why it looked broken rather than merely wrong.
+   A 0 minimum lets the track shrink and the image scale, as intended. */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(2rem, 4vw, 3rem);
+}
+
+/* Same trap, one level down: a grid or flex item will not shrink below
+   its min-content unless told it may. */
+.grid > * { min-width: 0; }
 
 /* A hairline above and air below it, rather than a box. A page of
    bordered rectangles is a wireframe's way of showing where things go;
@@ -503,15 +522,15 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
 @media (min-width: 35rem) {            /* the maquette's 560px */
   /* Spacing is already fluid — --gutter and --band are clamps — so
      widening only changes what sits beside what. */
-  .grid.three, .grid.two { grid-template-columns: 1fr 1fr; }
+  .grid.three, .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .placeholder { min-height: 320px; }
   .video { min-height: 0; }
 }
 
 @media (min-width: 50rem) {            /* the maquette's 800px */
-  .hero-grid { grid-template-columns: 1.4fr 0.6fr; gap: 3.5rem; }
-  .about { grid-template-columns: 1fr 1fr; gap: 3.5rem; }
-  .grid.three { grid-template-columns: repeat(3, 1fr); }
+  .hero-grid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.6fr); gap: 3.5rem; }
+  .about { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3.5rem; }
+  .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
   /* The bar becomes the maquette's inline row: the panel is always
      shown and the button is gone, so <details> costs nothing here. */
