@@ -59,6 +59,21 @@ src/landing.ts       the only script
 preview.command      double-click this
 ```
 
+## Adding content
+
+The page is assembled from objects — a project, a capability, a concept.
+Adding one is dropping a block into `content/_index.md`; no template is
+touched and the section grows by itself.
+
+```sh
+python3 tools/objects.py --add reference   # prints a block to paste
+python3 tools/objects.py                   # checks every object
+```
+
+See **[OBJECTS.md](OBJECTS.md)** for every object and its fields. That
+file is generated from `tools/objects.py`, which is also what the build
+enforces, so the documentation cannot drift from the rules.
+
 ## Running it
 
 ```sh

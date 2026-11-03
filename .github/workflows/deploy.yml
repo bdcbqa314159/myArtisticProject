@@ -26,6 +26,7 @@ jobs:
       - run: node tools/words-check.mjs      # a headline survives being split
       - run: python3 tools/icons.py          # favicon, touch icon, share image
       - run: python3 tools/vcard.py          # the saveable contact, or nothing at all
+      - run: python3 tools/objects.py        # every content object is well formed
       - run: python3 tools/content-check.py  # the client's publication rules hold
       - uses: taiki-e/install-action@v2
         with:

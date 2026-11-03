@@ -177,7 +177,7 @@
         <figure class="image{% if not w.image %} empty{% endif %}">
           {% if w.image %}
             {% set img = resize_image(path="@/" ~ w.image, width=900, op="fit_width", format="webp") %}
-            <img src="{{ img.url }}" width="{{ img.width }}" height="{{ img.height }}" alt="" decoding="async">
+            <img src="{{ img.url }}" width="{{ img.width }}" height="{{ img.height }}" alt="{{ w.alt | default(value='') }}" decoding="async">
             <figcaption class="stand-in">stand-in</figcaption>
           {% else %}
             <figcaption>Image / case study</figcaption>

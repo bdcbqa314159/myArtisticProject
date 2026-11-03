@@ -156,6 +156,7 @@ verified = false
 verified_on = ""
 evidence = ""
 image = "fragment-01.jpg"
+alt = "Stand-in photograph — replaced at handover with the real case study"
 
 [[extra.work]]
 name = "Reference 02"
@@ -166,6 +167,7 @@ verified = false
 verified_on = ""
 evidence = ""
 image = "fragment-02.jpg"
+alt = "Stand-in photograph — replaced at handover with the real case study"
 
 [[extra.work]]
 name = "Reference 03"
@@ -176,6 +178,7 @@ verified = false
 verified_on = ""
 evidence = ""
 image = "fragment-03.jpg"
+alt = "Stand-in photograph — replaced at handover with the real case study"
 
 [[extra.work]]
 name = "Reference 04"
@@ -186,6 +189,7 @@ verified = false
 verified_on = ""
 evidence = ""
 image = "fragment-04.jpg"
+alt = "Stand-in photograph — replaced at handover with the real case study"
 
 [[extra.work]]
 name = "Reference 05"
