@@ -26,15 +26,36 @@
 :root {
   color-scheme: light dark;
 
-  --ink:   #14100c;
-  --muted: #6b6359;
-  --faint: #9a9189;
-  --line:  #e0d8cc;
-  --bg:    #f7f4ef;
-  --panel: #efeae2;
+  /* ---- the palette --------------------------------------------------
+     COOL NEUTRALS, NO ACCENT COLOUR.
+     The previous warm paper and burnt orange had two problems: the
+     orange reads as Claude/Anthropic rather than as this client, and
+     warmth is not what the preferred reference does.
+
+     uncomn.world is built on near-neutrals with a cold cast. Its own
+     tokens: ground `oklch(18% 0 0)`, text `oklch(96% 0 0)`, borders
+     white at 10-12%, and the panels carrying a faint blue —
+     `oklch(20.8% .042 265.755)`, `oklch(27.9% .041 260.031)`. Hue ~260
+     at chroma 0.04 is the nuance: grey that is not neutral grey, a
+     blue-black rather than a brown-black.
+
+     Reproduced here in hex, around hue 255, so nothing depends on
+     oklch() support. The relationship is the point, not the notation.
+
+     The page has NO accent hue. uncomn's "accent" is simply a lighter
+     near-black. Emphasis comes from weight, size and space — which is
+     also what separates editorial from luxury.
+     ------------------------------------------------------------------ */
+
+  --ink:   #14171c;
+  --muted: #5e6672;
+  --faint: #656d7a;
+  --line:  #d7dbe2;
+  --bg:    #f4f5f7;
+  --panel: #e8eaee;
   --card:  transparent;
-  --tint:  #efeae2;
-  --accent:#a8442a;
+  --tint:  #e8eaee;
+  --accent:#14171c;
 
   --max:    1160px;
   --gutter: clamp(1.25rem, 6vw, 4rem);
@@ -49,14 +70,14 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ink:   #f2ece4;
-    --muted: #a39a8e;
-    --faint: #6f675d;
-    --line:  #2b2724;
-    --bg:    #121110;
-    --panel: #1b1917;
-    --tint:  #1a1816;
-    --accent:#e08356;
+    --ink:   #eef1f5;
+    --muted: #9aa3b0;
+    --faint: #7d8694;
+    --line:  #272c34;
+    --bg:    #101317;
+    --panel: #171b21;
+    --tint:  #14181d;
+    --accent:#eef1f5;
   }
 }
 
