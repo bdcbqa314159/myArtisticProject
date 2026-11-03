@@ -27,23 +27,18 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def value_in(cfg: str, key: str) -> str:
-    m = re.search(rf'^{key}\s*=\s*"([^"]*)"', cfg, re.M)
-    return m.group(1).strip() if m else ""
-
-
-def front_matter(p: Path) -> str:
-    text = p.read_text(encoding="utf-8")
-    parts = text.split("+++")
-    return parts[1] if len(parts) >= 3 else ""
+# Reading TOML is shared — see tools/toml_read.py for why.
+from toml_read import value as value_in, front_matter, flag  # noqa: E402
 
 
 def main() -> int:
     cfg = (ROOT / "config.toml").read_text(encoding="utf-8")
-    live = re.search(r"^live\s*=\s*true\s*$", cfg, re.M) is not None
+    live = flag(cfg, "live")
     fm = front_matter(ROOT / "content" / "_index.md")
 
     problems: list[str] = []

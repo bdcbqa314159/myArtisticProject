@@ -10,6 +10,10 @@
  * touching the DOM at all.
  */
 import { splitWords } from "./words.js";
+/* Both failsafes in one place, so the ordering between them is visible.
+ * The cover's lives in the inline script in the head and is 6000ms;
+ * this one must come after it. */
+const MOTION_FAILSAFE_MS = 7000;
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 /* ---- blocks arrive on scroll -----------------------------------------
  * In two halves, and the split matters.
@@ -133,15 +137,20 @@ function releaseHeadlines() {
             seen.observe(h);
         }
     }
-    // Failsafe, in the same spirit as the rest: whatever happens to the
-    // observers, nothing stays invisible. Four seconds is long past any
-    // legitimate reveal and still inside the time someone is looking.
+    // Failsafe: whatever happens to the observers, nothing stays
+    // invisible.
+    //
+    // AFTER the cover's own failsafe, deliberately. The inline script in
+    // the head uncovers the page at 6s if this script never got that far;
+    // firing this at 4s would release the motion while the cover is still
+    // up, spending it on a page nobody can see — which is the exact
+    // failure the motion was moved out of the cover to avoid.
     setTimeout(() => {
         for (const h of document.querySelectorAll(".split"))
             h.classList.add("in");
         for (const el of document.querySelectorAll(".reveal"))
             el.classList.add("in");
-    }, 4000);
+    }, MOTION_FAILSAFE_MS);
 }
 /* ---- the bar ----------------------------------------------------------
  * Above 800px the maquette's bar is an inline row of links; below it,

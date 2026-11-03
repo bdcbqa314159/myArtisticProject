@@ -1,0 +1,36 @@
+{# Shared head.
+   Included by every template. These lines used to be duplicated byte for
+   byte in each one — the Content-Security-Policy and the boot script
+   among them, which are the two worst things in the file to let drift:
+   a policy tightened on one page and not the other is a difference
+   nobody notices until it matters. #}
+{# Most hosts serve no headers, so this is a meta tag. It is not an
+   anti-XSS measure — nothing a visitor types is rendered back. What it
+   buys: connect-src 'none' means a script that somehow got in could not
+   send what it found anywhere. #}
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  img-src 'self' data:;
+  style-src 'self';
+  script-src 'self' 'unsafe-inline';
+  connect-src 'none';
+  base-uri 'none';
+  object-src 'none'">
+
+{# Set before first paint, which is the whole point: `booting` is what
+   shows the loader, and `.loader` is `display: none` without it. So a
+   browser with no JavaScript never sees a cover, and cannot be stranded
+   behind one.
+
+   An inline script rather than a class in the markup, because the class
+   in the markup has no way to take itself off again — and the failsafe
+   below is the thing that guarantees nobody waits forever. This is why
+   the CSP above carries 'unsafe-inline'; it is the same bargain
+   myBureau makes, for the same reason. #}
+<script>
+(function(d){d.classList.add("js","booting");
+/* Failsafe: if the script that reveals the page never loads or throws,
+   un-hide the page anyway. A portfolio must never stay blank. */
+setTimeout(function(){d.classList.remove("booting")},6000)})(document.documentElement)
+</script>
+<link rel="stylesheet" href="{{ get_url(path='css/site.css') }}">

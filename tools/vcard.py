@@ -16,13 +16,14 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "static" / "contact.vcf"
 
 
-def value(cfg: str, key: str) -> str:
-    m = re.search(rf'^{key}\s*=\s*"([^"]*)"', cfg, re.M)
-    return m.group(1).strip() if m else ""
+# Reading TOML is shared — see tools/toml_read.py for why.
+from toml_read import value  # noqa: E402
 
 
 def escape(v: str) -> str:
