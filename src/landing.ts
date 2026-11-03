@@ -15,13 +15,29 @@ import { splitWords } from "./words.js";
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /* ---- blocks arrive on scroll -----------------------------------------
- * One observer for the whole page. `once` is deliberate: a block that has
+ * In two halves, and the split matters.
+ *
+ * `.reveal` is `opacity: 0`. Added after the cover had already lifted, it
+ * blanked a page the visitor was looking at: the page faded in whole,
+ * every block went transparent, and they then faded back one at a time.
+ * A page appearing and then vanishing is a far worse first impression
+ * than no animation at all.
+ *
+ * So the marking happens while the cover is still up, and only the
+ * observing waits for it to lift.
+ */
+function markReveals(): void {
+  for (const el of document.querySelectorAll<HTMLElement>("section > .wrap > *")) {
+    el.classList.add("reveal");
+  }
+}
+
+/* One observer for the whole page. `once` is deliberate: a block that has
  * arrived stays arrived, because re-animating on the way back up reads as
  * a glitch rather than as an effect.
  */
-function revealOnScroll(): void {
-  const blocks = document.querySelectorAll<HTMLElement>("section > .wrap > *");
-  for (const el of blocks) el.classList.add("reveal");
+function observeReveals(): void {
+  const blocks = document.querySelectorAll<HTMLElement>(".reveal");
 
   const seen = new IntersectionObserver(
     (entries) => {
@@ -50,6 +66,7 @@ function revealOnScroll(): void {
  * headline is not worth a parser.
  */
 function splitHeadlines(): void {
+  // DOM surgery only. Nothing is released here — see releaseHeadlines().
   for (const h of document.querySelectorAll<HTMLElement>("h1, section h2")) {
     if (h.childElementCount > 0) continue;
     const text = h.textContent;
@@ -73,15 +90,23 @@ function splitHeadlines(): void {
     h.replaceChildren(frag);
     h.classList.add("split");
 
+  }
+}
+
+/* The release, which waits for the cover to lift. Splitting the words is
+ * harmless under the cover; letting them play is not, because an
+ * animation nobody can see has simply been spent. */
+function releaseHeadlines(): void {
+  for (const h of document.querySelectorAll<HTMLElement>(".split")) {
     if (h.tagName === "H1") {
-      // The hero headline is above the fold by definition, so it is
-      // released on the next frame rather than waiting for an observer.
+      // The hero headline is above the fold by definition, so it goes on
+      // the next frame rather than waiting for an observer.
       //
-      // This is not a micro-optimisation. On a cold Safari launch the
-      // page can still be hidden when the observer would have run, and
-      // callbacks are deferred until it is visible — which showed up as
-      // a blank headline for the first seconds. A portfolio handed to
-      // someone on a phone cannot open on an empty hero.
+      // Not a micro-optimisation: on a cold Safari launch the page can
+      // still be hidden when the observer would have run, and callbacks
+      // are deferred until it is visible — which showed up as a blank
+      // headline for the first seconds. A portfolio handed to someone on
+      // a phone cannot open on an empty hero.
       requestAnimationFrame(() => h.classList.add("in"));
     } else {
       // Below the fold, wait for the reader to arrive.
@@ -100,8 +125,8 @@ function splitHeadlines(): void {
   }
 
   // Failsafe, in the same spirit as the rest: whatever happens to the
-  // observers, no headline stays invisible. Four seconds is long past
-  // any legitimate reveal and still inside the time someone is looking.
+  // observers, nothing stays invisible. Four seconds is long past any
+  // legitimate reveal and still inside the time someone is looking.
   setTimeout(() => {
     for (const h of document.querySelectorAll(".split")) h.classList.add("in");
     for (const el of document.querySelectorAll(".reveal")) el.classList.add("in");
@@ -187,9 +212,16 @@ function heroWash(canvas: HTMLCanvasElement): void {
   }
 
   resize();
+
+  // One frame now, before anything is observed or animated. The observer
+  // that starts the loop fires asynchronously, which left the hero flat
+  // while the cover lifted and then tinted a beat later — the ground
+  // visibly changing under a page that had already arrived.
+  draw(0);
+
   new ResizeObserver(() => {
     resize();
-    if (reduced) draw(0);
+    draw(0);
   }).observe(canvas);
 
   // Asked for less motion: paint one frame and stop. The hero keeps its
@@ -352,17 +384,7 @@ function uncover(): void {
   // viewport whether or not anyone can see it, so motion set up behind
   // the cover would have finished playing by the time the cover lifted —
   // the reveal would exist and never be seen.
-  if (!reduced) {
-    splitHeadlines();
-    revealOnScroll();
-  }
-}
-
-if (document.readyState === "complete") {
-  uncover();
-} else {
-  window.addEventListener("load", uncover, { once: true });
-  setTimeout(uncover, UNCOVER_CAP_MS);
+  if (!reduced) startMotion();
 }
 
 /* Script is present. The bar's wide-screen styling depends on this
@@ -372,6 +394,20 @@ if (document.readyState === "complete") {
  * all. No flash: the loader is still over the page when this runs. */
 document.documentElement.classList.add("js");
 
+/* Prepared under the cover, started when it lifts. Doing both at once is
+ * what blanked the page after it had already appeared. */
+function prepareMotion(): void {
+  splitHeadlines();
+  markReveals();
+}
+
+function startMotion(): void {
+  releaseHeadlines();
+  observeReveals();
+}
+
+if (!reduced) prepareMotion();
+
 syncBar();
 WIDE.addEventListener("change", syncBar);
 markCurrentSection();
@@ -380,3 +416,19 @@ copyButtons();
 
 const wash = document.querySelector<HTMLCanvasElement>(".hero-wash");
 if (wash) heroWash(wash);
+
+/* LAST, deliberately.
+ *
+ * On a warm reload the document is often already `complete` when this
+ * module runs, so `uncover()` fires on this very line. Everything it
+ * needs must therefore already have happened — with this block higher up
+ * the page was uncovered first, the motion started with nothing
+ * prepared, and the preparation then blanked a page the visitor was
+ * already looking at. Which is exactly how it behaved on refresh.
+ */
+if (document.readyState === "complete") {
+  uncover();
+} else {
+  window.addEventListener("load", uncover, { once: true });
+  setTimeout(uncover, UNCOVER_CAP_MS);
+}
