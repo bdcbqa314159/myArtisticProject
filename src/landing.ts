@@ -268,6 +268,30 @@ function copyButtons(): void {
   }
 }
 
+/* ---- uncovering the page ---------------------------------------------
+ * `load` rather than `DOMContentLoaded`: the point is to wait for the
+ * photographs, not merely for the markup. With no lazy attribute left on
+ * them they are all in flight from the start, so this is the moment the
+ * page is genuinely whole.
+ *
+ * Capped, because "whole" is not worth any amount of waiting. One slow
+ * image on a venue's network must not hold the rest hostage — past the
+ * cap the page is shown and the stragglers arrive into it, which is the
+ * ordinary behaviour we were avoiding, not a broken one.
+ */
+const UNCOVER_CAP_MS = 2600;
+
+function uncover(): void {
+  document.documentElement.classList.remove("booting");
+}
+
+if (document.readyState === "complete") {
+  uncover();
+} else {
+  window.addEventListener("load", uncover, { once: true });
+  setTimeout(uncover, UNCOVER_CAP_MS);
+}
+
 closeMenuOnNavigate();
 copyButtons();
 

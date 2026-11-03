@@ -568,3 +568,84 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
   .menu:not([open]) > .links { display: flex; }
   .links a { font-size: 0.85rem; }
 }
+
+/* ============================================================================
+   THE LOADER
+
+   The page is held behind this until it is whole. Photographs arriving one
+   after another is what a slow connection looks like to a visitor, whatever
+   the connection is actually doing — and this page gets handed to someone at
+   an event, where the network is bad and somebody is watching over a
+   shoulder. Better a short wait that looks deliberate than a long one that
+   looks broken.
+
+   `booting` is written into the markup, so there is no frame where the page
+   shows before being covered. Two failsafes, both in CSS, because a
+   portfolio must never stay blank:
+     - scripting disabled: never shown at all
+     - script present but broken: uncovers itself after 5s
+   ============================================================================ */
+
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1.5rem;
+  background: var(--bg);
+  /* The failsafe. 0s duration, 5s delay, `forwards` — so it does nothing
+     at all until the delay elapses and then stays uncovered. If the
+     script works, `booting` is gone long before this fires. */
+  animation: loader-failsafe 0s 5s forwards;
+}
+
+html:not(.booting) .loader {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 420ms ease, visibility 0s 420ms;
+}
+
+@keyframes loader-failsafe {
+  to { opacity: 0; visibility: hidden; }
+}
+
+/* No script, no loader — rather than a five-second wait for a page that
+   was never going to need one. */
+@media (scripting: none) {
+  .loader { display: none; }
+}
+
+.loader-name {
+  color: var(--ink);
+  font: 500 0.9375rem/1 var(--sans);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  /* The tracking adds a trailing space the eye reads as off-centre. */
+  text-indent: 0.24em;
+}
+
+.dots { display: flex; gap: 0.45rem; }
+
+.dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--faint);
+  animation: dot 1.1s ease-in-out infinite;
+}
+
+.dots i:nth-child(2) { animation-delay: 0.16s; }
+.dots i:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes dot {
+  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+  30%           { opacity: 1;    transform: translateY(-3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Still three dots, still clearly a wait — they just stop moving. */
+  .dots i { animation: none; opacity: 0.5; }
+  html:not(.booting) .loader { transition: none; }
+}
