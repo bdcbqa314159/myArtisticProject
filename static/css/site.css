@@ -710,62 +710,12 @@ html:not(.booting) .loader > * {
 .prose-page p { margin: 0 0 1rem; }
 .prose-page .actions { margin-top: 3rem; }
 
-/* ============================================================================
-   THE MENU, BELOW THE BREAKPOINT — a page, not a strip.
-
-   It used to be a panel positioned under the bar, which covered part of the
-   page and left the rest visible: a half state, and the section you had just
-   asked for sat behind it. Full screen is unambiguous — the menu is either
-   the whole screen or it is gone — and it lets the list be set at a size
-   worth reading rather than squeezed into a utility strip.
-
-   Scoped to a max-width query on purpose: above the breakpoint the bar is
-   the maquette's inline row and none of this should apply.
-   ============================================================================ */
-
-@media (max-width: 49.9375rem) {
-  .menu[open] > .links {
-    position: fixed;
-    inset: 0;
-    /* Above the page. The sticky header already carries z-index 10 and so
-       forms the stacking context this sits in, which is what puts the
-       overlay over everything outside it. */
-    z-index: 50;
-    display: grid;
-    align-content: center;
-    gap: 0;
-    padding: var(--gutter);
-    background: var(--bg);
-    border: 0;
-    counter-reset: navitem;
-  }
-
-  /* The close button has to stay reachable over the sheet it opened. */
-  .menu[open] > summary { position: relative; z-index: 60; }
-
-  .menu[open] > .links a {
-    display: flex;
-    align-items: baseline;
-    gap: 1rem;
-    padding: 0.5rem 0;
-    counter-increment: navitem;
-    font: 400 clamp(2rem, 9vw, 3rem)/1.25 var(--serif);
-    letter-spacing: -0.02em;
-    color: var(--ink);
-  }
-
-  /* The same numbering the sections carry, so the menu reads as a table of
-     contents rather than as a list of buttons. */
-  .menu[open] > .links a::before {
-    content: counter(navitem, decimal-leading-zero);
-    color: var(--faint);
-    font: 500 0.6875rem/1 var(--sans);
-    letter-spacing: var(--track-label);
-  }
-
-  /* No scrolling the page behind the sheet. */
-  html:has(.menu[open]) { overflow: hidden; }
-}
+/* The menu below the breakpoint stays the panel under the bar — see the
+   base `.links` rules. A full-screen sheet was tried and taken out
+   again: the behaviour that felt wrong was never the panel, it was a
+   dead selector that left it open over the section you had just asked
+   for. Fixing that fixed the feeling, and the sheet was a redesign
+   answering a bug.
 
 /* One label, two words, no script. */
 .menu > summary .is-open { display: none; }
