@@ -17,7 +17,7 @@ const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
  * a glitch rather than as an effect.
  */
 function revealOnScroll() {
-    const blocks = document.querySelectorAll(".band > *");
+    const blocks = document.querySelectorAll("section > .wrap > *");
     for (const el of blocks)
         el.classList.add("reveal");
     const seen = new IntersectionObserver((entries) => {
@@ -45,7 +45,7 @@ function revealOnScroll() {
  * headline is not worth a parser.
  */
 function splitHeadlines() {
-    for (const h of document.querySelectorAll("h1, .band h2")) {
+    for (const h of document.querySelectorAll("h1, section h2")) {
         if (h.childElementCount > 0)
             continue;
         const text = h.textContent;
