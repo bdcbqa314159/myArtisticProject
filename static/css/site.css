@@ -1,52 +1,62 @@
 /* myArtisticProject — one page, one stylesheet, no preprocessor.
  *
- * THE ARCHITECTURE IS THE CLIENT'S MAQUETTE V2. Its container width,
- * type scale, grids, card construction and breakpoints are reproduced
- * here on purpose: the brief makes the maquette the reference for
- * "l'architecture, le parcours utilisateur et les contenus" (§2), and
- * the eight sections a delivery criterion (§8).
+ * THE ARCHITECTURE IS THE MAQUETTE'S. THE VISUAL LANGUAGE IS NOT.
  *
- * THE PALETTE AND TYPE STACK ARE STILL PLACEHOLDERS. The graphiste
- * authors logo, typography, palette and iconography separately. The
- * values below are the maquette's own, so that what we show is her
- * starting point rather than our invention. See NOTICE.
+ * The brief is explicit that the maquette "ne constitue pas une charte
+ * graphique" (§2) — it is a wireframe. So its container, section order,
+ * grid counts, card construction and nav behaviour are reproduced
+ * faithfully in templates/index.html, and its wireframe surface — grey
+ * panels, dashed boxes, borders round everything, 16px gaps — is not
+ * reproduced here. Rebuilding those would be rebuilding a wireframe.
+ *
+ * What this file is instead: warm paper, a serif for display against a
+ * sans for labels, and space. That pairing is the editorial register of
+ * the preferred reference, and the restraint comes from a publication
+ * system rather than from opulence.
+ *
+ * STILL A PLACEHOLDER. The graphiste authors logo, typography, palette
+ * and iconography separately. Everything below is tokens, so her values
+ * drop in without anything structural moving. See NOTICE.
  *
  * Written phone-first: every rule here is the phone rule, and the two
- * media queries at the end widen it — the maquette's own breakpoints,
- * 800px and 560px, read the other way round.
+ * media queries at the end — the maquette's own 560px and 800px — widen
+ * it.
  */
 
 :root {
   color-scheme: light dark;
 
-  /* the maquette's values, verbatim */
-  --ink:   #171717;
-  --muted: #626262;
-  --line:  #d7d7d7;
-  --bg:    #fafafa;
-  --panel: #eee;
-  --card:  #fff;
-  --tint:  #ececec;
+  --ink:   #14100c;
+  --muted: #6b6359;
+  --faint: #9a9189;
+  --line:  #e0d8cc;
+  --bg:    #f7f4ef;
+  --panel: #efeae2;
+  --card:  transparent;
+  --tint:  #efeae2;
+  --accent:#a8442a;
 
   --max:    1160px;
-  --gutter: 20px;
+  --gutter: clamp(1.25rem, 6vw, 4rem);
+  --band:   clamp(4rem, 11vw, 8rem);
 
-  --sans: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans:  system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
 
-  /* The editorial signature, as two numbers: labels wide, display type
-     tight. The maquette is already there — -.09em on h1. */
-  --track-label: 0.14em;
+  /* The editorial signature, as two numbers: labels wide, display tight. */
+  --track-label: 0.24em;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ink:   #f0ece6;
-    --muted: #9b948b;
-    --line:  #2d2a26;
-    --bg:    #131211;
-    --panel: #1c1a18;
-    --card:  #1a1816;
-    --tint:  #1c1a18;
+    --ink:   #f2ece4;
+    --muted: #a39a8e;
+    --faint: #6f675d;
+    --line:  #2b2724;
+    --bg:    #121110;
+    --panel: #1b1917;
+    --tint:  #1a1816;
+    --accent:#e08356;
   }
 }
 
@@ -62,11 +72,25 @@ body {
   color: var(--ink);
   font: 16px/1.5 var(--sans);
   -webkit-font-smoothing: antialiased;
+  /* "sans débordement horizontal" is a delivery criterion (§8). This is
+     the guard, not the fix: anything that overflows is still a bug, and
+     `clip` rather than `hidden` so it does not silently become a scroll
+     container and break position: sticky above. */
+  overflow-x: clip;
 }
 
 a { color: inherit; }
 button { font: inherit; cursor: pointer; }
 img { max-width: 100%; height: auto; display: block; }
+
+/* <figure> carries 1em/40px of UA margin, and a list used as a grid
+   carries 40px of padding and a marker. Both wreck a grid quietly —
+   the columns still compute, the content just sits outside them. */
+figure { margin: 0; }
+
+ol, ul { margin: 0; padding: 0; list-style: none; }
+
+h1, h2, h3, p { overflow-wrap: break-word; }
 
 a:focus-visible, button:focus-visible, summary:focus-visible {
   outline: 3px solid var(--muted);
@@ -101,23 +125,26 @@ header {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  min-height: 68px;
+  min-height: 64px;
 }
 
 .logo {
-  font-weight: 900;
-  font-size: 1.5rem;
-  letter-spacing: -0.04em;
+  font: 500 0.9375rem/1 var(--sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   text-decoration: none;
 }
 
 .menu > summary {
   list-style: none;
-  border: 1px solid var(--ink);
-  padding: 10px 14px;
-  font-size: 0.84rem;
-  font-weight: 700;
+  padding: 0.7rem 0.2rem;
+  color: var(--muted);
+  font: 500 0.6875rem/1 var(--sans);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
 }
+
+.menu[open] > summary { color: var(--ink); }
 
 .menu > summary::-webkit-details-marker { display: none; }
 
@@ -142,38 +169,30 @@ header {
    its character and it is not an accident. */
 
 h1 {
-  margin: 18px 0 32px;
-  /* The maquette sets 27vw on a phone, which is sized for a
-     three-character name. A longer one overflows sideways, and "sans
-     débordement horizontal" is a delivery criterion (§8) — so the
-     phone size is the width that still fits seven characters, and
-     break-word is the belt behind the braces for anything longer. */
-  font-size: 22vw;
-  line-height: 0.85;
-  letter-spacing: -0.09em;
-  font-weight: 700;
+  margin: 0 0 1.5rem;
+  font: 400 clamp(3.25rem, 11vw, 7.5rem)/0.95 var(--serif);
+  letter-spacing: -0.035em;
   max-width: 100%;
-  overflow-wrap: break-word;
 }
 
 h2 {
-  margin: 8px 0 20px;
-  font-size: clamp(2.2rem, 7vw, 4.5rem);
-  line-height: 1.02;
-  letter-spacing: -0.055em;
+  margin: 0 0 1.5rem;
+  max-width: 16ch;
+  font: 400 clamp(2rem, 6.5vw, 3.25rem)/1.05 var(--serif);
+  letter-spacing: -0.025em;
 }
 
 h3 {
-  margin: 0 0 12px;
-  font-size: 1.2rem;
-  line-height: 1.15;
+  margin: 0 0 0.5rem;
+  font: 500 1.0625rem/1.3 var(--sans);
+  letter-spacing: -0.005em;
 }
 
 .eyebrow {
-  margin: 0 0 8px;
+  display: block;
+  margin: 0 0 1.5rem;
   color: var(--muted);
-  font-size: 0.73rem;
-  font-weight: 700;
+  font: 500 0.6875rem/1.4 var(--sans);
   letter-spacing: var(--track-label);
   text-transform: uppercase;
 }
@@ -181,33 +200,42 @@ h3 {
 .label-sep { margin-inline: 0.5em; opacity: 0.6; }
 
 .lead {
-  max-width: 750px;
-  font-size: clamp(1.25rem, 4.5vw, 1.9rem);
-  line-height: 1.25;
+  max-width: 24ch;
+  font: 400 clamp(1.25rem, 4.5vw, 1.75rem)/1.3 var(--serif);
+  letter-spacing: -0.015em;
+  text-wrap: pretty;
 }
 
 .muted { color: var(--muted); }
 .small { font-size: 0.85rem; }
 
-.section-intro { max-width: 780px; margin-bottom: 32px; }
+.section-intro { max-width: 54ch; margin-bottom: 3rem; }
 
 /* The disclaimer is legal, not editorial. The maquette gives it a rule
    down its left side; it ships intact and it ships looking deliberate. */
 .note {
-  margin-top: 32px;
-  border-left: 3px solid var(--ink);
-  padding-left: 18px;
-  color: var(--muted);
-  font-size: 0.9rem;
+  max-width: 60ch;
+  margin-top: 3.5rem;
+  border-left: 2px solid var(--line);
+  padding-left: 1.25rem;
+  color: var(--faint);
+  font-size: 0.8125rem;
 }
 
 /* ---- sections ---------------------------------------------------------- */
 
-section { padding: 55px 0; border-bottom: 1px solid var(--line); }
+section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
 
-.hero { padding: 70px 0; position: relative; overflow: clip; }
+.hero {
+  position: relative;
+  padding: calc(var(--band) * 1.15) 0;
+  min-height: min(82svh, 46rem);
+  display: grid;
+  align-content: center;
+  overflow: clip;
+}
 
-.hero-grid { display: grid; gap: 18px; align-items: end; }
+.hero-grid { display: grid; gap: 2.5rem; align-items: end; }
 
 .hero-wash {
   position: absolute;
@@ -228,39 +256,44 @@ section { padding: 55px 0; border-bottom: 1px solid var(--line); }
    Square, not pills — the maquette has no rounded corner anywhere, and
    the 46px minimum is the one-handed target. */
 
-.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2.25rem; }
 
+/* 46px of target is the maquette's number and the one-handed rule.
+   The shape is the one from the first version, which read as made
+   rather than as a form control. */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 46px;
-  padding: 10px 18px;
-  border: 1px solid var(--ink);
+  padding: 0.75em 1.5em;
+  border: 1px solid currentColor;
+  border-radius: 2em;
   background: transparent;
-  color: var(--ink);
-  font-size: 0.84rem;
-  font-weight: 700;
+  color: var(--accent);
+  font: 500 0.875rem/1 var(--sans);
   text-decoration: none;
-  transition: background-color 150ms ease, color 150ms ease;
+  transition: background-color 180ms ease, color 180ms ease;
 }
 
-.btn.primary { background: var(--ink); color: var(--bg); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
 
-.btn:hover, .btn:focus-visible { background: var(--ink); color: var(--bg); }
-.btn.primary:hover, .btn.primary:focus-visible { background: transparent; color: var(--ink); }
+.btn:hover, .btn:focus-visible { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.btn.primary:hover, .btn.primary:focus-visible { background: transparent; color: var(--accent); }
 
 /* ---- grids and cards ----------------------------------------------------- */
 
-.grid { display: grid; gap: 16px; }
+.grid { display: grid; gap: clamp(2rem, 4vw, 3rem); }
 
+/* A hairline above and air below it, rather than a box. A page of
+   bordered rectangles is a wireframe's way of showing where things go;
+   it is not a way of setting them. */
 .card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 26px;
-  background: var(--card);
-  border: 1px solid var(--line);
+  gap: 0.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
 }
 
 .card p { margin: 0; }
@@ -269,47 +302,54 @@ section { padding: 55px 0; border-bottom: 1px solid var(--line); }
    long the text above happens to be. */
 .card .meta {
   margin-top: auto;
-  padding-top: 16px;
-  color: var(--muted);
-  font-size: 0.82rem;
+  padding-top: 1.25rem;
+  color: var(--ink);
+  font-size: 0.875rem;
 }
 
 .tag {
   color: var(--muted);
-  font-size: 0.73rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .num {
-  color: var(--muted);
-  font-size: 0.73rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  color: var(--faint);
+  font: 500 0.6875rem/1 var(--sans);
+  letter-spacing: var(--track-label);
 }
 
 .status {
+  align-self: start;
+  padding: 0.35em 0.85em;
+  border: 1px solid var(--line);
+  border-radius: 2em;
   color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 700;
+  font: 500 0.625rem/1 var(--sans);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 /* The image bleeds to the card's edges — the maquette pulls it out by
    exactly the card's padding. */
+/* The maquette bleeds the image to the card's edges. With no box to
+   bleed out of, it simply is the column's width — same intent, and the
+   picture gets to be a picture. */
 .case .image {
-  margin: -26px -26px 20px;
-  aspect-ratio: 16 / 9;
+  margin: 0 0 1.5rem;
+  aspect-ratio: 3 / 2;
   background: var(--panel);
   display: grid;
   place-items: center;
-  color: var(--muted);
+  color: var(--faint);
+  overflow: clip;
 }
 
 .case .image img { width: 100%; height: 100%; object-fit: cover; }
 
-.case .image.empty { border-bottom: 1px dashed var(--muted); }
+.case .image.empty { background: var(--panel); }
 
 .case .image figcaption {
   font-size: 0.8rem;
@@ -344,13 +384,12 @@ section { padding: 55px 0; border-bottom: 1px solid var(--line); }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 0.5rem;
   min-height: 200px;
   padding: 25px;
   background: var(--panel);
-  border: 1px dashed var(--muted);
   text-align: center;
-  color: var(--muted);
+  color: var(--faint);
 }
 
 .video { aspect-ratio: 16 / 9; min-height: 0; }
@@ -358,17 +397,23 @@ section { padding: 55px 0; border-bottom: 1px solid var(--line); }
 
 /* ---- ecosystem, about, contact -------------------------------------------- */
 
-.strip { display: flex; flex-wrap: wrap; gap: 10px; padding: 0; margin: 0; list-style: none; }
+.strip { display: flex; flex-wrap: wrap; gap: 0.6rem; }
 
-.pill { border: 1px solid var(--line); padding: 8px 12px; font-size: 0.84rem; }
+.pill {
+  padding: 0.6em 1.1em;
+  border: 1px solid var(--line);
+  border-radius: 2em;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
 
 .about { display: grid; gap: 18px; }
 
 .roles { margin: 0; padding: 0; list-style: none; }
 
-.role { border-bottom: 1px solid var(--line); padding: 12px 0; }
+.role { border-bottom: 1px solid var(--line); padding: 1.1rem 0; }
 
-.role strong { display: block; }
+.role strong { display: block; margin-bottom: 0.2rem; font-weight: 500; }
 
 .contact { background: var(--tint); }
 
@@ -456,18 +501,16 @@ section { padding: 55px 0; border-bottom: 1px solid var(--line); }
    ============================================================================ */
 
 @media (min-width: 35rem) {            /* the maquette's 560px */
-  .wrap { width: min(var(--max), calc(100% - 40px)); }
-  section { padding: 76px 0; }
-  .hero { padding: 110px 0 95px; }
-  h1 { font-size: clamp(4.5rem, 12vw, 10rem); }
+  /* Spacing is already fluid — --gutter and --band are clamps — so
+     widening only changes what sits beside what. */
   .grid.three, .grid.two { grid-template-columns: 1fr 1fr; }
   .placeholder { min-height: 320px; }
   .video { min-height: 0; }
 }
 
 @media (min-width: 50rem) {            /* the maquette's 800px */
-  .hero-grid { grid-template-columns: 1.4fr 0.6fr; gap: 60px; }
-  .about { grid-template-columns: 1fr 1fr; gap: 40px; }
+  .hero-grid { grid-template-columns: 1.4fr 0.6fr; gap: 3.5rem; }
+  .about { grid-template-columns: 1fr 1fr; gap: 3.5rem; }
   .grid.three { grid-template-columns: repeat(3, 1fr); }
 
   /* The bar becomes the maquette's inline row: the panel is always
