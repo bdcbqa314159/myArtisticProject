@@ -9,7 +9,9 @@ matters — the afternoon the site goes live. So they are checks, not
 paragraphs:
 
   * no professional role is published before it has been verified
-    (brief §4.04 and §8: "rôles vérifiés avant publication")
+    (brief §4.04 and §8: "rôles vérifiés avant publication"), and
+    "verified" means a dated record of what was checked against — not
+    a flag someone remembers flipping
   * no placeholder email address, ever (brief §4.08)
   * no stand-in photograph on a live site (NOTICE)
   * concepts in development stay marked as such (brief §4.05)
@@ -47,11 +49,35 @@ def main() -> int:
     # Counted off the [[extra.work]] blocks rather than parsed as TOML, so
     # this needs no dependency and no Python version that ships one.
     entries = re.findall(r"\[\[extra\.work\]\](.*?)(?=\n\[\[|\Z)", fm, re.S)
-    unverified = [
-        re.search(r'name\s*=\s*"([^"]*)"', e).group(1)
-        for e in entries
-        if re.search(r"verified\s*=\s*false", e)
-    ]
+    unverified = []
+    for e in entries:
+        name = re.search(r'name\s*=\s*"([^"]*)"', e)
+        name = name.group(1) if name else "?"
+        if re.search(r"verified\s*=\s*false", e):
+            unverified.append(name)
+            continue
+        # Claimed as verified. A flag on its own is somebody's word, so
+        # the record has to say when it was checked and against what —
+        # otherwise "verified" means nothing and the gate it opens is
+        # worth nothing either.
+        when = re.search(r'verified_on\s*=\s*"([^"]*)"', e)
+        what = re.search(r'evidence\s*=\s*"([^"]*)"', e)
+        missing = []
+        if not (when and when.group(1).strip()):
+            missing.append("verified_on")
+        if not (what and what.group(1).strip()):
+            missing.append("evidence")
+        if missing:
+            problems.append(
+                f"{name}: verified = true but no "
+                + " and no ".join(missing)
+                + " — a flag without a record is not a verification"
+            )
+        elif not re.match(r"^\d{4}-\d{2}-\d{2}$", when.group(1).strip()):
+            problems.append(
+                f"{name}: verified_on is {when.group(1)!r}, expected YYYY-MM-DD"
+            )
+
     if unverified:
         problems.append(
             f"{len(unverified)} professional role(s) not verified: "

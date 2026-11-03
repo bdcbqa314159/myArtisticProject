@@ -19,6 +19,28 @@ template = "index.html"
 # Nothing here is invented either: a missing value says it is missing.
 # No company, role, date or credit is ever written to fill a gap.
 # See NOTICE.
+#
+# ---------------------------------------------------------------------
+# THE VOICE: FIRST PERSON SINGULAR.
+#
+# Maquette V2 moved the positioning from a production company to an
+# artist and creative director, but it did not finish the job — the copy
+# still mixes "I bring…", "We develop…" and "the artist develops…"
+# across the eight sections. Three grammatical persons on a page whose
+# whole purpose is to read as one person's authorship.
+#
+# The rule here: **I**, everywhere a human is speaking.
+#
+# Two deliberate exceptions, both of which are not a human speaking:
+#   - the ENTITY, in legal and partnership lines. "Professional
+#     references above do not imply that each organisation is a
+#     contracted partner" is about the company, not the person.
+#   - the INCLUSIVE "we", meaning you-and-I. "How we can work together"
+#     is an invitation, not a corporate plural, and changing it to "I"
+#     would make it a boast.
+#
+# Needs the client's ratification. It is reversible in three strings.
+# ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 
 [extra]
@@ -39,14 +61,14 @@ video = ""
 poster = ""
 services_title = "How we can work together."
 work_title = "Experience behind the ideas."
-work_lead = "Selected organisations and professional roles from the artist's career. Individual case studies can be expanded with verified media, dates, credits and deliverables."
+work_lead = "Organisations I have worked with, and the roles I held. Each can be expanded with verified media, dates, credits and deliverables."
 work_note = "Professional references above do not imply that each organisation is a contracted partner."
 concepts_title = "Formats in development."
 concepts_lead = "Original ideas designed to evolve through partnerships and pilot projects. These are development concepts, not completed client commissions."
 ecosystem_title = "Independent by design. Collaborative by nature."
-ecosystem_lead = "10MILES draws on cross-sector experience and a professional network spanning artistic creation, performance, sport, cultural venues, education and media. Creative collaborations are shaped around each project, with production handled by appropriate partners."
+ecosystem_lead = "I draw on cross-sector experience and a professional network spanning artistic creation, performance, sport, cultural venues, education and media. I shape creative collaborations around each project, with production handled by the right partners."
 about_title = "Built on practice. Open to new territories."
-about_text = "Experience in artistic and operational roles helps connect creative ambition with the realities of delivery. Through 10MILES, the artist develops concepts and international collaborations, with a priority market abroad."
+about_text = "Working across artistic and operational roles helps me connect creative ambition with the realities of delivery. Through 10MILES I develop concepts and international collaborations, with a priority market abroad."
 contact_title = "Let's build something together."
 contact_lead = "For creative direction, experience design, original concepts and collaborations."
 contact_pending = "Email contact — to configure"
@@ -108,11 +130,21 @@ text = "Joining existing projects as a creative director, artistic collaborator,
 # — one of the six is explicitly unverified — and a journey of maturity
 # reads better than a CV besides.
 #
-# `verified = false` means the role has not been checked against the
-# record yet. Brief V2 downgraded ALL SIX to "à contrôler avant
-# publication", so all six start false. While any is false the site
-# cannot go live: tools/content-check.py refuses it. Flip each one as it
-# is confirmed, and the gate opens by itself.
+# VERIFICATION IS A RECORD, NOT A FLAG.
+#
+# Brief V2 downgraded all six references to "à contrôler avant
+# publication", so all six start unverified, and while any is unverified
+# the site cannot go live — tools/content-check.py refuses it.
+#
+# `verified = true` alone is just somebody's word. So it is not enough:
+# a verified entry must also carry WHEN it was checked and WHAT was
+# checked against. The build rejects the flag without both, which means
+# the honest answer to "how do we know this role is right?" is in the
+# file rather than in someone's memory of a conversation.
+#
+#   verified    = true
+#   verified_on = "2026-11-14"        the day it was confirmed
+#   evidence    = "contract, 2023"    what was actually seen
 
 [[extra.work]]
 name = "Reference 01"
@@ -120,6 +152,8 @@ domain = "Performance × Premium Events"
 text = "Description supplied at handover."
 role = "Role supplied at handover, once verified."
 verified = false
+verified_on = ""
+evidence = ""
 image = "fragment-01.jpg"
 
 [[extra.work]]
@@ -128,6 +162,8 @@ domain = "Sport × Culture"
 text = "Description supplied at handover."
 role = "Role supplied at handover, once verified."
 verified = false
+verified_on = ""
+evidence = ""
 image = "fragment-02.jpg"
 
 [[extra.work]]
@@ -136,6 +172,8 @@ domain = "Artistic Direction × Venue"
 text = "Description supplied at handover."
 role = "Role supplied at handover, once verified."
 verified = false
+verified_on = ""
+evidence = ""
 image = "fragment-03.jpg"
 
 [[extra.work]]
@@ -144,6 +182,8 @@ domain = "Culture × Experiences"
 text = "Description supplied at handover."
 role = "Role supplied at handover, once verified."
 verified = false
+verified_on = ""
+evidence = ""
 image = "fragment-04.jpg"
 
 [[extra.work]]
@@ -152,6 +192,8 @@ domain = "Cinema × Education"
 text = "Description supplied at handover."
 role = "Role supplied at handover, once verified."
 verified = false
+verified_on = ""
+evidence = ""
 
 [[extra.work]]
 name = "Reference 06"
@@ -159,6 +201,8 @@ domain = "Media × International"
 text = "Description supplied at handover."
 role = "Role supplied at handover, once verified."
 verified = false
+verified_on = ""
+evidence = ""
 
 
 # ---- 04 original concepts -------------------------------------------
