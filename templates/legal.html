@@ -6,6 +6,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{# Declared in the markup as well as the stylesheet. The browser paints
+   its canvas before any CSS arrives, and without this it paints white —
+   so on a slow connection a visitor in dark mode gets a white screen
+   first and the real ground second. On a venue's network that is the
+   first thing they see. #}
+<meta name="color-scheme" content="light dark">
 <title>{{ page.title }} — {{ id.name }}</title>
 {# Never indexed, live or not: it exists because the law asks for it,
    not to be found. #}
