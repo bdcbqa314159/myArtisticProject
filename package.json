@@ -6,7 +6,7 @@
     "build": "tsc",
     "watch": "tsc --watch --preserveWatchOutput",
     "check": "tsc --noEmit",
-    "test": "./tools/js-is-current.sh && node tools/words-check.mjs && python3 tools/vcard.py && python3 tools/content-check.py && zola build"
+    "test": "./tools/js-is-current.sh && node tools/words-check.mjs && python3 tools/icons.py && python3 tools/vcard.py && python3 tools/content-check.py && zola build"
   },
   "devDependencies": {
     "typescript": "^5.7.0"

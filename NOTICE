@@ -104,6 +104,19 @@ that names the thing it guards would be the leak it is trying to
 prevent.
 
 --------------------------------------------------------------------
+THE ICONS ARE ORIGINAL, AND ALSO PLACEHOLDERS
+--------------------------------------------------------------------
+static/favicon.svg, static/icon-180.png and static/og.png are drawn by
+tools/icons.py, here, with no dependency beyond the standard library.
+Nothing is taken from an icon pack: those archives are overwhelmingly
+unlicensed re-uploads, and a mark on a client's site is the last place
+to discover that.
+
+They are placeholders all the same. The graphiste authors the real logo
+and iconography. The mark carries no letterform on purpose — a
+letterform would be a logo, and that is hers to design.
+
+--------------------------------------------------------------------
 NO INVENTED REFERENCES
 --------------------------------------------------------------------
 The client's brief requires that missing content stays visibly flagged

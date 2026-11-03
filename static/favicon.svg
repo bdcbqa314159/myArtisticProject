@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Placeholder mark. The graphiste authors the real one. A point on a
+       circle: a distance travelled, and no letterform, because a
+       letterform would be a logo. -->
+  <style>
+    .ground { fill: #f4f5f7 }
+    .mark   { fill: none; stroke: #14171c; stroke-width: 5 }
+    .point  { fill: #14171c }
+    /* An SVG favicon can answer the browser's theme, which a .ico
+       cannot. In a dark tab strip the light ground would be a bright
+       square; here it simply inverts. */
+    @media (prefers-color-scheme: dark) {
+      .ground { fill: #101317 }
+      .mark   { stroke: #eef1f5 }
+      .point  { fill: #eef1f5 }
+    }
+  </style>
+  <rect class="ground" width="64" height="64" rx="12"/>
+  <circle class="mark" cx="32" cy="34" r="17"/>
+  <circle class="point" cx="32" cy="17" r="6"/>
+</svg>

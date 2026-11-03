@@ -1,0 +1,122 @@
+{% if config.extra.live %}{% set_global id = config.extra.real %}
+{% else %}{% set_global id = config.extra.demo %}{% endif %}
+{% set L = config.extra.legal %}
+<!doctype html>
+<html lang="{{ lang }}" class="booting">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ page.title }} — {{ id.name }}</title>
+{# Never indexed, live or not: it exists because the law asks for it,
+   not to be found. #}
+<meta name="robots" content="noindex, follow">
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  img-src 'self' data:;
+  style-src 'self';
+  script-src 'self';
+  connect-src 'none';
+  base-uri 'none';
+  object-src 'none'">
+<link rel="icon" href="{{ get_url(path='favicon.svg') }}" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{{ get_url(path='icon-180.png') }}">
+<link rel="stylesheet" href="{{ get_url(path='css/site.css') }}">
+</head>
+<body>
+
+<div class="loader" aria-hidden="true">
+  <span class="loader-name">{{ id.name }}</span>
+  <span class="dots"><i></i><i></i><i></i></span>
+</div>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="{{ get_url(path='/') }}">{{ id.name }}</a>
+  </div>
+</header>
+
+<main>
+<section>
+  <div class="wrap prose-page">
+    <p class="eyebrow">Legal</p>
+    <h2>{{ page.title }}</h2>
+
+    <h3>Publisher</h3>
+    {% if L.entity %}
+    <p class="muted">
+      {{ L.entity }}{% if L.status %}, {{ L.status }}{% endif %}<br>
+      {% if L.registration %}{{ L.registration }}<br>{% endif %}
+      {{ L.address }}<br>
+      {% if config.extra.contact.email %}{{ config.extra.contact.email }}{% endif %}
+    </p>
+    <p class="muted">Director of publication: {{ L.publisher }}</p>
+    {% else %}
+    {# Blanks are shown as blanks. The build refuses `live` while this is
+       the state, so this text can only ever be seen on a demo. #}
+    <p class="pending">Publisher details to be supplied before launch.</p>
+    {% endif %}
+
+    <h3>Host</h3>
+    <p class="muted">
+      {{ L.host_name }}<br>
+      {{ L.host_address }}<br>
+      <a href="{{ L.host_url }}">{{ L.host_url }}</a>
+    </p>
+
+    <h3>Privacy</h3>
+    {# Every sentence below is a statement about what this site actually
+       does, checked against what it actually loads. It is short because
+       the site is simple, and it must be re-read if that ever stops
+       being true — adding an analytics tag or an embedded video makes
+       most of this false. #}
+    <p class="muted">This site sets no cookies and uses no analytics.</p>
+    <p class="muted">
+      It loads nothing from anyone else: no third-party scripts, fonts,
+      maps or embedded players. Everything the page needs is served from
+      this domain, and the page is not permitted to send data anywhere —
+      a restriction written into the page itself as a Content Security
+      Policy, not merely a promise.
+    </p>
+    <p class="muted">
+      There is no form. The contact link opens your own mail application
+      with the address filled in; nothing is sent through this site, and
+      this site never sees what you write.
+    </p>
+    <p class="muted">
+      Like any website, the host records technical logs when a page is
+      requested, which include the requesting IP address. Those logs are
+      {{ L.host_name }}'s, kept under their own policy, and are not read
+      or used by the publisher.
+    </p>
+
+    <h3>Intellectual property</h3>
+    <p class="muted">
+      The texts, images and other content of this site are the property
+      of the publisher and may not be reproduced without written
+      permission. The software that runs it is licensed, not assigned —
+      see the LICENSE and NOTICE files in the project repository.
+    </p>
+
+    <p class="note">
+      This notice reflects how the site is built today. It is matched to
+      the tools actually in use, and must be revised if any are added.
+    </p>
+
+    <p class="actions"><a class="btn" href="{{ get_url(path='/') }}">Back</a></p>
+  </div>
+</section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>{{ id.name }}</span>
+    <span class="credit-studio">
+      <a href="{{ config.extra.author_url }}" rel="author">site by {{ config.extra.author }}</a>
+      {% if config.extra.studio %} {{ config.extra.studio }}{% endif %}
+    </span>
+  </div>
+</footer>
+
+<script type="module" src="{{ get_url(path='js/landing.js') }}"></script>
+</body>
+</html>
