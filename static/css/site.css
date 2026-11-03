@@ -1,427 +1,398 @@
 /* myArtisticProject — one page, one stylesheet, no preprocessor.
  *
- * THE PALETTE AND THE TYPE STACK ARE PLACEHOLDERS. The client's
- * graphiste authors logo, typography, palette and iconography
- * separately (brief §2); this file is built so that her identity drops
- * into the tokens below and nothing structural moves. See NOTICE.
+ * THE ARCHITECTURE IS THE CLIENT'S MAQUETTE V2. Its container width,
+ * type scale, grids, card construction and breakpoints are reproduced
+ * here on purpose: the brief makes the maquette the reference for
+ * "l'architecture, le parcours utilisateur et les contenus" (§2), and
+ * the eight sections a delivery criterion (§8).
+ *
+ * THE PALETTE AND TYPE STACK ARE STILL PLACEHOLDERS. The graphiste
+ * authors logo, typography, palette and iconography separately. The
+ * values below are the maquette's own, so that what we show is her
+ * starting point rather than our invention. See NOTICE.
  *
  * Written phone-first: every rule here is the phone rule, and the two
- * media queries at the end widen it. Approval happens on a real phone,
- * so that is the layout that gets designed rather than derived.
+ * media queries at the end widen it — the maquette's own breakpoints,
+ * 800px and 560px, read the other way round.
  */
 
 :root {
   color-scheme: light dark;
 
-  --ink:      #14100c;
-  --ink-dim:  #6b6359;
-  --ink-faint:#9a9189;
-  --paper:    #f7f4ef;
-  --raised:   #efeae2;
-  --accent:   #a8442a;
-  --rule:     #ded6ca;
+  /* the maquette's values, verbatim */
+  --ink:   #171717;
+  --muted: #626262;
+  --line:  #d7d7d7;
+  --bg:    #fafafa;
+  --panel: #eee;
+  --card:  #fff;
+  --tint:  #ececec;
 
-  --measure: 36rem;
-  --gutter:  clamp(1.25rem, 6vw, 6rem);
-  --band:    clamp(4.5rem, 12vw, 9rem);
+  --max:    1160px;
+  --gutter: 20px;
 
-  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  --sans:  system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
 
-  /* The editorial signature, as two numbers: labels very wide, display
-     type slightly tight. See _ref/references.md. */
-  --track-label:  0.24em;
-  --track-display:-0.025em;
+  /* The editorial signature, as two numbers: labels wide, display type
+     tight. The maquette is already there — -.09em on h1. */
+  --track-label: 0.14em;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ink:      #f2ece4;
-    --ink-dim:  #a39a8e;
-    --ink-faint:#6f675d;
-    --paper:    #121110;
-    --raised:   #1b1917;
-    --accent:   #e08356;
-    --rule:     #2b2724;
+    --ink:   #f0ece6;
+    --muted: #9b948b;
+    --line:  #2d2a26;
+    --bg:    #131211;
+    --panel: #1c1a18;
+    --card:  #1a1816;
+    --tint:  #1c1a18;
   }
 }
 
 * { box-sizing: border-box; }
 
-html {
-  -webkit-text-size-adjust: 100%;
-  scroll-behavior: smooth;
-}
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
 body {
   margin: 0;
-  background: var(--paper);
+  background: var(--bg);
   color: var(--ink);
-  font: 400 clamp(1rem, 0.4vw + 0.95rem, 1.0625rem)/1.6 var(--sans);
-  text-rendering: optimizeLegibility;
+  font: 16px/1.5 var(--sans);
   -webkit-font-smoothing: antialiased;
 }
 
-/* Anchors land below the sticky bar instead of under it. */
-[id] { scroll-margin-top: 4.5rem; }
+a { color: inherit; }
+button { font: inherit; cursor: pointer; }
+img { max-width: 100%; height: auto; display: block; }
 
-img { max-width: 100%; height: auto; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 3px solid var(--muted);
+  outline-offset: 3px;
+}
 
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+/* One container, every section, header and footer included. */
+.wrap {
+  width: min(var(--max), calc(100% - 2 * var(--gutter)));
+  margin-inline: auto;
+}
 
-/* ---- the bar ---------------------------------------------------------
-   The menu is a <details>: it opens, closes, and takes the keyboard
-   without a line of script. Nothing here depends on JavaScript. */
+[id] { scroll-margin-top: 72px; }
 
-.bar {
+/* ---- header -----------------------------------------------------------
+   The maquette toggles a class with script. This is <details>, which
+   opens, closes and takes the keyboard on its own — and above 800px the
+   panel is simply always shown and the button is gone, so the desktop
+   bar is the maquette's inline row with no script at all. */
+
+header {
   position: sticky;
   top: 0;
   z-index: 10;
+  background: color-mix(in oklab, var(--bg) 93%, transparent);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+}
+
+.nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.85rem var(--gutter);
-  background: color-mix(in oklab, var(--paper) 88%, transparent);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--rule);
+  gap: 20px;
+  min-height: 68px;
 }
 
-.bar-name {
-  color: inherit;
-  font: 500 0.9375rem/1 var(--sans);
-  letter-spacing: 0.08em;
+.logo {
+  font-weight: 900;
+  font-size: 1.5rem;
+  letter-spacing: -0.04em;
   text-decoration: none;
-  text-transform: uppercase;
 }
 
 .menu > summary {
   list-style: none;
-  cursor: pointer;
-  /* 44px of target, which is the one-handed rule. */
-  padding: 0.6rem 0.2rem;
-  color: var(--ink-dim);
-  font: 500 0.6875rem/1 var(--sans);
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
+  border: 1px solid var(--ink);
+  padding: 10px 14px;
+  font-size: 0.84rem;
+  font-weight: 700;
 }
 
 .menu > summary::-webkit-details-marker { display: none; }
 
-.menu[open] > summary { color: var(--ink); }
-
-.menu-items {
+.links {
   position: absolute;
-  right: var(--gutter);
-  left: var(--gutter);
-  display: grid;
-  margin-top: 0.85rem;
-  padding: 0.5rem 0;
-  background: var(--raised);
-  border: 1px solid var(--rule);
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 20px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
 }
 
-.menu-items a {
-  padding: 0.85rem 1.1rem;
-  color: inherit;
-  font-size: 0.9375rem;
-  text-decoration: none;
+.links a { font-size: 0.95rem; text-decoration: none; }
+
+/* ---- type -------------------------------------------------------------
+   The maquette's scale, which is the aggressive one: h1 at 27vw on a
+   phone, line-height .85, tracking -.09em. That compression is most of
+   its character and it is not an accident. */
+
+h1 {
+  margin: 18px 0 32px;
+  /* The maquette sets 27vw on a phone, which is sized for a
+     three-character name. A longer one overflows sideways, and "sans
+     débordement horizontal" is a delivery criterion (§8) — so the
+     phone size is the width that still fits seven characters, and
+     break-word is the belt behind the braces for anything longer. */
+  font-size: 22vw;
+  line-height: 0.85;
+  letter-spacing: -0.09em;
+  font-weight: 700;
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
-.menu-items a:hover { background: var(--paper); }
-
-/* ---- hero ------------------------------------------------------------ */
-
-.hero {
-  position: relative;
-  display: grid;
-  align-content: center;
-  min-height: min(86svh, 50rem);
-  padding: var(--band) var(--gutter);
-  overflow: clip;
+h2 {
+  margin: 8px 0 20px;
+  font-size: clamp(2.2rem, 7vw, 4.5rem);
+  line-height: 1.02;
+  letter-spacing: -0.055em;
 }
+
+h3 {
+  margin: 0 0 12px;
+  font-size: 1.2rem;
+  line-height: 1.15;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+.label-sep { margin-inline: 0.5em; opacity: 0.6; }
+
+.lead {
+  max-width: 750px;
+  font-size: clamp(1.25rem, 4.5vw, 1.9rem);
+  line-height: 1.25;
+}
+
+.muted { color: var(--muted); }
+.small { font-size: 0.85rem; }
+
+.section-intro { max-width: 780px; margin-bottom: 32px; }
+
+/* The disclaimer is legal, not editorial. The maquette gives it a rule
+   down its left side; it ships intact and it ships looking deliberate. */
+.note {
+  margin-top: 32px;
+  border-left: 3px solid var(--ink);
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* ---- sections ---------------------------------------------------------- */
+
+section { padding: 55px 0; border-bottom: 1px solid var(--line); }
+
+.hero { padding: 70px 0; position: relative; overflow: clip; }
+
+.hero-grid { display: grid; gap: 18px; align-items: end; }
 
 .hero-wash {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  /* A backdrop, not a picture: soft-light keeps it from fighting the
-     text in either colour scheme. */
+  /* A backdrop, not a picture: soft-light keeps it off the text in
+     either colour scheme. */
   mix-blend-mode: soft-light;
-  opacity: 0.85;
+  opacity: 0.8;
 }
 
-.hero-text { position: relative; max-width: var(--measure); }
+.hero-grid > * { position: relative; }
 
-.eyebrow {
-  margin: 0 0 1.75rem;
-  color: var(--ink-dim);
-  font-size: 0.875rem;
-}
+.hero-meta { display: grid; gap: 10px; align-content: end; }
 
-h1 {
-  margin: 0 0 1.25rem;
-  font: 400 clamp(3.5rem, 18vw, 9rem)/0.92 var(--serif);
-  letter-spacing: var(--track-display);
-}
+/* ---- buttons ------------------------------------------------------------
+   Square, not pills — the maquette has no rounded corner anywhere, and
+   the 46px minimum is the one-handed target. */
 
-.tagline {
-  margin: 0 0 1rem;
-  max-width: 24ch;
-  font: 400 clamp(1.375rem, 5vw, 2rem)/1.25 var(--serif);
-  letter-spacing: -0.015em;
-  text-wrap: pretty;
-}
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
 
-.intro {
-  margin: 0 0 2.25rem;
-  max-width: 42ch;
-  color: var(--ink-dim);
-}
-
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 0;
-}
-
-.cta {
-  display: inline-block;
-  padding: 0.85em 1.5em;
-  border: 1px solid currentColor;
-  border-radius: 2em;
-  background: none;
-  color: var(--accent);
-  font: 500 0.875rem/1 var(--sans);
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 10px 18px;
+  border: 1px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.84rem;
+  font-weight: 700;
   text-decoration: none;
-  cursor: pointer;
-  transition: background-color 180ms ease, color 180ms ease;
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
-.cta:hover, .cta:focus-visible { background: var(--accent); color: var(--paper); }
+.btn.primary { background: var(--ink); color: var(--bg); }
 
-.cta-quiet { color: var(--ink-dim); }
-.cta-quiet:hover, .cta-quiet:focus-visible { background: var(--ink); color: var(--paper); }
+.btn:hover, .btn:focus-visible { background: var(--ink); color: var(--bg); }
+.btn.primary:hover, .btn.primary:focus-visible { background: transparent; color: var(--ink); }
 
-/* ---- bands ----------------------------------------------------------- */
+/* ---- grids and cards ----------------------------------------------------- */
 
-.band {
-  max-width: calc(var(--measure) + 24rem);
-  margin-inline: auto;
-  padding: var(--band) var(--gutter);
-  border-top: 1px solid var(--rule);
+.grid { display: grid; gap: 16px; }
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 26px;
+  background: var(--card);
+  border: 1px solid var(--line);
 }
 
-.band-last { border-bottom: 1px solid var(--rule); }
+.card p { margin: 0; }
 
-.label {
-  display: block;
-  margin: 0 0 1.5rem;
-  color: var(--ink-dim);
-  font: 500 0.6875rem/1.4 var(--sans);
-  letter-spacing: var(--track-label);
+/* Pushed to the bottom, so a row of cards lines its metadata up however
+   long the text above happens to be. */
+.card .meta {
+  margin-top: auto;
+  padding-top: 16px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.tag {
+  color: var(--muted);
+  font-size: 0.73rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-.label-sep { margin-inline: 0.55em; opacity: 0.55; }
-
-.band h2 {
-  margin: 0 0 1.5rem;
-  max-width: 18ch;
-  font: 400 clamp(2rem, 8vw, 3.5rem)/1.05 var(--serif);
-  letter-spacing: var(--track-display);
-}
-
-.lead {
-  margin: 0 0 2.5rem;
-  max-width: 54ch;
-  color: var(--ink-dim);
-}
-
-.note {
-  margin: 3rem 0 0;
-  max-width: 60ch;
-  color: var(--ink-faint);
-  font-size: 0.8125rem;
 }
 
 .num {
-  display: block;
-  margin-bottom: 0.9rem;
-  color: var(--ink-faint);
-  font: 500 0.6875rem/1 var(--sans);
-  letter-spacing: var(--track-label);
-}
-
-/* ---- capabilities and concepts --------------------------------------- */
-
-.grid {
-  display: grid;
-  gap: 2.5rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.grid h3, .work-text h3, .pillars h3 {
-  margin: 0 0 0.5rem;
-  font: 500 1.0625rem/1.3 var(--sans);
-  letter-spacing: -0.005em;
-}
-
-.grid p, .work-text p, .pillars p {
-  margin: 0;
-  color: var(--ink-dim);
-  font-size: 0.9375rem;
+  color: var(--muted);
+  font-size: 0.73rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
 }
 
 .status {
-  display: inline-block;
-  margin-bottom: 0.9rem;
-  padding: 0.35em 0.8em;
-  border: 1px solid var(--rule);
-  border-radius: 2em;
-  color: var(--ink-dim);
-  font: 500 0.625rem/1 var(--sans);
-  letter-spacing: 0.14em;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
-/* ---- selected work, as a trajectory -----------------------------------
-   Ordered by widening discipline, and numbered, so it reads as one
-   practice developing rather than as six separate credentials. */
-
-.work {
-  display: grid;
-  gap: var(--band);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.work > li { display: grid; gap: 1.5rem; }
-
-.shot {
-  margin: 0;
-  background: var(--raised);
-  aspect-ratio: 3 / 2;
-  overflow: clip;
-}
-
-.shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-.shot-empty, .showreel-empty {
+/* The image bleeds to the card's edges — the maquette pulls it out by
+   exactly the card's padding. */
+.case .image {
+  margin: -26px -26px 20px;
+  aspect-ratio: 16 / 9;
+  background: var(--panel);
   display: grid;
   place-items: center;
-  border: 1px dashed var(--rule);
+  color: var(--muted);
 }
 
-.shot figcaption {
-  color: var(--ink-faint);
-  font: 500 0.6875rem/1 var(--sans);
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
+.case .image img { width: 100%; height: 100%; object-fit: cover; }
+
+.case .image.empty { border-bottom: 1px dashed var(--muted); }
+
+.case .image figcaption {
+  font-size: 0.8rem;
 }
 
-/* A stand-in photograph says so, on the page, in the demo. A visitor
-   cannot otherwise tell one from a portfolio piece — see NOTICE. */
+/* A stand-in photograph says so, on the page. A visitor cannot
+   otherwise tell one from a real piece — see NOTICE. */
 .stand-in {
   position: absolute;
-  margin: 0.6rem;
-  padding: 0.3em 0.6em;
-  background: var(--paper);
-  color: var(--ink-faint);
+  margin: 8px;
+  padding: 3px 7px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
-.shot { position: relative; }
+.case .image { position: relative; }
 
-.domain {
-  margin: 0 0 0.4rem;
-  color: var(--ink-dim);
-  font-size: 0.8125rem;
+/* An unverified role is shown AS unverified rather than dropped. Hiding
+   it would lose the one fact that matters — somebody has to check it. */
+.role-unverified { font-style: italic; }
+.role-unverified::before { content: "⚑ "; font-style: normal; }
+
+/* ---- showreel ------------------------------------------------------------
+   No video yet, so no player and no decorative play button — the
+   client's own production note. */
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 200px;
+  padding: 25px;
+  background: var(--panel);
+  border: 1px dashed var(--muted);
+  text-align: center;
+  color: var(--muted);
 }
 
-.role {
-  margin-top: 0.75rem !important;
-  color: var(--ink) !important;
-  font-size: 0.875rem !important;
-}
+.video { aspect-ratio: 16 / 9; min-height: 0; }
+.video video { width: 100%; height: 100%; }
 
-/* An unverified role is shown AS unverified. Hiding it would lose the
-   one fact that matters — that somebody still has to check it. */
-.role-unverified {
-  color: var(--ink-faint) !important;
-  font-style: italic;
-}
+/* ---- ecosystem, about, contact -------------------------------------------- */
 
-.role-unverified::before {
-  content: "⚑ ";
-  font-style: normal;
-}
+.strip { display: flex; flex-wrap: wrap; gap: 10px; padding: 0; margin: 0; list-style: none; }
 
-/* ---- showreel --------------------------------------------------------- */
+.pill { border: 1px solid var(--line); padding: 8px 12px; font-size: 0.84rem; }
 
-.showreel {
-  margin: 0;
-  aspect-ratio: 16 / 9;
-  background: var(--raised);
-}
+.about { display: grid; gap: 18px; }
 
-.showreel video { width: 100%; height: 100%; display: block; }
+.roles { margin: 0; padding: 0; list-style: none; }
 
-.showreel figcaption { display: grid; justify-items: center; gap: 0.5rem; }
+.role { border-bottom: 1px solid var(--line); padding: 12px 0; }
 
-.showreel-spec { color: var(--ink-faint); font-size: 0.8125rem; }
+.role strong { display: block; }
 
-/* ---- ecosystem and about ---------------------------------------------- */
+.contact { background: var(--tint); }
 
-.fields, .pillars {
-  display: grid;
-  gap: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
+.contact h2 { max-width: 750px; }
 
-.fields > li {
-  padding: 1rem 0;
-  border-top: 1px solid var(--rule);
-  color: var(--ink-dim);
-  font-size: 0.9375rem;
-}
+.pending { color: var(--muted); font-style: italic; }
 
-.fields > li:last-child { border-bottom: 1px solid var(--rule); }
+/* ---- footer ---------------------------------------------------------------- */
 
-.pillars { gap: 2rem; margin-top: 2.5rem; }
+.footer { padding: 26px 0; font-size: 0.8rem; border-bottom: 0; }
 
-.pending {
-  margin: 0;
-  color: var(--ink-faint);
-  font-style: italic;
-}
+.footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 
-/* ---- credit ------------------------------------------------------------ */
+.footer a { color: var(--muted); text-decoration: none; }
+.footer a:hover { color: var(--ink); }
 
-.credit {
-  padding: 2rem var(--gutter) 3rem;
-  font-size: 0.75rem;
-}
+/* LICENSE §4: visible and readable. It may be discreet; it may not be
+   removed or hidden from assistive technology. */
+.credit-studio { margin-left: 0.75em; color: var(--muted); }
 
-.credit a { color: var(--ink-dim); text-decoration: none; }
-.credit a:hover { color: var(--ink); }
-
-/* The studio stamp. Quiet by design — LICENSE §4 asks for visible and
-   readable, not loud. */
-.credit-studio { margin-left: 0.75em; color: var(--ink-faint); }
-
-/* ======================================================================
-   MOTION — a fade, a rise, and a word-by-word reveal. Together these are
-   the whole motion vocabulary of the reference sites.
-   ====================================================================== */
+/* ============================================================================
+   MOTION — a fade, a rise, and a word-by-word reveal. Together these are the
+   whole motion vocabulary of the reference sites.
+   ============================================================================ */
 
 .reveal {
   opacity: 0;
@@ -433,11 +404,11 @@ h1 {
 .reveal.in { opacity: 1; transform: none; }
 
 /* Script wraps each word in `.w` (a clipping box) around `.wi` (the word,
-   pushed below it). `.in` releases them. Both classes come from script:
-   with none there is no `.split`, and a heading is a heading.
+   pushed below it). `.in` releases them. Both classes come from script: with
+   none there is no `.split`, and a heading is a heading.
 
-   `overflow: clip` would cut descenders — the g in "design" — so the box
-   is given room below the baseline and takes it back in margin. */
+   `overflow: clip` would cut descenders, so the box is given room below the
+   baseline and takes it back in margin. */
 
 .split .w {
   display: inline-block;
@@ -457,8 +428,8 @@ h1 {
 
 /* The stagger. nth-child rather than an inline custom property, because
    `style-src 'self'` carries no 'unsafe-inline' — see the CSP.
-   ponytail: capped at 14 words; word 15 onward arrives with 14. A
-   display headline longer than fourteen words is a paragraph. */
+   ponytail: capped at 14 words; word 15 onward arrives with 14. A display
+   headline longer than fourteen words is a paragraph. */
 .split.in .w:nth-child(1)  .wi { transition-delay:   0ms }
 .split.in .w:nth-child(2)  .wi { transition-delay:  45ms }
 .split.in .w:nth-child(3)  .wi { transition-delay:  90ms }
@@ -477,26 +448,40 @@ h1 {
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1; transform: none; transition: none; }
   .split .wi { transform: none; transition: none; }
-  .cta { transition: none; }
+  .btn { transition: none; }
 }
 
-/* ======================================================================
-   WIDER SCREENS — the phone layout, widened. Nothing is redesigned here.
-   ====================================================================== */
+/* ============================================================================
+   WIDER — the maquette's own breakpoints, 560px and 800px, read upwards.
+   ============================================================================ */
 
-@media (min-width: 46rem) {
-  .grid { grid-template-columns: repeat(2, 1fr); gap: 3rem 2.5rem; }
-  .grid-wide { grid-template-columns: repeat(3, 1fr); }
-  .pillars { grid-template-columns: repeat(2, 1fr); gap: 2.5rem; }
-  .fields { grid-template-columns: repeat(2, 1fr); column-gap: 2.5rem; }
-  .work > li { grid-template-columns: 5fr 4fr; gap: 2.5rem; align-items: center; }
-  /* Alternating sides: the journey reads as a path rather than a column
-     of identical cards. */
-  .work > li:nth-child(even) .shot { order: 2; }
-  .band h2 { max-width: 14ch; }
+@media (min-width: 35rem) {            /* the maquette's 560px */
+  .wrap { width: min(var(--max), calc(100% - 40px)); }
+  section { padding: 76px 0; }
+  .hero { padding: 110px 0 95px; }
+  h1 { font-size: clamp(4.5rem, 12vw, 10rem); }
+  .grid.three, .grid.two { grid-template-columns: 1fr 1fr; }
+  .placeholder { min-height: 320px; }
+  .video { min-height: 0; }
 }
 
-@media (min-width: 64rem) {
-  .grid { grid-template-columns: repeat(3, 1fr); }
-  .menu-items { right: var(--gutter); left: auto; min-width: 16rem; }
+@media (min-width: 50rem) {            /* the maquette's 800px */
+  .hero-grid { grid-template-columns: 1.4fr 0.6fr; gap: 60px; }
+  .about { grid-template-columns: 1fr 1fr; gap: 40px; }
+  .grid.three { grid-template-columns: repeat(3, 1fr); }
+
+  /* The bar becomes the maquette's inline row: the panel is always
+     shown and the button is gone, so <details> costs nothing here. */
+  .menu > summary { display: none; }
+  .links {
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    gap: 22px;
+    padding: 0;
+    background: none;
+    border: 0;
+  }
+  .menu:not([open]) > .links { display: flex; }
+  .links a { font-size: 0.85rem; }
 }
