@@ -59,6 +59,11 @@
       {% if e.eyebrow %}<p class="eyebrow">{{ e.eyebrow }}</p>{% endif %}
       <h1>{{ id.name }}</h1>
       {% if e.roles %}<p class="lead">{{ e.roles }}</p>{% endif %}
+      {# The positioning sentence belongs with the words it qualifies.
+         It used to sit in the right-hand column, which on a phone put it
+         BELOW the call to action — the reader met "Explore selected
+         work" before being told what the work is. #}
+      {% if e.intro %}<p class="muted hero-intro">{{ e.intro }}</p>{% endif %}
       <div class="actions">
         {% if e.cta_work %}<a class="btn primary" href="#work">{{ e.cta_work }}</a>{% endif %}
         {% if e.cta_contact %}<a class="btn" href="#contact">{{ e.cta_contact }}</a>{% endif %}
@@ -67,9 +72,10 @@
     {# The maquette's narrow right-hand column: the masthead line and the
        positioning sentence, set against the headline rather than under
        it. #}
+    {# The masthead line, and nothing else: on a wide screen it sits
+       against the headline, on a phone it closes the hero. #}
     <div class="hero-meta">
       {% if e.issue %}<p class="eyebrow">{{ e.issue }}{% if e.place %}<span class="label-sep">·</span>{{ e.place }}{% endif %}</p>{% endif %}
-      {% if e.intro %}<p class="muted">{{ e.intro }}</p>{% endif %}
     </div>
   </div>
 </section>
