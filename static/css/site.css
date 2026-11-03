@@ -136,9 +136,10 @@ header {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: color-mix(in oklab, var(--bg) 93%, transparent);
+  /* Nearly opaque, and NO backdrop-filter at this width — see the note
+     beside the 800px blur. */
+  background: color-mix(in oklab, var(--bg) 97%, transparent);
   border-bottom: 1px solid var(--line);
-  backdrop-filter: blur(8px);
 }
 
 .nav {
@@ -567,6 +568,16 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
 }
 
 @media (min-width: 50rem) {            /* the maquette's 800px */
+  /* The blur lives up here only.
+     `backdrop-filter` makes an element a containing block for every
+     `position: fixed` descendant — so with it on the header, a
+     full-screen sheet inside the bar resolved `inset: 0` against the
+     64px bar instead of the viewport: enormous type in a sliver, the
+     close button out of reach, and the scroll lock still on. There is
+     no sheet at this width, so the blur is free here and nowhere
+     else. */
+  header { backdrop-filter: blur(8px); }
+
   .hero-grid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.6fr); gap: 3.5rem; }
   .about { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3.5rem; }
   .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -710,12 +721,57 @@ html:not(.booting) .loader > * {
 .prose-page p { margin: 0 0 1rem; }
 .prose-page .actions { margin-top: 3rem; }
 
-/* The menu below the breakpoint stays the panel under the bar — see the
-   base `.links` rules. A full-screen sheet was tried and taken out
-   again: the behaviour that felt wrong was never the panel, it was a
-   dead selector that left it open over the section you had just asked
-   for. Fixing that fixed the feeling, and the sheet was a redesign
-   answering a bug.
+/* ============================================================================
+   THE MENU, BELOW THE BREAKPOINT
+
+   A sheet over the page rather than a panel under the bar, so there is no
+   half state with the section you asked for sitting behind it.
+
+   It is set at reading size, not display size. The first attempt put it at
+   `clamp(2rem, 9vw, 3rem)` in the serif, which is headline scale for what
+   is a list of six destinations — and it was being crammed into a sliver
+   besides. Six short words do not need to shout.
+   ============================================================================ */
+
+@media (max-width: 49.9375rem) {
+  .menu[open] > .links {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: grid;
+    align-content: center;
+    gap: 0.25rem;
+    padding: var(--gutter);
+    background: var(--bg);
+    border: 0;
+    counter-reset: navitem;
+  }
+
+  /* Above the sheet it opened, so it can always be closed. */
+  .menu[open] > summary { position: relative; z-index: 60; }
+
+  .menu[open] > .links a {
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+    padding: 0.55rem 0;
+    counter-increment: navitem;
+    font: 400 1.375rem/1.4 var(--serif);
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+
+  /* The numbering the sections already carry, so this reads as a table of
+     contents rather than a stack of buttons. */
+  .menu[open] > .links a::before {
+    content: counter(navitem, decimal-leading-zero);
+    color: var(--faint);
+    font: 500 0.6875rem/1 var(--sans);
+    letter-spacing: var(--track-label);
+  }
+
+  html:has(.menu[open]) { overflow: hidden; }
+}
 
 /* One label, two words, no script. */
 .menu > summary .is-open { display: none; }
