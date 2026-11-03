@@ -638,35 +638,21 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
   animation: loader-failsafe 0s 5s forwards;
 }
 
+/* The loader simply dissolves. Nothing else moves with it.
+ *
+ * It used to cross-fade with the page: the cover went down while the
+ * content came up from transparent, and the reveal blocks animated at
+ * the same time. Three overlapping transitions read as mush rather than
+ * as an arrival, and the ground appeared to change when it had not.
+ *
+ * Now there is one thing happening: a flat ground dissolving onto the
+ * same flat ground, which is as close to no transition as a transition
+ * gets. The content underneath is already in place; the reveals then
+ * play as themselves, which is what they were for. */
 html:not(.booting) .loader {
   opacity: 0;
   visibility: hidden;
-  transition: opacity 620ms cubic-bezier(.33, 0, .2, 1), visibility 0s 620ms;
-}
-
-/* The hand-off, which is the part that was wrong.
- *
- * The page underneath was fully opaque the whole time, so the cover
- * lifting was a step rather than a transition — a veil passing over
- * finished artwork. It read as a switch being thrown, because that is
- * what it was.
- *
- * Now the two cross-fade: the page starts at nothing and comes up as the
- * cover goes down, on a slightly longer curve and a small delay, so
- * neither is ever at full strength alone and there is no instant where
- * the change happens. */
-body > :not(.loader) {
-  opacity: 1;
-  transition: opacity 760ms 110ms cubic-bezier(.33, 0, .2, 1);
-}
-
-html.booting body > :not(.loader) { opacity: 0; }
-
-/* The wordmark and dots leave a little ahead of the ground they sit on,
-   so they are not still legible over a page that has arrived. */
-html:not(.booting) .loader > * {
-  opacity: 0;
-  transition: opacity 280ms ease;
+  transition: opacity 360ms ease, visibility 0s 360ms;
 }
 
 @keyframes loader-failsafe {
@@ -709,9 +695,7 @@ html:not(.booting) .loader > * {
 @media (prefers-reduced-motion: reduce) {
   /* Still three dots, still clearly a wait — they just stop moving. */
   .dots i { animation: none; opacity: 0.5; }
-  html:not(.booting) .loader,
-  html:not(.booting) .loader > *,
-  body > :not(.loader) { transition: none; }
+  html:not(.booting) .loader { transition: none; }
 }
 
 /* The legal page: one column, reading width, no grid. It is read, not

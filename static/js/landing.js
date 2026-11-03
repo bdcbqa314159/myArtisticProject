@@ -24,7 +24,12 @@ const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
  * observing waits for it to lift.
  */
 function markReveals() {
-    for (const el of document.querySelectorAll("section > .wrap > *")) {
+    // Everything except the hero. The hero is what the wait was for: when
+    // the cover dissolves it should already be there, whole, rather than
+    // starting a second animation the moment the first one ends. Blocks
+    // further down have not been waited for and can arrive as you reach
+    // them.
+    for (const el of document.querySelectorAll("section:not(.hero) > .wrap > *")) {
         el.classList.add("reveal");
     }
 }
