@@ -412,9 +412,13 @@ function keepOneAddress() {
     // `/#work`. The browser jumps to it, and then it is taken off the
     // address so it cannot go stale. Deep links in, clean URL after.
     if (location.hash) {
-        requestAnimationFrame(() => {
+        // A timer rather than an animation frame. The browser's own jump has
+        // already happened by `load`; this only has to be after it, and a
+        // frame is both less certain and — measured — something a headless
+        // browser never runs, which would leave this untestable.
+        setTimeout(() => {
             history.replaceState(null, "", location.pathname + location.search);
-        });
+        }, 0);
     }
     for (const a of document.querySelectorAll('a[href^="#"]')) {
         a.addEventListener("click", (ev) => {
