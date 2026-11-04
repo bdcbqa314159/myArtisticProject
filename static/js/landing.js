@@ -245,7 +245,7 @@ const PRESS_MS = 140;
 function letThePressBeSeen() {
     if (reduced)
         return;
-    for (const a of document.querySelectorAll('.hero-actions a[href^="#"], .actions a[href^="#"]')) {
+    for (const a of document.querySelectorAll('.actions a[href^="#"]')) {
         a.addEventListener("click", (ev) => {
             const id = a.getAttribute("href")?.slice(1);
             const target = id ? document.getElementById(id) : null;

@@ -258,7 +258,7 @@ const PRESS_MS = 140;
 function letThePressBeSeen(): void {
   if (reduced) return;
 
-  for (const a of document.querySelectorAll<HTMLAnchorElement>('.hero-actions a[href^="#"], .actions a[href^="#"]')) {
+  for (const a of document.querySelectorAll<HTMLAnchorElement>('.actions a[href^="#"]')) {
     a.addEventListener("click", (ev) => {
       const id = a.getAttribute("href")?.slice(1);
       const target = id ? document.getElementById(id) : null;
