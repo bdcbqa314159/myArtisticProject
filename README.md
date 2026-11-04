@@ -77,6 +77,7 @@ enforces, so the documentation cannot drift from the rules.
 ## Running it
 
 ```sh
+npm run deployed    # did what we merged actually reach the site?
 ./preview.sh        # or double-click preview.command
 npx tsc             # after editing src/
 npm test            # tsc + zola build + the drift check
