@@ -1173,3 +1173,30 @@ section:not(.hero) > .wrap > .note { text-align: left; }
 @media (prefers-reduced-motion: reduce) {
   .smear { filter: none; }
 }
+
+/* The skip link: out of the way until it is focused, then unmistakable.
+   `clip-path` rather than `display: none` — a hidden element cannot be
+   focused, which would defeat the whole point of it. */
+.skip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3000;
+  padding: 0.85rem 1.25rem;
+  clip-path: inset(50%);
+  background: var(--ink);
+  color: var(--bg);
+  font: 500 0.8125rem/1 var(--sans);
+  text-decoration: none;
+}
+
+.skip:focus-visible {
+  clip-path: none;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* A section focused by the skip link or a nav link should not draw a
+   ring around the whole screen — the scroll is the feedback. */
+section:focus,
+section:focus-visible { outline: none; }

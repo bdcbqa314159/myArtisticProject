@@ -59,6 +59,11 @@
    opens, closes and takes the keyboard on its own. Above 800px the
    panel is always shown and the button is gone, so the desktop bar is
    the maquette's inline row and no script runs at any width. #}
+{# First in the tab order, invisible until it has focus. Without it a
+   keyboard visitor walks the wordmark and all six band links before
+   reaching a word of the page — on every visit. #}
+<a class="skip" href="#approach">Skip to content</a>
+
 <header>
   <div class="wrap nav">
     <a class="logo" href="#top">{{ id.name }}</a>
@@ -108,7 +113,7 @@
 
 {# ---- 02 approach + showreel ---------------------------------------- #}
 {% if e.approach_title %}
-<section id="approach">
+<section id="approach" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">Approach</p>
     <h2>{{ e.approach_title }}</h2>
@@ -133,7 +138,7 @@
 
 {# ---- 03 capabilities ----------------------------------------------- #}
 {% if e.services %}
-<section id="services">
+<section id="services" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">Expertise</p>
     <h2>{{ e.services_title }}</h2>
@@ -159,7 +164,7 @@
    this is a demonstration of the engine, and describing a real career
    on a demo is exactly what NOTICE says we will not do. #}
 {% if e.work %}
-<section id="work">
+<section id="work" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">Selected Work</p>
     <h2>{{ e.work_title }}</h2>
@@ -197,7 +202,7 @@
 
 {# ---- 05 original concepts ------------------------------------------- #}
 {% if e.concepts %}
-<section id="concepts">
+<section id="concepts" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">Original Concepts</p>
     <h2>{{ e.concepts_title }}</h2>
@@ -219,7 +224,7 @@
 
 {# ---- 06 professional ecosystem --------------------------------------- #}
 {% if e.ecosystem_title %}
-<section id="ecosystem">
+<section id="ecosystem" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">Professional Ecosystem</p>
     <h2>{{ e.ecosystem_title }}</h2>
@@ -235,7 +240,7 @@
 
 {# ---- 07 about ---------------------------------------------------------- #}
 {% if e.about_title %}
-<section id="about">
+<section id="about" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">About</p>
     <h2>{{ e.about_title }}</h2>
@@ -264,7 +269,7 @@
    verified address configured the section says so plainly instead of
    offering a button that goes nowhere. #}
 {% if e.contact_title %}
-<section class="contact" id="contact">
+<section class="contact" id="contact" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">Contact</p>
     <h2>{{ e.contact_title }}</h2>
