@@ -18,6 +18,7 @@ The schema comes from tools/objects.py, which is also what validates and
 what generates OBJECTS.md. One definition, three consumers.
 """
 
+import base64
 import html
 import http.server
 import json
@@ -30,7 +31,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 from objects import LOCKED, SCHEMA, blocks, front_matter  # noqa: E402
-from edit import Refused, add, remove, write  # noqa: E402
+from edit import MAX_IMAGE, Refused, add, attach, remove, write  # noqa: E402
 
 # A token in the path, as myBureau does. The panel binds to loopback, so
 # this is not about the network — it is about the other pages open in the
@@ -74,10 +75,23 @@ def page() -> str:
                 for f, (req, what) in fields.items()
             )
             label = obj.get("name") or f"{kind} {i}"
+            photo = ""
+            if kind == "reference":
+                has = obj.get("image", "").strip()
+                photo = (
+                    f'<div class="photo">'
+                    f'<label>{"replace the photograph" if has else "add a photograph"}'
+                    f'<input type="file" accept="image/jpeg,image/png,image/webp" '
+                    f'data-kind="{kind}" data-index="{i}"></label>'
+                    f'<label>what it shows<input class="alt" placeholder="required" '
+                    f'data-for="{i}"></label>'
+                    f"</div>"
+                )
+
             items.append(
                 f'<article><h3><span class="n">{i:02d}</span>{html.escape(label)}'
                 f'<button class="remove" data-kind="{kind}" data-index="{i}">remove</button>'
-                f"</h3><table>{rows}</table></article>"
+                f"</h3><table>{rows}</table>{photo}</article>"
             )
         sections.append(
             f'<section><h2>{html.escape(kind)}<span class="count">{len(found)}</span></h2>'
@@ -127,6 +141,10 @@ button.remove{margin-left:auto;padding:.15rem .5rem;font-size:.6875rem}
 button.add:hover,button.remove:hover{color:var(--ink);border-color:var(--muted)}
 button:disabled{opacity:.4;cursor:default}
 h3{justify-content:space-between}
+.photo{display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:1rem;padding-top:1rem;border-top:1px dotted var(--line)}
+.photo label{display:flex;flex-direction:column;gap:.35rem;font-size:.75rem;color:var(--muted)}
+.photo input[type=file]{font-size:.8125rem;max-width:22rem}
+.photo .alt{min-width:22rem}
 </style></head><body>
 <h1>Studio</h1>
 <!--CONTENT-->
@@ -149,6 +167,35 @@ h3{justify-content:space-between}
     }).then(function(r){ return r.json(); }).then(then)
       .catch(function(e){ tell(String(e), true); });
   }
+
+  /* A photograph and its description go together or not at all. The
+     file input does nothing until the description beside it is filled
+     in — the refusal is on the server too, but being told after
+     choosing a file is a worse way to learn it. */
+  document.addEventListener("change", function(ev){
+    var el = ev.target;
+    if (el.type !== "file" || !el.files || !el.files[0]) return;
+    var alt = document.querySelector('.alt[data-for="' + el.dataset.index + '"]');
+    if (!alt || !alt.value.trim()) {
+      el.value = "";
+      alt.focus();
+      return tell("What does the photograph show? Describe it first.", true);
+    }
+    var file = el.files[0];
+    tell("reading " + file.name + "…", false);
+    var reader = new FileReader();
+    reader.onload = function(){
+      send("/attach", {
+        kind: el.dataset.kind, index: +el.dataset.index,
+        filename: file.name, alt: alt.value,
+        data: reader.result.split(",")[1]
+      }, function(d){
+        if (!d.ok) { el.value = ""; return tell(d.message, true); }
+        location.reload();
+      });
+    };
+    reader.readAsDataURL(file);
+  });
 
   document.addEventListener("click", function(ev){
     var el = ev.target;
@@ -223,20 +270,31 @@ class Panel(http.server.BaseHTTPRequestHandler):
             self.send_error(404)
             return
         route = self.path.rsplit("/", 1)[-1]
-        if route not in {"edit", "add", "remove"}:
+        if route not in {"edit", "add", "remove", "attach"}:
             self.send_error(404)
             return
 
         length = int(self.headers.get("Content-Length", "0"))
-        if length > 8192:
-            self.reply({"ok": False, "message": "that is too much for one field"})
+        # base64 is a third larger than the bytes it carries, and a
+        # photograph is allowed to be 12MB.
+        cap = int(MAX_IMAGE * 1.4) if route == "attach" else 8192
+        if length > cap:
+            self.reply({"ok": False, "message": "that is more than this accepts"})
             return
 
         try:
             body = json.loads(self.rfile.read(length) or b"{}")
             kind = str(body.get("kind", ""))
 
-            if route == "add":
+            if route == "attach":
+                message = attach(
+                    kind,
+                    int(body.get("index", 0)),
+                    str(body.get("filename", "")),
+                    base64.b64decode(str(body.get("data", "")), validate=True),
+                    str(body.get("alt", "")),
+                )
+            elif route == "add":
                 message = add(kind)
             elif route == "remove":
                 message = remove(kind, int(body.get("index", 0)))

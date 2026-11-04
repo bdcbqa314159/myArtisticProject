@@ -48,7 +48,8 @@ def quote(value: str) -> str:
     return value.replace("\\", "\\\\").replace('"', '\\"')
 
 
-def apply_edit(kind: str, index: int, field: str, value: str) -> str:
+def apply_edit(kind: str, index: int, field: str, value: str,
+               allow_locked: bool = False, source: "str | None" = None) -> str:
     """Return the whole file with one value changed. Raises, or returns."""
     if kind not in SCHEMA:
         raise Refused(f"no such object: {kind}")
@@ -57,7 +58,7 @@ def apply_edit(kind: str, index: int, field: str, value: str) -> str:
 
     if field not in fields:
         raise Refused(f"{kind} has no field {field!r}")
-    if field in LOCKED:
+    if field in LOCKED and not allow_locked:
         raise Refused(f"{field!r} is not editable here — see LOCKED in objects.py")
 
     value = value.strip()
@@ -66,8 +67,12 @@ def apply_edit(kind: str, index: int, field: str, value: str) -> str:
     if len(value) > MAX_LEN:
         raise Refused(f"{len(value)} characters; the limit is {MAX_LEN}")
 
-    text = CONTENT.read_text(encoding="utf-8")
-    fm = front_matter()
+    # `source` lets two edits be composed into ONE candidate. Writing
+    # them one after another would leave the first on disk when the
+    # second is refused — a photograph attached with no description, or
+    # a description pointing at nothing.
+    text = CONTENT.read_text(encoding="utf-8") if source is None else source
+    fm = text.split("+++")[1] if text.count("+++") >= 2 else ""
     found = blocks(fm, array)
     if not 1 <= index <= len(found):
         raise Refused(f"{kind} {index} does not exist ({len(found)} present)")
@@ -84,11 +89,101 @@ def apply_edit(kind: str, index: int, field: str, value: str) -> str:
     block = text[start:end]
 
     line = re.search(rf'^{re.escape(field)}\s*=\s*"(?:[^"\\]|\\.)*"\s*$', block, re.M)
-    if not line:
-        raise Refused(f"{kind} {index} has no {field} line to change")
+    new_line = f'{field} = "{quote(value)}"'
 
-    updated = block[: line.start()] + f'{field} = "{quote(value)}"' + block[line.end():]
+    if line:
+        updated = block[: line.start()] + new_line + block[line.end():]
+    else:
+        # An optional field that was never written has no line to
+        # change, so one is added. Not at the end of the block — that is
+        # where a comment explaining the NEXT thing may already sit —
+        # but directly after the last `key = value` in it.
+        assignments = list(re.finditer(r"^[a-z_]+\s*=.*$", block, re.M))
+        if not assignments:
+            raise Refused(f"{kind} {index} has no fields at all")
+        at = assignments[-1].end()
+        updated = block[:at] + "\n" + new_line + block[at:]
     return text[:start] + updated + text[end:]
+
+
+# What a photograph may be. Checked by its CONTENT, not its name: a
+# file called `.jpg` is a claim, and the first bytes are a fact.
+MAGIC = {
+    b"\xff\xd8\xff": "jpg",
+    b"\x89PNG\r\n\x1a\n": "png",
+}
+MAX_IMAGE = 12 * 1024 * 1024
+
+
+def _safe_name(name: str) -> str:
+    """A filename that cannot leave content/ or hide what it is."""
+    name = name.replace("\\", "/").rsplit("/", 1)[-1].strip().lower()
+    name = re.sub(r"[^a-z0-9._-]+", "-", name).lstrip(".-")
+    if not name or "." not in name:
+        raise Refused("that file has no usable name")
+    return name
+
+
+def attach(kind: str, index: int, filename: str, raw: bytes, alt: str) -> str:
+    """Put a photograph in content/ and point an object at it.
+
+    The image and its `alt` arrive TOGETHER and are refused apart. That
+    is the whole point of doing this here rather than leaving `image` as
+    an editable text field: a photograph without a description is the
+    exact gap `alt` was added to close, and the moment someone attaches
+    one is the only moment they know what it shows.
+    """
+    if kind != "reference":
+        raise Refused("only a reference carries a photograph today")
+
+    alt = alt.strip()
+    if not alt:
+        raise Refused("a photograph needs a description — what does it show?")
+    if UNWRITTEN in alt:
+        raise Refused("that is the placeholder, not a description")
+    if len(alt) > MAX_LEN:
+        raise Refused(f"{len(alt)} characters; the limit is {MAX_LEN}")
+
+    if not raw:
+        raise Refused("no file arrived")
+    if len(raw) > MAX_IMAGE:
+        raise Refused(f"{len(raw) // 1024 // 1024}MB; the limit is 12MB")
+
+    kind_of = next((k for sig, k in MAGIC.items() if raw.startswith(sig)), None)
+    if kind_of is None and raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+        kind_of = "webp"
+    if kind_of is None:
+        raise Refused("that is not a JPEG, PNG or WebP — whatever it is named")
+
+    # The extension comes from the CONTENT, not the name it arrived
+    # with. A PNG called `.jpg` is a thing people really do send, and
+    # a file whose name lies about what it is will mislead every tool
+    # that touches it afterwards.
+    stem = _safe_name(filename).rsplit(".", 1)[0]
+    name = f"{stem}.{kind_of}"
+    dest = ROOT / "content" / name
+    # Never overwrite. Another object may be pointing at the file that is
+    # already there, and replacing it would change that one silently.
+    n = 2
+    while dest.exists() and dest.read_bytes() != raw:
+        name = f"{stem}-{n}.{kind_of}"
+        dest = ROOT / "content" / name
+        n += 1
+
+    dest.write_bytes(raw)
+    try:
+        # One candidate, both fields. Either the photograph and its
+        # description land together or neither does.
+        candidate = apply_edit(kind, index, "alt", alt, allow_locked=True)
+        candidate = apply_edit(kind, index, "image", name,
+                               allow_locked=True, source=candidate)
+        return _commit(candidate, f"{name} attached to {kind} {index}")
+    except Exception:
+        # The file was written before the content was; if the content
+        # would not take it, the file should not be left behind either.
+        if dest.exists():
+            dest.unlink()
+        raise
 
 
 def add(kind: str) -> str:
