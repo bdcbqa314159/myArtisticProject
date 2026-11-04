@@ -1047,3 +1047,46 @@ section:not(.hero) > .wrap > .eyebrow::before {
 section:not(.hero) > .wrap > .section-intro,
 section:not(.hero) > .wrap > .lead,
 section:not(.hero) > .wrap > .note { text-align: left; }
+
+
+/* ============================================================================
+   FULL-BLEED PHOTOGRAPHS
+
+   "Passer les grandes photos en pleine largeur, sans marges à droite ni à
+   gauche."
+
+   The photographs escape `.wrap` and run edge to edge. Everything around
+   them keeps its measure — a full-width photograph is a full-width
+   photograph, not a full-width page.
+
+   HOW, and why not the usual trick: the common recipe is
+   `margin-left: calc(50% - 50vw)`, which is wrong here in a way that only
+   shows up later. `vw` includes the scrollbar, so on a desktop with a
+   classic scrollbar the image is about 15px wider than the viewport and the
+   page gains a horizontal scrollbar — which is a named delivery criterion
+   (§8) and would have been found by someone else.
+
+   The gutter is a token, so the width can be recovered from it exactly:
+   the image is the card's width plus the two gutters it sits inside, and it
+   is moved left by one. No viewport units, no scrollbar, no arithmetic that
+   stops being true at some width.
+   ============================================================================ */
+
+.case .image {
+  margin-left: calc(var(--gutter) * -1);
+  width: calc(100% + var(--gutter) * 2);
+  /* It is a picture now rather than a card's thumbnail, so it gets a
+     shape worth looking at instead of a 3:2 crop. */
+  aspect-ratio: 4 / 3;
+}
+
+@media (min-width: 50rem) {
+  /* Inside the two-column work grid a photograph is no longer against the
+     page edge, so bleeding it would tear a hole in the middle of the row.
+     Above the breakpoint it goes back to its column. */
+  .case .image {
+    margin-left: 0;
+    width: 100%;
+    aspect-ratio: 3 / 2;
+  }
+}
