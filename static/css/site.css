@@ -943,3 +943,33 @@ section:not(.hero) > .wrap > .eyebrow::after {
 .palette:active { transform: translateY(1px) scale(0.985); }
 
 @media (prefers-reduced-motion: reduce) { .palette { transition: none; } }
+
+/* ---- soft while moving ------------------------------------------------
+   The images go slightly out of focus while the page is moving and come
+   back as it settles. Script adds `.scrolling`; everything else is here.
+
+   Only the photographs and the empty media slots — not text, which has
+   to stay readable mid-scroll, and not the whole page, which would be
+   both expensive and nauseating.
+
+   The blur is constant while scrolling rather than tied to speed, so it
+   rasterises once and composites: the scroll stays cheap and the work
+   happens at the two ends, when nothing is moving. */
+
+.case .image img,
+.placeholder {
+  transition: filter 400ms cubic-bezier(.2, 0, .2, 1);
+}
+
+html.scrolling .case .image img,
+html.scrolling .placeholder {
+  filter: blur(3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Belt as well as braces — the script does not add the class under
+     reduced motion either. */
+  .case .image img, .placeholder { transition: none; }
+  html.scrolling .case .image img,
+  html.scrolling .placeholder { filter: none; }
+}
