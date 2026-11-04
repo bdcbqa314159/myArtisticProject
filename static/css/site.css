@@ -23,7 +23,8 @@
  * it.
  */
 
-:root {
+:root,
+[data-palette="cool"] {
   color-scheme: light dark;
 
   /* ---- the palette --------------------------------------------------
@@ -69,7 +70,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root,
+  [data-palette="cool"] {
     --ink:   #eef1f5;
     --muted: #9aa3b0;
     --faint: #7d8694;
@@ -79,6 +81,41 @@
     --tint:  #14181d;
     --accent:#eef1f5;
   }
+
+  /* Cream has no dark twin — a cream page in the dark is a lamp. What it
+     keeps in the dark is its warmth: a brown-black rather than the
+     blue-black of the cool palette, and paper-coloured type. */
+  [data-palette="cream"] {
+    --ink:   #ece7db;
+    --muted: #a39b8b;
+    --faint: #8a8375;
+    --line:  #2b2720;
+    --bg:    #14120e;
+    --panel: #1d1a14;
+    --tint:  #1a1712;
+    --accent:#e4ddcd;
+  }
+}
+
+
+/* ---- cream -----------------------------------------------------------
+   The client's request: "un fond crème, plutôt que blanc ou noir, et une
+   typographie gris foncé… garder quelques contrastes avec les couleurs
+   que tu utilises actuellement".
+
+   So: cream ground, dark GREY type rather than black, and the accent
+   kept cool — a slate against the warm ground is the contrast he asked
+   to keep, and it is the one thing here that is not simply warmer. */
+[data-palette="cream"] {
+  --ink:   #2f3236;
+  --muted: #62666c;
+  --faint: #696e75;
+  --line:  #ded5c3;
+  --bg:    #f6f2e9;
+  --panel: #ece7db;
+  --card:  transparent;
+  --tint:  #ece7db;
+  --accent:#3c4a57;
 }
 
 * { box-sizing: border-box; }
@@ -881,3 +918,28 @@ section:not(.hero) > .wrap > .eyebrow::after {
   .menu-items a:hover { background: none; }
   .credit a:hover, .footer a:hover { color: var(--muted); }
 }
+
+/* The palette control. Quiet, in the footer, and gone the moment the
+   site goes live — see the template. */
+.palette {
+  margin-right: auto;
+  padding: 0.5em 1em;
+  border: 1px solid var(--line);
+  border-radius: 2em;
+  background: none;
+  color: var(--muted);
+  font: 500 0.6875rem/1 var(--sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 160ms ease, border-color 160ms ease, transform 110ms ease;
+}
+
+@media (hover: hover) {
+  .palette:hover { color: var(--ink); border-color: var(--muted); }
+}
+
+.palette:active { transform: translateY(1px) scale(0.985); }
+
+@media (prefers-reduced-motion: reduce) { .palette { transition: none; } }
