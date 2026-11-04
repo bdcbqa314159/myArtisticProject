@@ -248,6 +248,80 @@ function closeMenuOnNavigate() {
  *     and layout during a scroll is how a page starts to stutter.
  */
 const PARALLAX_PX = 14;
+/* ---- the smear ---------------------------------------------------------
+ * "J'aimerais simplement ajouter cette petite traînée directionnelle,
+ *  presque liquide, qui accompagne le mouvement de l'image. Sur une
+ *  seule transition photographique."
+ *
+ * One photograph, and the trail follows the scroll.
+ *
+ * The amount is velocity, not position: it grows as the page moves
+ * faster and falls to nothing the moment it stops — which is what makes
+ * it read as the image being dragged rather than as a style applied to
+ * it. The offset carries the sign, so the trail is always behind the
+ * direction of travel.
+ *
+ * Capped, because velocity is unbounded — a flick on a phone can be
+ * thousands of pixels a second, and an uncapped smear would turn a
+ * photograph into a smudge the length of the screen.
+ */
+const SMEAR_MAX = 7; // the most it ever blurs, in px — looked at, not guessed
+const SMEAR_PER_PX = 0.08; // blur per pixel of movement in one frame
+const SVG_NS = "http://www.w3.org/2000/svg";
+function smear() {
+    /* The filter is BUILT HERE rather than written in the template, for
+     * two reasons that each cost a feature on their own:
+     *
+     * 1. `minify_html` lowercases inline SVG element names —
+     *    `feGaussianBlur` came out as `fegaussianblur`. SVG is
+     *    case-sensitive, so the filter was inert in the built page while
+     *    looking perfectly correct in the source. `createElementNS` is
+     *    not something a minifier can reach.
+     *
+     * 2. `filter: url(#smear)` pointing at a filter that does not exist
+     *    is an error, and an element in error IS NOT RENDERED. Written in
+     *    CSS against markup, a browser with no JavaScript would have shown
+     *    a blank space where the photograph is. Built and applied
+     *    together here, no script means no class, no filter, and an
+     *    ordinary photograph.
+     */
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "filters");
+    svg.setAttribute("width", "0");
+    svg.setAttribute("height", "0");
+    svg.setAttribute("aria-hidden", "true");
+    const filter = document.createElementNS(SVG_NS, "filter");
+    filter.setAttribute("id", "smear");
+    // Room for the trail to exist outside the image's own box.
+    filter.setAttribute("x", "-20%");
+    filter.setAttribute("y", "-40%");
+    filter.setAttribute("width", "140%");
+    filter.setAttribute("height", "180%");
+    filter.setAttribute("color-interpolation-filters", "sRGB");
+    const blur = document.createElementNS(SVG_NS, "feGaussianBlur");
+    blur.setAttribute("in", "SourceGraphic");
+    blur.setAttribute("stdDeviation", "0 0");
+    blur.setAttribute("result", "smeared");
+    const offset = document.createElementNS(SVG_NS, "feOffset");
+    offset.setAttribute("in", "smeared");
+    offset.setAttribute("dx", "0");
+    offset.setAttribute("dy", "0");
+    filter.append(blur, offset);
+    svg.append(filter);
+    document.body.append(svg);
+    // One photograph, as asked. The class goes on with the filter, so the
+    // two can never exist without each other.
+    const first = document.querySelector(".case .image img");
+    if (!first)
+        return null;
+    first.classList.add("smear");
+    return (velocity) => {
+        const amount = Math.min(SMEAR_MAX, Math.abs(velocity) * SMEAR_PER_PX);
+        blur.setAttribute("stdDeviation", `0 ${amount.toFixed(2)}`);
+        // Behind the movement: scrolling down drags the trail upward.
+        offset.setAttribute("dy", (-Math.sign(velocity) * amount * 0.7).toFixed(2));
+    };
+}
 function photographsDrift() {
     if (reduced)
         return;
@@ -255,10 +329,18 @@ function photographsDrift() {
     if (shots.length === 0)
         return;
     const onScreen = new Set();
+    const smearTo = smear();
     let frame = 0;
+    let lastY = window.scrollY;
     function draw() {
         frame = 0;
         const height = window.innerHeight;
+        // How far the page moved since the last frame. One subtraction, and
+        // it is the only thing the smear needs.
+        const velocity = window.scrollY - lastY;
+        lastY = window.scrollY;
+        if (smearTo)
+            smearTo(velocity);
         for (const img of onScreen) {
             const box = img.getBoundingClientRect();
             const shift = shiftFor(box.top, box.height, height, PARALLAX_PX);
@@ -291,6 +373,13 @@ function photographsDrift() {
         seen.observe(img);
     addEventListener("scroll", request, { passive: true });
     addEventListener("resize", request, { passive: true });
+    // The page stops between frames, not on an event, so the last frame
+    // can leave a smear frozen on a still photograph. This settles it.
+    let settle = 0;
+    addEventListener("scroll", () => {
+        clearTimeout(settle);
+        settle = window.setTimeout(() => smearTo?.(0), 120);
+    }, { passive: true });
 }
 /* ---- let the press be seen ---------------------------------------------
  * "Comme la page défile très rapidement après le clic, on n'a pas
