@@ -301,11 +301,15 @@ function paletteControl() {
  */
 function copyButtons() {
     for (const btn of document.querySelectorAll("[data-copy]")) {
+        // Captured ONCE, outside the handler. Read inside it, a second click
+        // within the 2.5s window captured "Copied" as the original label and
+        // restored that for ever — the button then lied about what it said.
+        const said = btn.textContent;
+        let restore = 0;
         btn.addEventListener("click", async () => {
             const value = btn.dataset["copy"];
             if (!value)
                 return;
-            const said = btn.textContent;
             try {
                 await navigator.clipboard.writeText(value);
                 btn.textContent = "Copied";
@@ -315,7 +319,8 @@ function copyButtons() {
                 // leave someone believing they had the address.
                 btn.textContent = "Copy failed — select it by hand";
             }
-            setTimeout(() => { btn.textContent = said; }, 2500);
+            clearTimeout(restore);
+            restore = window.setTimeout(() => { btn.textContent = said; }, 2500);
         });
     }
 }
