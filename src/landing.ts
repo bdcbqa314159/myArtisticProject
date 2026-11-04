@@ -412,42 +412,61 @@ function photographsDrift(): void {
   );
 }
 
-/* ---- let the press be seen ---------------------------------------------
- * "Comme la page défile très rapidement après le clic, on n'a pas
- * vraiment le temps de voir l'animation."
+/* ---- one address ------------------------------------------------------
+ * THE STALE FRAGMENT.
  *
- * The anchor jump begins on the same frame as the press, so the button
- * is already off-screen before it has finished moving. The fix is not
- * to slow the scroll — a slow scroll is its own annoyance — but to let
- * the press happen first and then leave.
+ * The page used to write `#contact` into the URL when you went there.
+ * Scrolling away did not take it off again, so within seconds the
+ * address named a section the reader was no longer looking at — and
+ * worse, A LINK WHOSE TARGET EQUALS THE CURRENT FRAGMENT IS A NO-OP.
+ * The browser has nothing to navigate to, so the link simply dies. That
+ * is why the navigation band stopped working after one use while the
+ * two hero buttons kept going: the buttons were intercepted here and
+ * the band's links were ordinary anchors.
  *
- * 140ms: the press transition is 110ms, so this is the button finishing
- * its movement and no more. Short enough that nobody experiences it as
- * waiting, and it is the whole delay — the scroll itself is unchanged.
+ * A one-page site has one address. So every in-page link is handled
+ * here and NOTHING is written to the URL: it stays at `/`, no link can
+ * ever be a no-op, and Back leaves the page instead of hopping between
+ * places the reader never went.
  *
- * WITHOUT SCRIPT the anchors work exactly as before. This intercepts a
- * click it is fully able to complete itself, and if anything throws, the
- * browser has already been told not to navigate — so the fallback is
- * handled explicitly rather than hoped for.
+ * Where the reader is was never the fragment's job anyway —
+ * `markCurrentSection()` already marks the band, from what is actually
+ * on screen.
+ *
+ * Reduced motion is handled INSIDE rather than by bailing out: bailing
+ * out would hand those readers back to the native anchors, and the bug
+ * with them.
  */
 const PRESS_MS = 140;
 
-function letThePressBeSeen(): void {
-  if (reduced) return;
+function keepOneAddress(): void {
+  // A fragment we arrived with still works — someone may have been sent
+  // `/#work`. The browser jumps to it, and then it is taken off the
+  // address so it cannot go stale. Deep links in, clean URL after.
+  if (location.hash) {
+    requestAnimationFrame(() => {
+      history.replaceState(null, "", location.pathname + location.search);
+    });
+  }
 
-  for (const a of document.querySelectorAll<HTMLAnchorElement>('.actions a[href^="#"]')) {
+  for (const a of document.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) {
     a.addEventListener("click", (ev) => {
       const id = a.getAttribute("href")?.slice(1);
       const target = id ? document.getElementById(id) : null;
-      if (!target) return;                 // let the browser deal with it
+      if (!target) return;              // let the browser deal with it
 
       ev.preventDefault();
+
+      // Only the buttons wait. They have a press to finish — the nav
+      // band has nothing to show, and a pause there is just a delay.
+      const wait = !reduced && a.classList.contains("btn") ? PRESS_MS : 0;
+
       setTimeout(() => {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-        // The address bar should still show where you are, and Back
-        // should still come back — preventDefault took both away.
-        history.pushState(null, "", `#${id}`);
-      }, PRESS_MS);
+        target.scrollIntoView({
+          behavior: reduced ? "auto" : "smooth",
+          block: "start",
+        });
+      }, wait);
     });
   }
 }
@@ -629,7 +648,7 @@ closeMenuOnNavigate();
 copyButtons();
 paletteControl();
 softWhileMoving();
-letThePressBeSeen();
+keepOneAddress();
 photographsDrift();
 
 /* LAST, and the ONLY place the page is shown.
