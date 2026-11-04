@@ -105,7 +105,12 @@ def dom(chrome: str, url: str, width: int, height: int, shot: Path = None) -> st
             # Let the page's own JavaScript run to completion — the whole
             # point. Three simulated seconds is past `load`, past the
             # cover's fade, and past every failsafe that matters.
-            "--virtual-time-budget=3000",
+            # Longer for a picture than for an assertion. The virtual
+            # clock can run out before the photographs have finished
+            # downloading, and a screenshot with empty image slots looks
+            # exactly like a page whose images are broken — it has twice
+            # nearly had a non-bug reported.
+            f"--virtual-time-budget={10000 if shot else 3000}",
             "--dump-dom",
             url,
         ],

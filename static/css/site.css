@@ -485,6 +485,11 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
    otherwise tell one from a real piece — see NOTICE. */
 .stand-in {
   position: absolute;
+  /* Without these it takes its static position, which inside a
+     `place-items: center` grid is the middle of the photograph — a
+     caption sitting on the subject's face. */
+  top: 0;
+  left: 0;
   margin: 8px;
   padding: 3px 7px;
   background: var(--bg);
@@ -972,4 +977,77 @@ html.scrolling .placeholder {
   .case .image img, .placeholder { transition: none; }
   html.scrolling .case .image img,
   html.scrolling .placeholder { filter: none; }
+}
+
+/* ============================================================================
+   OFFSETS, SECOND ATTEMPT
+
+   The first pair were too quiet to see — a label moved sideways on wide
+   screens, and an indent of 1.1rem. If the change has to be pointed out, it
+   is not doing anything.
+
+   These two are structural instead of decorative, and they show at every
+   width including the one that matters:
+
+   1. The section number is set at size. `01` in the serif, at display
+      scale, against the small wide-tracked label beside it. The contrast
+      between the two IS the editorial device — it is what a masthead does
+      — and it is the first thing in every section.
+
+   2. The item numbers hang. Every card's `01` sits out in a rail of its
+      own, with the text indented past it, so each section has a visible
+      second edge. The photographs bleed back out to the card's full width,
+      which is the maquette's own intent for them.
+   ============================================================================ */
+
+.eyebrow .sec-num {
+  font: 400 clamp(1.75rem, 7vw, 2.5rem)/0.9 var(--serif);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  /* the small label sits on the numeral's baseline, not its middle */
+  align-self: baseline;
+}
+
+section:not(.hero) > .wrap > .eyebrow {
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ---- the hanging rail ---------------------------------------------------- */
+
+.card {
+  padding-left: 2.75rem;
+}
+
+.card > .num {
+  margin-left: -2.75rem;
+  /* the numeral and the first line of the title share a baseline */
+  margin-bottom: -1.1rem;
+}
+
+.card > .tag,
+.card > h3,
+.card > p,
+.card > .meta { margin-left: 0; }
+
+/* The photograph ignores the rail and takes the card's full width — the
+   bleed the maquette draws, arrived at from the other direction. */
+.case .image {
+  margin-left: -2.75rem;
+  width: calc(100% + 2.75rem);
+}
+
+/* The status pill is a label, not an item, so it does not hang. */
+.card > .status { margin-left: 0; }
+
+@media (min-width: 50rem) {
+  /* The rail is wider where there is room for it. */
+  .card { padding-left: 3.25rem; }
+  .card > .num { margin-left: -3.25rem; }
+  .case .image { margin-left: -3.25rem; width: calc(100% + 3.25rem); }
+
+  /* The section numeral belongs to the label rail on wide screens, so it
+     sits with it rather than beside the heading. */
+  section:not(.hero) > .wrap > .eyebrow { flex-direction: column; align-items: start; gap: 0.35rem; }
 }
