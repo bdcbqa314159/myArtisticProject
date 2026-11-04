@@ -197,6 +197,11 @@ function markCurrentSection() {
             if (!a)
                 continue;
             a.classList.toggle("current", e.isIntersecting);
+            // The same fact, for a reader who cannot see the rule under it.
+            if (e.isIntersecting)
+                a.setAttribute("aria-current", "true");
+            else
+                a.removeAttribute("aria-current");
         }
     }, { rootMargin: "-10% 0px -70% 0px" });
     for (const id of links.keys()) {
@@ -435,6 +440,15 @@ function keepOneAddress() {
                     behavior: reduced ? "auto" : "smooth",
                     block: "start",
                 });
+                // And the keyboard follows the page.
+                //
+                // Without this the focus stays on the link that was just used,
+                // so the next Tab walks further along the navigation band rather
+                // than into the section the visitor asked for — the page moves
+                // and the keyboard does not. The sections carry `tabindex="-1"`
+                // so they can be focused deliberately without ever entering the
+                // tab order themselves.
+                target.focus({ preventScroll: true });
             }, wait);
         });
     }
