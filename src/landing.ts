@@ -235,6 +235,46 @@ function closeMenuOnNavigate(): void {
   });
 }
 
+/* ---- let the press be seen ---------------------------------------------
+ * "Comme la page défile très rapidement après le clic, on n'a pas
+ * vraiment le temps de voir l'animation."
+ *
+ * The anchor jump begins on the same frame as the press, so the button
+ * is already off-screen before it has finished moving. The fix is not
+ * to slow the scroll — a slow scroll is its own annoyance — but to let
+ * the press happen first and then leave.
+ *
+ * 140ms: the press transition is 110ms, so this is the button finishing
+ * its movement and no more. Short enough that nobody experiences it as
+ * waiting, and it is the whole delay — the scroll itself is unchanged.
+ *
+ * WITHOUT SCRIPT the anchors work exactly as before. This intercepts a
+ * click it is fully able to complete itself, and if anything throws, the
+ * browser has already been told not to navigate — so the fallback is
+ * handled explicitly rather than hoped for.
+ */
+const PRESS_MS = 140;
+
+function letThePressBeSeen(): void {
+  if (reduced) return;
+
+  for (const a of document.querySelectorAll<HTMLAnchorElement>('.hero-actions a[href^="#"], .actions a[href^="#"]')) {
+    a.addEventListener("click", (ev) => {
+      const id = a.getAttribute("href")?.slice(1);
+      const target = id ? document.getElementById(id) : null;
+      if (!target) return;                 // let the browser deal with it
+
+      ev.preventDefault();
+      setTimeout(() => {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        // The address bar should still show where you are, and Back
+        // should still come back — preventDefault took both away.
+        history.pushState(null, "", `#${id}`);
+      }, PRESS_MS);
+    });
+  }
+}
+
 /* ---- soft while moving ------------------------------------------------
  * "Les images sont légèrement floues pendant qu'on fait défiler la page,
  * puis deviennent nettes quand on s'arrête dessus."
@@ -412,6 +452,7 @@ closeMenuOnNavigate();
 copyButtons();
 paletteControl();
 softWhileMoving();
+letThePressBeSeen();
 
 /* LAST, and the ONLY place the page is shown.
  *
