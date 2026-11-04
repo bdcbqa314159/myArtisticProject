@@ -42,8 +42,19 @@ CHROMES = [
     "chromium-browser",
 ]
 
-# (width, height, what this size is for)
-SIZES = [(1280, 900, "desktop"), (390, 844, "phone")]
+# (width, height, name, anchor)
+#
+# A screenshot is the viewport, not the page, so the sections below the
+# fold need their own. These are the ones carrying the offsets, which
+# cannot be reviewed from a picture of the hero.
+SIZES = [
+    (1280, 900, "desktop-hero", ""),
+    (1280, 900, "desktop-expertise", "#services"),
+    (1280, 900, "desktop-work", "#work"),
+    (1280, 900, "desktop-about", "#about"),
+    (390, 844, "phone-hero", ""),
+    (390, 844, "phone-work", "#work"),
+]
 
 
 def find_chrome() -> Optional[str]:
@@ -138,8 +149,8 @@ def main() -> int:
 
         problems = []
         try:
-            for w, h, name in SIZES:
-                html = dom(chrome, url, w, h, shots / f"{name}-{w}x{h}.png")
+            for w, h, name, anchor in SIZES:
+                html = dom(chrome, url + anchor, w, h, shots / f"{name}.png")
                 if not html.strip():
                     problems.append(f"{name}: the browser returned nothing")
                     continue
@@ -149,11 +160,11 @@ def main() -> int:
                 # wrong at both: inline links above 800px, a disclosure
                 # below it.
                 open_menu = "<details" in html and " open" in html.split("<details")[1][:80]
-                if name == "desktop" and not open_menu:
+                if name.startswith("desktop") and not open_menu:
                     problems.append(
                         "desktop: the nav is closed, so the bar has no links in it"
                     )
-                if name == "phone" and open_menu:
+                if name.startswith("phone") and open_menu:
                     problems.append("phone: the nav is open before anyone asked")
         finally:
             server.shutdown()
@@ -165,7 +176,7 @@ def main() -> int:
             print()
             return 1
 
-        print(f"\n  render: the page works at {len(SIZES)} sizes")
+        print(f"\n  render: the page works, {len(SIZES)} views checked")
         for f in sorted(shots.glob("*.png")):
             print(f"  {f.name}  {f.stat().st_size:,} bytes")
         print()
