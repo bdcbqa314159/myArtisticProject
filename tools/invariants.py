@@ -60,6 +60,17 @@ INVARIANTS = [
         "would ever be removed.",
     ),
     (
+        "every action is pinned to a commit",
+        ".github/workflows/deploy.yml",
+        r"uses: [^@\n]+@[0-9a-f]{40}",
+        6,
+        "A tag is a label someone can move, and these jobs hold "
+        "`pages: write` and `id-token: write` — an action that changed "
+        "under its tag would run with permission to publish this site. "
+        "If this count changes, a step was added or removed; pin the new "
+        "one by resolving its tag to a commit.",
+    ),
+    (
         "the landing page has a main landmark",
         "templates/index.html",
         r"<main>",
