@@ -24,6 +24,19 @@ from objects import LOCKED, SCHEMA, blocks, front_matter  # noqa: E402
 CONTENT = ROOT / "content" / "_index.md"
 MAX_LEN = 600
 
+# What a new object is filled with.
+#
+# It cannot be blank: `tools/objects.py` fails on an empty required
+# field, and `write()` undoes anything that fails — so a new object made
+# of nothing could never be saved at all.
+#
+# So it is filled with text that SAYS it is unfinished, and
+# `tools/content-check.py` refuses to publish while any of it survives.
+# The alternative — relaxing the checker for new objects — would mean
+# the one tool that knows what a complete object looks like stops
+# knowing it at the exact moment one is created.
+UNWRITTEN = "To be written"
+
 
 class Refused(Exception):
     """The edit was not made, and the file was not touched."""
@@ -78,6 +91,61 @@ def apply_edit(kind: str, index: int, field: str, value: str) -> str:
     return text[:start] + updated + text[end:]
 
 
+def add(kind: str) -> str:
+    """Append an object to its group, filled with honest placeholders."""
+    if kind not in SCHEMA:
+        raise Refused(f"no such object: {kind}")
+
+    array, _doc, fields = SCHEMA[kind]
+    text = CONTENT.read_text(encoding="utf-8")
+
+    lines = [f"[[{array}]]"]
+    for field, (required, _what) in fields.items():
+        if field == "verified":
+            lines.append("verified = false")
+        elif field in LOCKED:
+            lines.append(f'{field} = ""')
+        elif required:
+            lines.append(f'{field} = "{UNWRITTEN}"')
+        else:
+            lines.append(f'{field} = ""')
+    block = "\n".join(lines) + "\n"
+
+    starts = [m.start() for m in re.finditer(rf"\[\[{re.escape(array)}\]\]", text)]
+    if not starts:
+        raise Refused(f"no {kind} blocks to append to")
+
+    # After the LAST block of this group, and not a line further: the
+    # text after it is the next section's comment, which explains the
+    # next section.
+    last = starts[-1]
+    following = re.search(r"\n(?=\[\[|# ----)", text[last:])
+    at = last + (following.start() + 1 if following else len(text[last:]))
+
+    return _commit(text[:at] + block + "\n" + text[at:],
+                   f"{kind} added — fill it in")
+
+
+def remove(kind: str, index: int) -> str:
+    """Delete one object. The last of its kind cannot go: `objects.py`
+    fails on an empty class, and this undoes anything that fails."""
+    if kind not in SCHEMA:
+        raise Refused(f"no such object: {kind}")
+
+    array, _doc, _fields = SCHEMA[kind]
+    text = CONTENT.read_text(encoding="utf-8")
+    starts = [m.start() for m in re.finditer(rf"\[\[{re.escape(array)}\]\]", text)]
+
+    if not 1 <= index <= len(starts):
+        raise Refused(f"{kind} {index} does not exist ({len(starts)} present)")
+
+    start = starts[index - 1]
+    following = re.search(r"\n(?=\[\[|# ----)", text[start:])
+    end = start + (following.start() + 1 if following else len(text[start:]))
+
+    return _commit(text[:start] + text[end:], f"{kind} {index} removed")
+
+
 def write(kind: str, index: int, field: str, value: str) -> str:
     """Apply, re-check, and only then replace the file.
 
@@ -85,8 +153,18 @@ def write(kind: str, index: int, field: str, value: str) -> str:
     and then tells you it was wrong has already lost the thing it was
     editing.
     """
-    candidate = apply_edit(kind, index, field, value)
+    return _commit(apply_edit(kind, index, field, value),
+                   f"{kind} {index}: {field} updated")
 
+
+def _commit(candidate: str, message: str) -> str:
+    """Write, re-check, and undo if the result is not sound.
+
+    The file is replaced only after the candidate has been checked, and
+    put back if anything about the result is wrong. A tool that writes
+    and then reports a failure has already lost the thing it was
+    editing.
+    """
     original = CONTENT.read_text(encoding="utf-8")
     CONTENT.write_text(candidate, encoding="utf-8")
     try:
@@ -103,4 +181,4 @@ def write(kind: str, index: int, field: str, value: str) -> str:
         CONTENT.write_text(original, encoding="utf-8")
         raise Refused("a comment was lost; the edit was undone")
 
-    return f"{kind} {index}: {field} updated"
+    return message
