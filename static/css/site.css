@@ -458,17 +458,41 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
 /* The maquette bleeds the image to the card's edges. With no box to
    bleed out of, it simply is the column's width — same intent, and the
    picture gets to be a picture. */
+/* The photograph's frame, in one place. It was three blocks: the frame,
+   a lone `position: relative` sixty lines later, and the full-bleed
+   geometry four hundred lines after that. `aspect-ratio` was declared
+   twice with different values, and only the file's order decided which
+   won. */
 .case .image {
-  margin: 0 0 1.5rem;
-  aspect-ratio: 3 / 2;
-  background: var(--panel);
+  position: relative;
   display: grid;
   place-items: center;
+  /* Edge to edge: pulled LEFT by one gutter, and made two gutters wider.
+     Right stays 0 — the width already covers that side, and a negative
+     right margin would drag what follows up into the photograph.
+     (The shorthand was briefly `0 calc(-gutter) 1.5rem`, which set both
+     sides. Caught by comparing computed styles before and after, not by
+     looking: the photograph moved, and the parallax reported it.)
+
+     Not `50vw`, which includes the scrollbar and would overflow. */
+  margin: 0 0 1.5rem calc(var(--gutter) * -1);
+  width: calc(100% + var(--gutter) * 2);
+  aspect-ratio: 4 / 3;
+  background: var(--panel);
   color: var(--faint);
   overflow: clip;
 }
 
-.case .image img { width: 100%; height: 100%; object-fit: cover; }
+.case .image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* A little more than it shows, so the parallax never pulls an edge
+     into frame. The frame above already clips. */
+  transform: translate3d(0, 0, 0);
+  scale: 1.08;
+  will-change: transform;
+}
 
 .case .image.empty { background: var(--panel); }
 
@@ -493,8 +517,6 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
-
-.case .image { position: relative; }
 
 /* An unverified role is shown AS unverified rather than dropped. Hiding
    it would lose the one fact that matters — somebody has to check it. */
@@ -821,10 +843,18 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
       down its left side. The same rule as the wide layout, at phone
       scale: one indent, one direction, every second section. */
 
+/* The section label, in one place.
+   It was defined three times, in three parts of this file, by three
+   changes that each added a block rather than editing the one already
+   there: a flex row, then a baseline and a gap, then centring. The
+   result was correct only because the last one happened to come last. */
 section:not(.hero) > .wrap > .eyebrow {
   display: flex;
-  align-items: center;
-  gap: 0.9rem;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  text-align: center;
 }
 
 section:not(.hero) > .wrap > .eyebrow::after {
@@ -965,12 +995,6 @@ html.scrolling .placeholder {
    ============================================================================ */
 
 
-section:not(.hero) > .wrap > .eyebrow {
-  align-items: baseline;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
-}
-
 /* The hanging rail went with the numbers it was built for. The
    photographs keep the full card width, which is where the rail was
    pushing them back to anyway. */
@@ -1010,11 +1034,6 @@ section:not(.hero) > .wrap > h2 {
 /* The label belongs to the heading, so it centres with it. Its rule ran to
    the right edge, which only works from a left-aligned start — it becomes a
    rule on each side, which is what a centred masthead wants anyway. */
-section:not(.hero) > .wrap > .eyebrow {
-  justify-content: center;
-  text-align: center;
-}
-
 section:not(.hero) > .wrap > .eyebrow::before {
   content: "";
   flex: 1;
@@ -1050,14 +1069,6 @@ section:not(.hero) > .wrap > .note { text-align: left; }
    is moved left by one. No viewport units, no scrollbar, no arithmetic that
    stops being true at some width.
    ============================================================================ */
-
-.case .image {
-  margin-left: calc(var(--gutter) * -1);
-  width: calc(100% + var(--gutter) * 2);
-  /* It is a picture now rather than a card's thumbnail, so it gets a
-     shape worth looking at instead of a 3:2 crop. */
-  aspect-ratio: 4 / 3;
-}
 
 @media (min-width: 50rem) {
   /* Inside the two-column work grid a photograph is no longer against the
@@ -1141,8 +1152,6 @@ section:not(.hero) > .wrap > .note { text-align: left; }
 
 /* The photographs are given a little more than they show, so the drift
    never pulls an edge into frame. The container already clips. */
-.case .image img { transform: translate3d(0, 0, 0); scale: 1.08; will-change: transform; }
-
 @media (prefers-reduced-motion: reduce) {
   .case .image img { scale: 1; will-change: auto; }
 }
