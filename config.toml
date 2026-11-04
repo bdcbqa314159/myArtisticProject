@@ -4,6 +4,17 @@
 # second language, uncomment the block at the bottom and run
 # `zola build`; Zola then looks for content/_index.<code>.md.
 default_language = "en"
+
+# FRENCH IS NOT BUILT.
+#
+# `content/_index.fr.md` is kept — a French version is wanted eventually
+# — but it is still the stub from before the eight sections existed. With
+# the language configured it published at /fr/: one section out of eight,
+# reachable, linked from nowhere, and indexed the moment `live` is
+# flipped. A page that exists and is wrong is worse than one that does
+# not exist.
+#
+# Restore `[languages.fr]` when the French content has been written.
 base_url = "https://bdcbqa314159.github.io/myArtisticProject"
 title = "myArtisticProject"
 compile_sass = false
@@ -28,9 +39,6 @@ studio = "deLapatadaSoftware"
 # maquettes are in English, so both exist from the start: `en` is the
 # default at /, `fr` is at /fr/. Zola builds whichever content files are
 # there — content/_index.md for en, content/_index.fr.md for fr.
-[languages.fr]
-title = "myArtisticProject"
-build_search_index = false
 
 # ---------------------------------------------------------------
 # THE BRAND ON THIS DEMO IS A STAND-IN.

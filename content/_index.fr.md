@@ -2,6 +2,15 @@
 title = "Un nom ici"
 template = "index.html"
 
+# Not published. The deliverable is English (§1), and this file is still
+# the stub from before the eight sections existed — one section of eight,
+# reachable at /fr/, linked from nowhere. A page that exists and is wrong
+# is worse than one that does not exist.
+#
+# Kept rather than deleted because a French version is wanted eventually.
+# Remove this line when it has been written.
+draft = true
+
 [extra]
 issue = "Numéro 01 — 2026"
 place = "France · International"

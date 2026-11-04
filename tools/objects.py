@@ -124,6 +124,14 @@ def check() -> int:
                     if not obj.get(field, "").strip():
                         problems.append(f"{where}: verified but no {field}")
 
+    # An empty class is not "well formed", it is missing. Stripping
+    # content/_index.md to its front matter produced "0 reference, 0
+    # capability, 0 concept, 0 pillar — all well formed", which is a
+    # check reporting success at the moment the page became empty.
+    for kind, (array, _doc, _fields) in SCHEMA.items():
+        if not blocks(fm, array):
+            problems.append(f"no {kind} objects at all — [[{array}]] is empty")
+
     if problems:
         print("\n  CONTENT OBJECTS\n")
         for p in problems:
