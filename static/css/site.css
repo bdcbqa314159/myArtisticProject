@@ -780,7 +780,50 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
    — offsetting inside 350px is just a narrower measure.
    ============================================================================ */
 
+/* ---- on the phone, which is the surface that decides ----------------
+   The two devices below work AT 390px rather than being desktop ones
+   made narrower. There is one column and it stays one column; what
+   changes is where the eye enters each section.
+
+   1. The label gets a rule. `01 / Approach` and then a hairline out to
+      the edge — a masthead line rather than a caption floating above a
+      heading. Costs no horizontal space, which is the whole constraint
+      here, and it is the first thing seen in every section.
+
+   2. Alternate sections step their opening paragraph in, with a hairline
+      down its left side. The same rule as the wide layout, at phone
+      scale: one indent, one direction, every second section. */
+
+section:not(.hero) > .wrap > .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+section:not(.hero) > .wrap > .eyebrow::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* Named, not counted.
+   `nth-of-type(even)` was counting sections and quietly meant something
+   different the moment one was added or re-parented — it had already
+   drifted onto a different set than intended. The brief says "certaines
+   sections", so these are those sections, by name. */
+#approach > .wrap > .section-intro,
+#concepts > .wrap > .section-intro,
+#contact > .wrap > .section-intro {
+  padding-left: 1.1rem;
+  border-left: 1px solid var(--line);
+}
+
 @media (min-width: 50rem) {
+
+  /* The rule belongs to the phone layout; beside a heading it would be a
+     line pointing at nothing. */
+  section:not(.hero) > .wrap > .eyebrow::after { display: none; }
 
   /* 1. The label leaves the stack and becomes a rail.
         `01 / Approach` sat directly above its heading, so every section
@@ -819,9 +862,10 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
         one indent, in one direction, on every second section — enough that
         the page is not a ruled column, little enough that the eye never
         hunts for where the line begins. */
-  section:not(.hero):nth-of-type(even) > .wrap > .section-intro {
+  #approach > .wrap > .section-intro,
+  #concepts > .wrap > .section-intro,
+  #contact > .wrap > .section-intro {
     padding-left: 3.5rem;
-    border-left: 1px solid var(--line);
   }
 
   /* The disclaimer hangs the other way, into the rail, because it is an

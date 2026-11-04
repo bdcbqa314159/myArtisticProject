@@ -48,12 +48,26 @@ CHROMES = [
 # fold need their own. These are the ones carrying the offsets, which
 # cannot be reviewed from a picture of the hero.
 SIZES = [
-    (1280, 900, "desktop-hero", ""),
-    (1280, 900, "desktop-expertise", "#services"),
-    (1280, 900, "desktop-work", "#work"),
-    (1280, 900, "desktop-about", "#about"),
-    (390, 844, "phone-hero", ""),
-    (390, 844, "phone-work", "#work"),
+    # A screenshot is the viewport, so the viewport is made tall enough to
+    # hold the page. Anchored views were tried first and photographed
+    # blank space: an anchor jump under a virtual clock lands before the
+    # images have given the page its height.
+    #
+    # The hero does not stretch with the window — `min-height:
+    # min(82svh, 46rem)` caps it at 46rem — so a tall viewport shows the
+    # page as it is, not a distorted one.
+    (1280, 3400, "desktop", ""),
+    # 500, not 390. Headless Chrome will not give a window narrower than
+    # about 500px, so asking for 390 produced a 500px LAYOUT cropped into
+    # a 390px image — text cut mid-word, looking exactly like a page with
+    # horizontal overflow. It was the picture that was too narrow, not
+    # the page.
+    #
+    # 500 is still below both breakpoints (560 and 800), so this is the
+    # phone layout, honestly sized. A true 390 needs device emulation
+    # over the DevTools protocol, which needs a client library — a real
+    # dependency for a difference of 110px within the same layout.
+    (500, 3400, "narrow", ""),
 ]
 
 
@@ -82,6 +96,12 @@ def dom(chrome: str, url: str, width: int, height: int, shot: Path = None) -> st
             "--no-sandbox",
             f"--window-size={width},{height}",
             *( [f"--screenshot={shot}"] if shot else [] ),
+            # Pictures only. `scroll-behavior: smooth` never finishes
+            # under a virtual clock, so an anchored view photographed the
+            # hero instead of the section asked for — six shots of the
+            # same screen. Reduced motion makes the jump instant, and
+            # settles the reveals, so each picture is the page at rest.
+            *( ["--force-prefers-reduced-motion"] if shot else [] ),
             # Let the page's own JavaScript run to completion — the whole
             # point. Three simulated seconds is past `load`, past the
             # cover's fade, and past every failsafe that matters.
@@ -111,9 +131,18 @@ def check(html: str, where: str) -> "list[str]":
             "not hidden — a cover that is merely hidden can come back, and did"
         )
 
-    # The headline. Split and released, or the hero opens empty.
-    if 'class="split' in html and "split in" not in html:
-        bad.append(f"{where}: the headline was split and never released")
+    # NOT asserted: whether a split headline has been released.
+    #
+    # The `in` class is added inside requestAnimationFrame, and whether
+    # that frame runs before --dump-dom captures the page is a race the
+    # harness cannot control: the same page gives `split in` at a 1000ms
+    # virtual-time budget, `split` at 3000ms, and `split in` again at
+    # 8000ms. An assertion over that tests a coincidence, and a check
+    # that can fail while the code is right is as useless as one that
+    # passes while it is wrong — it only teaches you to ignore it.
+    #
+    # The screenshots show whether the headline arrived. That is the
+    # right instrument for a one-frame question.
 
     return bad
 
@@ -164,8 +193,8 @@ def main() -> int:
                     problems.append(
                         "desktop: the nav is closed, so the bar has no links in it"
                     )
-                if name.startswith("phone") and open_menu:
-                    problems.append("phone: the nav is open before anyone asked")
+                if name.startswith("narrow") and open_menu:
+                    problems.append("narrow: the nav is open before anyone asked")
         finally:
             server.shutdown()
 
