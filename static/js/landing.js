@@ -223,6 +223,35 @@ function closeMenuOnNavigate() {
             menu.open = false;
     });
 }
+/* ---- soft while moving ------------------------------------------------
+ * "Les images sont légèrement floues pendant qu'on fait défiler la page,
+ * puis deviennent nettes quand on s'arrête dessus."
+ *
+ * A class while the page is moving, taken off once it settles. The blur
+ * itself is CSS.
+ *
+ * On cost, because this is the one request that could hurt: the blur
+ * does not CHANGE during a scroll, it is simply on. A filter with a
+ * constant value is rasterised once and then composited, so the scroll
+ * itself stays cheap — the work happens at the two transitions, when
+ * the page is not moving. Animating the radius with scroll position
+ * would be the expensive version, and is not what was asked for.
+ */
+const SETTLE_MS = 160;
+function softWhileMoving() {
+    // Under reduced motion there is no blur at all: for some readers this
+    // is not an effect, it is motion sickness.
+    if (reduced)
+        return;
+    const root = document.documentElement;
+    let settle = 0;
+    addEventListener("scroll", () => {
+        if (!root.classList.contains("scrolling"))
+            root.classList.add("scrolling");
+        clearTimeout(settle);
+        settle = window.setTimeout(() => root.classList.remove("scrolling"), SETTLE_MS);
+    }, { passive: true });
+}
 /* ---- choosing a palette -----------------------------------------------
  * An instrument for deciding, not a feature: the control is only
  * rendered while `live = false`, and the finished site has one palette.
@@ -350,6 +379,7 @@ markCurrentSection();
 closeMenuOnNavigate();
 copyButtons();
 paletteControl();
+softWhileMoving();
 /* LAST, and the ONLY place the page is shown.
  *
  * There must be exactly one of these. There were briefly two — an older
