@@ -109,7 +109,7 @@
 {% if e.approach_title %}
 <section id="approach">
   <div class="wrap">
-    <p class="eyebrow"><span class="sec-num">01</span><span class="label-sep">/</span>Approach</p>
+    <p class="eyebrow">Approach</p>
     <h2>{{ e.approach_title }}</h2>
     <div class="section-intro"><p class="muted">{{ id.approach_lead }}</p></div>
 
@@ -134,12 +134,11 @@
 {% if e.services %}
 <section id="services">
   <div class="wrap">
-    <p class="eyebrow"><span class="sec-num">02</span><span class="label-sep">/</span>Expertise</p>
+    <p class="eyebrow">Expertise</p>
     <h2>{{ e.services_title }}</h2>
     <ol class="grid three">
       {% for s in e.services %}
       <li class="card">
-        <span class="num">{% if loop.index < 10 %}0{% endif %}{{ loop.index }}</span>
         <h3>{{ s.name }}</h3>
         <p class="muted">{{ s.text }}</p>
       </li>
@@ -161,7 +160,7 @@
 {% if e.work %}
 <section id="work">
   <div class="wrap">
-    <p class="eyebrow"><span class="sec-num">03</span><span class="label-sep">/</span>Selected Work</p>
+    <p class="eyebrow">Selected Work</p>
     <h2>{{ e.work_title }}</h2>
     <div class="section-intro"><p class="muted">{{ e.work_lead }}</p></div>
 
@@ -181,7 +180,6 @@
             <figcaption>Image / case study</figcaption>
           {% endif %}
         </figure>
-        <span class="num">{% if loop.index < 10 %}0{% endif %}{{ loop.index }}</span>
         <p class="tag">{{ w.domain }}</p>
         <h3>{{ w.name }}</h3>
         <p class="muted">{{ w.text }}</p>
@@ -200,7 +198,7 @@
 {% if e.concepts %}
 <section id="concepts">
   <div class="wrap">
-    <p class="eyebrow"><span class="sec-num">04</span><span class="label-sep">/</span>Original Concepts</p>
+    <p class="eyebrow">Original Concepts</p>
     <h2>{{ e.concepts_title }}</h2>
     <div class="section-intro"><p class="muted">{{ e.concepts_lead }}</p></div>
     <ol class="grid three">
@@ -222,7 +220,7 @@
 {% if e.ecosystem_title %}
 <section id="ecosystem">
   <div class="wrap">
-    <p class="eyebrow"><span class="sec-num">05</span><span class="label-sep">/</span>Professional Ecosystem</p>
+    <p class="eyebrow">Professional Ecosystem</p>
     <h2>{{ e.ecosystem_title }}</h2>
     <div class="section-intro"><p class="muted">{{ e.ecosystem_lead }}</p></div>
     {% if e.ecosystem_fields %}
@@ -238,7 +236,7 @@
 {% if e.about_title %}
 <section id="about">
   <div class="wrap">
-    <p class="eyebrow"><span class="sec-num">06</span><span class="label-sep">/</span>About</p>
+    <p class="eyebrow">About</p>
     <h2>{{ e.about_title }}</h2>
     <div class="about">
       <div>
@@ -267,7 +265,7 @@
 {% if e.contact_title %}
 <section class="contact" id="contact">
   <div class="wrap">
-    <p class="eyebrow"><span class="sec-num">07</span><span class="label-sep">/</span>Contact</p>
+    <p class="eyebrow">Contact</p>
     <h2>{{ e.contact_title }}</h2>
     <div class="section-intro"><p class="muted">{{ e.contact_lead }}</p></div>
     {% if config.extra.contact.email %}
