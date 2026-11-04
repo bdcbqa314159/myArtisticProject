@@ -1001,3 +1001,49 @@ section:not(.hero) > .wrap > .eyebrow {
      sits with it rather than beside the heading. */
   section:not(.hero) > .wrap > .eyebrow { flex-direction: column; align-items: start; gap: 0.35rem; }
 }
+
+
+/* ============================================================================
+   CENTRED SECTION HEADINGS
+
+   "Je garderais l'alignement actuel sur le premier écran, mais j'aimerais
+   centrer les grands titres des sections suivantes, en laissant les
+   paragraphes alignés à gauche."
+
+   So: the hero is untouched, every section heading after it is centred, and
+   the prose stays left.
+
+   The one judgement in here is the gap. A centred heading sitting directly
+   on top of left-aligned prose reads as a mistake — the eye looks for an
+   axis and finds two. Given room it reads as a decision instead, so the
+   heading keeps more space beneath it than beside it, and the label above
+   is centred with it rather than left behind on its own.
+   ============================================================================ */
+
+section:not(.hero) > .wrap > h2 {
+  margin-inline: auto;
+  margin-bottom: 2.25rem;
+  max-width: 20ch;
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* The label belongs to the heading, so it centres with it. Its rule ran to
+   the right edge, which only works from a left-aligned start — it becomes a
+   rule on each side, which is what a centred masthead wants anyway. */
+section:not(.hero) > .wrap > .eyebrow {
+  justify-content: center;
+  text-align: center;
+}
+
+section:not(.hero) > .wrap > .eyebrow::before {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* Everything else keeps its left edge, which is the point of the request. */
+section:not(.hero) > .wrap > .section-intro,
+section:not(.hero) > .wrap > .lead,
+section:not(.hero) > .wrap > .note { text-align: left; }
