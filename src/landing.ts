@@ -235,6 +235,52 @@ function closeMenuOnNavigate(): void {
   });
 }
 
+/* ---- choosing a palette -----------------------------------------------
+ * An instrument for deciding, not a feature: the control is only
+ * rendered while `live = false`, and the finished site has one palette.
+ *
+ * Switching RELOADS the page rather than swapping the tokens in place.
+ * That is deliberate and it is the cheaper answer:
+ *
+ *   - the loader appears by itself, which is the "waiting animation in
+ *     between" that was asked for. No second mechanism, no second thing
+ *     that can get the sequence wrong.
+ *   - the choice is read before first paint by the inline script in the
+ *     head, so the page arrives already in its palette instead of
+ *     changing colour after it has been seen.
+ *
+ * Swapping tokens live would avoid the reload and reintroduce exactly
+ * the class of bug that cost most of a day: two things changing the
+ * page's appearance at once.
+ */
+const PALETTES: readonly string[] = ["cool", "cream"];
+
+function paletteControl(): void {
+  const button = document.querySelector<HTMLButtonElement>("[data-palette-toggle]");
+  if (!button) return;
+
+  // `noUncheckedIndexedAccess` is on, so an index is `string | undefined`
+  // whatever the array literally holds. The fallbacks are not defensive
+  // noise — they are what makes this compile honestly.
+  const current = document.documentElement.dataset["palette"] ?? PALETTES[0] ?? "cool";
+  const after = PALETTES[(PALETTES.indexOf(current) + 1) % PALETTES.length];
+  const next = after ?? "cool";
+
+  button.textContent = `Palette: ${current} → ${next}`;
+
+  button.addEventListener("click", () => {
+    try {
+      localStorage.setItem("palette", next);
+    } catch {
+      // Private browsing refuses storage. Switch for this view anyway
+      // rather than appearing to do nothing.
+      document.documentElement.dataset["palette"] = next;
+      return;
+    }
+    location.reload();
+  });
+}
+
 /* ---- copy the address -------------------------------------------------
  * Only ever rendered when a verified address is configured, so there is
  * nothing here to copy while the contact section is in its pending state.
@@ -323,6 +369,7 @@ WIDE.addEventListener("change", syncBar);
 markCurrentSection();
 closeMenuOnNavigate();
 copyButtons();
+paletteControl();
 
 /* LAST, and the ONLY place the page is shown.
  *

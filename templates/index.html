@@ -289,6 +289,12 @@
 
 <footer class="footer">
   <div class="wrap">
+    {# An instrument for choosing a palette, not a feature of the site.
+       It exists only while `live = false`, so it cannot reach the real
+       page: the finished site has one palette, the graphiste's. #}
+    {% if not config.extra.live %}
+    <button class="palette" type="button" data-palette-toggle aria-live="polite">Palette</button>
+    {% endif %}
     <span>{{ id.name }}{% if e.place %} <span class="muted">· {{ e.place }}</span>{% endif %}</span>
     <span>
       <a href="{{ get_url(path='legal/') }}">{{ e.legal_link | default(value="Legal") }}</a>
