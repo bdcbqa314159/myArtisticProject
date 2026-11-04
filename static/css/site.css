@@ -924,10 +924,16 @@ section:not(.hero) > .wrap > .eyebrow::after {
   transition: filter 400ms cubic-bezier(.2, 0, .2, 1);
 }
 
-html.scrolling .case .image img,
+html.scrolling .case .image img:not(.smear),
 html.scrolling .placeholder {
   filter: blur(3px);
 }
+
+/* The smeared photograph is excluded from the round blur, not stacked
+   with it. `filter` is one property: the scrolling rule outranks
+   `.smear` and would simply replace it, so the trail would vanish at
+   exactly the moment it exists for. And the smear IS its blur — adding
+   a round one on top would be fog over movement. */
 
 @media (prefers-reduced-motion: reduce) {
   /* Belt as well as braces — the script does not add the class under
@@ -1146,7 +1152,13 @@ section:not(.hero) > .wrap > .note { text-align: left; }
 
 /* One photograph carries it, as asked: "sur une seule transition
    photographique". At rest the filter is an identity, so this costs
-   nothing until the page moves. */
+   nothing until the page moves.
+
+   The class is added by script, together with the filter it points at —
+   `filter: url(#smear)` against a filter that does not exist is an
+   error, and an element in error is NOT RENDERED. Written in CSS
+   against markup, a visitor without JavaScript would have found a blank
+   space where the photograph is. */
 .smear { filter: url(#smear); }
 
 @media (prefers-reduced-motion: reduce) {

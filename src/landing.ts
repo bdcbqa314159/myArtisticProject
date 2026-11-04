@@ -278,7 +278,7 @@ const PARALLAX_PX = 14;
  * thousands of pixels a second, and an uncapped smear would turn a
  * photograph into a smudge the length of the screen.
  */
-const SMEAR_MAX = 9;          // the most it ever blurs, in px
+const SMEAR_MAX = 7;          // the most it ever blurs, in px — looked at, not guessed
 const SMEAR_PER_PX = 0.08;    // blur per pixel of movement in one frame
 
 const SVG_NS = "http://www.w3.org/2000/svg";
