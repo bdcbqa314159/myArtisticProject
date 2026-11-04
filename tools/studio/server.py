@@ -20,6 +20,8 @@ what generates OBJECTS.md. One definition, three consumers.
 
 import base64
 import html
+import re
+import subprocess
 import http.server
 import json
 import secrets
@@ -31,7 +33,8 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 from objects import LOCKED, SCHEMA, blocks, front_matter  # noqa: E402
-from edit import MAX_IMAGE, Refused, add, attach, remove, write  # noqa: E402
+from edit import (CONFIG, CONFIG_FIELDS, MAX_IMAGE, Refused, add, attach,  # noqa: E402
+                  remove, set_config, write)
 
 # A token in the path, as myBureau does. The panel binds to loopback, so
 # this is not about the network — it is about the other pages open in the
@@ -60,6 +63,64 @@ def field_row(value: str, required: bool, what: str, name: str,
       <td>{cell}</td>
       <td class="what">{html.escape(what)}</td>
     </tr>"""
+
+
+def config_value(section: str, key: str) -> str:
+    text = CONFIG.read_text(encoding="utf-8")
+    header = re.search(rf"^\[{re.escape(section)}\]\s*$", text, re.M)
+    if not header:
+        return ""
+    rest = text[header.end():]
+    nxt = re.search(r"^\[", rest, re.M)
+    block = rest[: nxt.start()] if nxt else rest
+    found = re.search(rf'^{re.escape(key)}\s*=\s*"([^"]*)"', block, re.M)
+    return found.group(1) if found else ""
+
+
+def launch_section() -> str:
+    """The fields a launch needs, and what is still missing.
+
+    The gate is shown but not operated: `live` is not editable here.
+    Whether the site MAY be published is a question the checks answer;
+    whether it IS is a decision a person makes with the repository in
+    front of them, not a button in a browser.
+    """
+    groups = []
+    for section, fields in CONFIG_FIELDS.items():
+        rows = "".join(
+            f"""
+            <tr class="{'missing' if not config_value(section, key) else ''}">
+              <th>{html.escape(key)}</th>
+              <td><input value="{html.escape(config_value(section, key), quote=True)}"
+                         data-section="{section}" data-key="{key}"
+                         aria-label="{html.escape(key)}"></td>
+              <td class="what">{html.escape(what)}</td>
+            </tr>"""
+            for key, what in fields.items()
+        )
+        groups.append(
+            f'<article><h3>{html.escape(section)}</h3><table>{rows}</table></article>'
+        )
+
+    gate = subprocess.run(
+        [sys.executable, str(ROOT / "tools" / "content-check.py")],
+        capture_output=True, text=True,
+    ).stdout
+    blocking = [l.strip()[2:] for l in gate.splitlines() if l.strip().startswith("- ")]
+    listed = "".join(f"<li>{html.escape(b)}</li>" for b in blocking)
+
+    standing = (
+        f'<p class="doc">Still standing between this and a live site:</p><ul class="gate">{listed}</ul>'
+        if blocking else '<p class="doc">Nothing is blocking a launch.</p>'
+    )
+
+    return (
+        '<section><h2>launch<span class="count">'
+        f'{len(blocking)} blocking</span></h2>'
+        '<p class="doc">The identity, the contact details and the legal notice. '
+        'Filled in at handover; the page shows the stand-in until they are.</p>'
+        f'{standing}{"".join(groups)}</section>'
+    )
 
 
 def page() -> str:
@@ -101,7 +162,7 @@ def page() -> str:
             f"</section>"
         )
 
-    return TEMPLATE.replace("<!--CONTENT-->", "".join(sections))
+    return TEMPLATE.replace("<!--CONTENT-->", "".join(sections) + launch_section())
 
 
 TEMPLATE = """<!doctype html>
@@ -145,6 +206,8 @@ h3{justify-content:space-between}
 .photo label{display:flex;flex-direction:column;gap:.35rem;font-size:.75rem;color:var(--muted)}
 .photo input[type=file]{font-size:.8125rem;max-width:22rem}
 .photo .alt{min-width:22rem}
+ul.gate{margin:0 0 2rem;padding-left:1.1rem;color:var(--warn);font-size:.875rem}
+ul.gate li{margin:.2rem 0}
 </style></head><body>
 <h1>Studio</h1>
 <!--CONTENT-->
@@ -221,16 +284,18 @@ h3{justify-content:space-between}
 
   document.addEventListener("change", function(ev){
     var el = ev.target;
-    if (el.tagName !== "INPUT" || !el.dataset.field) return;
+    if (el.tagName !== "INPUT") return;
+    var isConfig = !!el.dataset.section;
+    if (!el.dataset.field && !isConfig) return;
     var was = el.defaultValue;
     el.disabled = true;
-    fetch(location.pathname + "/edit", {
+    fetch(location.pathname + (isConfig ? "/config" : "/edit"), {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        kind: el.dataset.kind, index: +el.dataset.index,
-        field: el.dataset.field, value: el.value
-      })
+      body: JSON.stringify(isConfig
+        ? {section: el.dataset.section, key: el.dataset.key, value: el.value}
+        : {kind: el.dataset.kind, index: +el.dataset.index,
+           field: el.dataset.field, value: el.value})
     })
     .then(function(r){ return r.json(); })
     .then(function(d){
@@ -270,7 +335,7 @@ class Panel(http.server.BaseHTTPRequestHandler):
             self.send_error(404)
             return
         route = self.path.rsplit("/", 1)[-1]
-        if route not in {"edit", "add", "remove", "attach"}:
+        if route not in {"edit", "add", "remove", "attach", "config"}:
             self.send_error(404)
             return
 
@@ -286,7 +351,13 @@ class Panel(http.server.BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(length) or b"{}")
             kind = str(body.get("kind", ""))
 
-            if route == "attach":
+            if route == "config":
+                message = set_config(
+                    str(body.get("section", "")),
+                    str(body.get("key", "")),
+                    str(body.get("value", "")),
+                )
+            elif route == "attach":
                 message = attach(
                     kind,
                     int(body.get("index", 0)),
