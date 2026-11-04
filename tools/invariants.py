@@ -88,16 +88,69 @@ INVARIANTS = [
 ]
 
 
+def duplicate_rules() -> "list[str]":
+    """Selectors defined twice at the top level of the stylesheet.
+
+    The file grew by appending blocks rather than editing the one
+    already there, so `.case .image` ended up defined three times in
+    three places — with `aspect-ratio` declared twice at different
+    values — and the result was correct only because the last block
+    happened to come last. Nothing was broken, which is the point: this
+    is how an edit silently stops applying.
+
+    Only TOP-LEVEL rules with a SINGLE selector. A rule inside a media
+    query is a deliberate override; `a, b { }` is two things sharing one
+    behaviour. Neither is this problem, and a check that cries wolf
+    teaches you to ignore it.
+    """
+    css = re.sub(r"/\*.*?\*/", "", read("static/css/site.css"), flags=re.S)
+
+    seen: "dict[str, int]" = {}
+    dupes = []
+    depth = 0
+    head_start = 0
+
+    for i, ch in enumerate(css):
+        if ch == "{":
+            if depth == 0:
+                head = " ".join(css[head_start:i].split())
+                # a sole selector, not a group, and not an at-rule
+                if head and "," not in head and not head.startswith("@"):
+                    line = css.count("\n", 0, i) + 1
+                    if head in seen:
+                        dupes.append(f"{head}  — lines {seen[head]} and {line}")
+                    else:
+                        seen[head] = line
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                head_start = i + 1
+
+    return dupes
+
+
 def main() -> int:
     problems = []
+    dupes = duplicate_rules()
     for name, rel, pattern, expected, why in INVARIANTS:
         found = len(re.findall(pattern, read(rel)))
         if found != expected:
             problems.append((name, rel, found, expected, why))
 
-    if not problems:
-        print(f"\n  invariants: {len(INVARIANTS)} hold\n")
+    if not problems and not dupes:
+        print(f"\n  invariants: {len(INVARIANTS)} hold, no selector defined twice\n")
         return 0
+
+    if dupes:
+        print("\n  THE SAME SELECTOR IS DEFINED TWICE\n")
+        for d in dupes:
+            print(f"    {d}")
+        print("      The later one silently wins. Merge them, or this is")
+        print("      how an edit stops applying and nobody can say why.\n")
+
+    if not problems:
+        return 1
 
     print("\n  INVARIANT BROKEN\n")
     for name, rel, found, expected, why in problems:
