@@ -56,7 +56,13 @@ def find_chrome() -> Optional[str]:
     return None
 
 
-def dom(chrome: str, url: str, width: int, height: int) -> str:
+def dom(chrome: str, url: str, width: int, height: int, shot: Path = None) -> str:
+    """Render the page and return the DOM. With `shot`, also save a picture.
+
+    The picture is the point of running a browser at all: the DOM says
+    whether the page is broken, and only an image says whether it looks
+    right. In CI it is uploaded as an artifact, which is how a layout
+    can be reviewed by someone who cannot run a browser locally."""
     return subprocess.run(
         [
             chrome,
@@ -64,6 +70,7 @@ def dom(chrome: str, url: str, width: int, height: int) -> str:
             "--disable-gpu",
             "--no-sandbox",
             f"--window-size={width},{height}",
+            *( [f"--screenshot={shot}"] if shot else [] ),
             # Let the page's own JavaScript run to completion — the whole
             # point. Three simulated seconds is past `load`, past the
             # cover's fade, and past every failsafe that matters.
@@ -126,10 +133,13 @@ def main() -> int:
         server = socketserver.TCPServer(("127.0.0.1", PORT), handler)
         threading.Thread(target=server.serve_forever, daemon=True).start()
 
+        shots = ROOT / "render-shots"
+        shots.mkdir(exist_ok=True)
+
         problems = []
         try:
             for w, h, name in SIZES:
-                html = dom(chrome, url, w, h)
+                html = dom(chrome, url, w, h, shots / f"{name}-{w}x{h}.png")
                 if not html.strip():
                     problems.append(f"{name}: the browser returned nothing")
                     continue
@@ -155,7 +165,10 @@ def main() -> int:
             print()
             return 1
 
-        print(f"\n  render: the page works at {len(SIZES)} sizes\n")
+        print(f"\n  render: the page works at {len(SIZES)} sizes")
+        for f in sorted(shots.glob("*.png")):
+            print(f"  {f.name}  {f.stat().st_size:,} bytes")
+        print()
         return 0
     finally:
         shutil.rmtree(out, ignore_errors=True)
