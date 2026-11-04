@@ -74,6 +74,20 @@ SCHEMA = {
 }
 
 
+# Fields the studio panel must never write.
+#
+# `verified` and its two companions are a RECORD, not content: a role is
+# verified by checking it against something, which is an act that happens
+# away from a screen. A box that could be ticked in a browser would make
+# the gate meaningless — the one check standing between an unverified
+# claim and a published page.
+#
+# `image` is locked here because slice 4 owns it: a photograph arrives
+# with a file and an `alt`, and adding one without the other is the gap
+# the alt field was introduced to close.
+LOCKED = {"verified", "verified_on", "evidence", "image"}
+
+
 def front_matter() -> str:
     parts = CONTENT.read_text(encoding="utf-8").split("+++")
     return parts[1] if len(parts) >= 3 else ""
