@@ -15,6 +15,7 @@ paragraphs:
   * no placeholder email address, ever (brief §4.08)
   * no stand-in photograph on a live site (NOTICE)
   * no legal notice with blanks in it, and the icons exist
+  * nothing still carrying the studio's "To be written" placeholder
   * concepts in development stay marked as such (brief §4.05)
 
 While `live = false` these are warnings: the demo is allowed to be
@@ -96,6 +97,21 @@ def main() -> int:
         problems.append("no contact address configured")
     elif re.search(r"example\.(com|org)|@example|placeholder|todo|xxx", address, re.I):
         problems.append(f"placeholder contact address: {address}")
+
+    # --- objects the editor created and nobody finished --------------------
+    # A new object cannot be blank — objects.py fails on an empty
+    # required field — so the studio fills it with text that says it is
+    # unfinished. This is the other half of that bargain: the words are
+    # allowed to exist, and not allowed to be published.
+    for kind, array in (("reference", "extra.work"), ("capability", "extra.services"),
+                        ("concept", "extra.concepts"), ("pillar", "extra.about_pillars")):
+        for i, block in enumerate(re.findall(rf"\[\[{re.escape(array)}\]\](.*?)(?=\n\[\[|\n# ----|\Z)", fm, re.S), 1):
+            if "To be written" in block:
+                name = re.search(r'name\s*=\s*"([^"]*)"', block)
+                problems.append(
+                    f"{kind} {i} ({name.group(1) if name else '?'}) is still "
+                    "the placeholder the studio created — write it or remove it"
+                )
 
     # --- the legal notice -------------------------------------------------
     # Required of a publisher established in France whoever the audience

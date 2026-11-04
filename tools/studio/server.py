@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 from objects import LOCKED, SCHEMA, blocks, front_matter  # noqa: E402
-from edit import Refused, write  # noqa: E402
+from edit import Refused, add, remove, write  # noqa: E402
 
 # A token in the path, as myBureau does. The panel binds to loopback, so
 # this is not about the network — it is about the other pages open in the
@@ -75,12 +75,16 @@ def page() -> str:
             )
             label = obj.get("name") or f"{kind} {i}"
             items.append(
-                f'<article><h3><span class="n">{i:02d}</span>{html.escape(label)}</h3>'
-                f"<table>{rows}</table></article>"
+                f'<article><h3><span class="n">{i:02d}</span>{html.escape(label)}'
+                f'<button class="remove" data-kind="{kind}" data-index="{i}">remove</button>'
+                f"</h3><table>{rows}</table></article>"
             )
         sections.append(
             f'<section><h2>{html.escape(kind)}<span class="count">{len(found)}</span></h2>'
-            f'<p class="doc">{html.escape(doc)}</p>{"".join(items) or "<p><em>none</em></p>"}</section>'
+            f'<p class="doc">{html.escape(doc)}</p>'
+            f'{"".join(items) or "<p><em>none</em></p>"}'
+            f'<button class="add" data-kind="{kind}">add a {html.escape(kind)}</button>'
+            f"</section>"
         )
 
     return TEMPLATE.replace("<!--CONTENT-->", "".join(sections))
@@ -117,6 +121,12 @@ input:disabled{opacity:.5}
 .says{position:fixed;left:1rem;bottom:1rem;margin:0;padding:.6rem 1rem;border-radius:3px;font-size:.8125rem;background:var(--panel);color:var(--ink);opacity:0;transition:opacity .2s}
 .says.good,.says.bad{opacity:1}
 .says.bad{color:var(--warn);font-weight:500}
+button.add,button.remove{font:inherit;cursor:pointer;background:none;color:var(--muted);border:1px solid var(--line);border-radius:3px}
+button.add{margin-top:1.5rem;padding:.5rem 1rem;font-size:.8125rem}
+button.remove{margin-left:auto;padding:.15rem .5rem;font-size:.6875rem}
+button.add:hover,button.remove:hover{color:var(--ink);border-color:var(--muted)}
+button:disabled{opacity:.4;cursor:default}
+h3{justify-content:space-between}
 </style></head><body>
 <h1>Studio</h1>
 <!--CONTENT-->
@@ -130,6 +140,37 @@ input:disabled{opacity:.5}
 (function(){
   var says = document.querySelector(".says");
   function tell(text, bad){ says.textContent = text; says.className = "says" + (bad ? " bad" : " good"); }
+
+  function send(path, body, then){
+    fetch(location.pathname + path, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body)
+    }).then(function(r){ return r.json(); }).then(then)
+      .catch(function(e){ tell(String(e), true); });
+  }
+
+  document.addEventListener("click", function(ev){
+    var el = ev.target;
+    if (el.classList.contains("add")) {
+      el.disabled = true;
+      send("/add", {kind: el.dataset.kind}, function(d){
+        if (!d.ok) { el.disabled = false; return tell(d.message, true); }
+        /* Reload rather than build the new object in the page. The file
+           is the truth; showing anything assembled here would be a
+           second opinion about what it now contains. */
+        location.reload();
+      });
+    }
+    if (el.classList.contains("remove")) {
+      if (!confirm("Remove this? It is written to the file immediately.")) return;
+      el.disabled = true;
+      send("/remove", {kind: el.dataset.kind, index: +el.dataset.index}, function(d){
+        if (!d.ok) { el.disabled = false; return tell(d.message, true); }
+        location.reload();
+      });
+    }
+  });
 
   document.addEventListener("change", function(ev){
     var el = ev.target;
@@ -181,7 +222,8 @@ class Panel(http.server.BaseHTTPRequestHandler):
         if not self.path.startswith(f"/{TOKEN}"):
             self.send_error(404)
             return
-        if not self.path.endswith("/edit"):
+        route = self.path.rsplit("/", 1)[-1]
+        if route not in {"edit", "add", "remove"}:
             self.send_error(404)
             return
 
@@ -192,12 +234,19 @@ class Panel(http.server.BaseHTTPRequestHandler):
 
         try:
             body = json.loads(self.rfile.read(length) or b"{}")
-            message = write(
-                str(body.get("kind", "")),
-                int(body.get("index", 0)),
-                str(body.get("field", "")),
-                str(body.get("value", "")),
-            )
+            kind = str(body.get("kind", ""))
+
+            if route == "add":
+                message = add(kind)
+            elif route == "remove":
+                message = remove(kind, int(body.get("index", 0)))
+            else:
+                message = write(
+                    kind,
+                    int(body.get("index", 0)),
+                    str(body.get("field", "")),
+                    str(body.get("value", "")),
+                )
             self.reply({"ok": True, "message": message})
         except Refused as refused:
             # Expected: the edit was rejected and the file is untouched.
