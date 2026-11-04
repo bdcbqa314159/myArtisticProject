@@ -963,7 +963,7 @@ section:not(.hero) > .wrap > .eyebrow::after {
 
 html.scrolling .case .image img,
 html.scrolling .placeholder {
-  filter: blur(4px);
+  filter: blur(3px);
 }
 
 @media (prefers-reduced-motion: reduce) {
