@@ -42,8 +42,19 @@ CHROMES = [
     "chromium-browser",
 ]
 
-# (width, height, what this size is for)
-SIZES = [(1280, 900, "desktop"), (390, 844, "phone")]
+# (width, height, name, anchor)
+#
+# A screenshot is the viewport, not the page, so the sections below the
+# fold need their own. These are the ones carrying the offsets, which
+# cannot be reviewed from a picture of the hero.
+SIZES = [
+    (1280, 900, "desktop-hero", ""),
+    (1280, 900, "desktop-expertise", "#services"),
+    (1280, 900, "desktop-work", "#work"),
+    (1280, 900, "desktop-about", "#about"),
+    (390, 844, "phone-hero", ""),
+    (390, 844, "phone-work", "#work"),
+]
 
 
 def find_chrome() -> Optional[str]:
@@ -56,7 +67,13 @@ def find_chrome() -> Optional[str]:
     return None
 
 
-def dom(chrome: str, url: str, width: int, height: int) -> str:
+def dom(chrome: str, url: str, width: int, height: int, shot: Path = None) -> str:
+    """Render the page and return the DOM. With `shot`, also save a picture.
+
+    The picture is the point of running a browser at all: the DOM says
+    whether the page is broken, and only an image says whether it looks
+    right. In CI it is uploaded as an artifact, which is how a layout
+    can be reviewed by someone who cannot run a browser locally."""
     return subprocess.run(
         [
             chrome,
@@ -64,6 +81,7 @@ def dom(chrome: str, url: str, width: int, height: int) -> str:
             "--disable-gpu",
             "--no-sandbox",
             f"--window-size={width},{height}",
+            *( [f"--screenshot={shot}"] if shot else [] ),
             # Let the page's own JavaScript run to completion — the whole
             # point. Three simulated seconds is past `load`, past the
             # cover's fade, and past every failsafe that matters.
@@ -126,10 +144,13 @@ def main() -> int:
         server = socketserver.TCPServer(("127.0.0.1", PORT), handler)
         threading.Thread(target=server.serve_forever, daemon=True).start()
 
+        shots = ROOT / "render-shots"
+        shots.mkdir(exist_ok=True)
+
         problems = []
         try:
-            for w, h, name in SIZES:
-                html = dom(chrome, url, w, h)
+            for w, h, name, anchor in SIZES:
+                html = dom(chrome, url + anchor, w, h, shots / f"{name}.png")
                 if not html.strip():
                     problems.append(f"{name}: the browser returned nothing")
                     continue
@@ -139,11 +160,11 @@ def main() -> int:
                 # wrong at both: inline links above 800px, a disclosure
                 # below it.
                 open_menu = "<details" in html and " open" in html.split("<details")[1][:80]
-                if name == "desktop" and not open_menu:
+                if name.startswith("desktop") and not open_menu:
                     problems.append(
                         "desktop: the nav is closed, so the bar has no links in it"
                     )
-                if name == "phone" and open_menu:
+                if name.startswith("phone") and open_menu:
                     problems.append("phone: the nav is open before anyone asked")
         finally:
             server.shutdown()
@@ -155,7 +176,10 @@ def main() -> int:
             print()
             return 1
 
-        print(f"\n  render: the page works at {len(SIZES)} sizes\n")
+        print(f"\n  render: the page works, {len(SIZES)} views checked")
+        for f in sorted(shots.glob("*.png")):
+            print(f"  {f.name}  {f.stat().st_size:,} bytes")
+        print()
         return 0
     finally:
         shutil.rmtree(out, ignore_errors=True)

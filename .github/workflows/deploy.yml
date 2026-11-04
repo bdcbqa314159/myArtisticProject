@@ -38,6 +38,16 @@ jobs:
       # Uses the runner's own Chrome — no dependency, nothing installed.
       - run: python3 tools/render-check.py
 
+      # The pictures it took, kept for review. A layout cannot be checked
+      # by reading it, and whoever is reviewing may have no browser to
+      # run — `gh run download` fetches these.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: render-shots
+          path: render-shots/
+          retention-days: 7
+
       # only the real deploy publishes an artifact — a PR build that
       # uploaded one would contend with an in-flight deploy
       - uses: actions/upload-pages-artifact@v3

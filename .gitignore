@@ -5,6 +5,9 @@
 .env
 .env.*
 
+# pictures taken by tools/render-check.py
+/render-shots/
+
 # build output (zola)
 /public/
 
