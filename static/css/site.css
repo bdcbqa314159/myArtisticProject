@@ -1090,3 +1090,35 @@ section:not(.hero) > .wrap > .note { text-align: left; }
     aspect-ratio: 3 / 2;
   }
 }
+
+
+/* ============================================================================
+   BOTH BUTTONS, AND TIME TO SEE THEM
+
+   "J'ai remarqué la réaction sur le bouton bleu, mais pas sur l'autre."
+
+   He is right, and it was not a matter of degree. Both buttons had the same
+   `:active` transform — but the filled one also inverts its background,
+   which is a change across its whole area, while the outline one changed
+   only a 1px border. One read as a press and the other as nothing.
+
+   So the outline button now gets a fill of its own on press. Not the hover
+   fill, which would make pressing it look like hovering it: a tenth of the
+   accent, enough to register as a surface being pushed.
+   ============================================================================ */
+
+.btn:not(.primary):active {
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+}
+
+/* The filled one loses a little weight instead of gaining it, so the two
+   move in the same direction by the same amount. */
+.btn.primary:active {
+  background: color-mix(in oklab, var(--accent) 88%, var(--bg));
+  border-color: color-mix(in oklab, var(--accent) 88%, var(--bg));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn:not(.primary):active,
+  .btn.primary:active { background: var(--accent); color: var(--bg); }
+}
