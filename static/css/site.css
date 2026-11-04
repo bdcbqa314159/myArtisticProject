@@ -1140,3 +1140,15 @@ section:not(.hero) > .wrap > .note { text-align: left; }
 @media (prefers-reduced-motion: reduce) {
   .case .image img { scale: 1; will-change: auto; }
 }
+
+/* The smear filter's own element — machinery, never seen. */
+.filters { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* One photograph carries it, as asked: "sur une seule transition
+   photographique". At rest the filter is an identity, so this costs
+   nothing until the page moves. */
+.smear { filter: url(#smear); }
+
+@media (prefers-reduced-motion: reduce) {
+  .smear { filter: none; }
+}
