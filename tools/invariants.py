@@ -60,6 +60,16 @@ INVARIANTS = [
         "would ever be removed.",
     ),
     (
+        "the landing page has a main landmark",
+        "templates/index.html",
+        r"<main>",
+        1,
+        "It was dropped when the template was rebuilt for the maquette's "
+        "architecture, and nothing noticed for eleven PRs: no skip-to-content "
+        "landmark, and §5 asks for semantic HTML. The accessibility checks "
+        "looked at alt text, headings and lang, and never at landmarks.",
+    ),
+    (
         "one Content-Security-Policy, in the shared head",
         "templates/_head.html",
         r'http-equiv="Content-Security-Policy"',
