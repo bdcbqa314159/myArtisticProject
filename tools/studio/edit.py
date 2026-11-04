@@ -38,6 +38,42 @@ MAX_LEN = 600
 UNWRITTEN = "To be written"
 
 
+CONFIG = ROOT / "config.toml"
+
+# The fields that decide a launch, and nothing else.
+#
+# An allowlist rather than "any key in config.toml": the file also holds
+# `live`, the base URL and the build settings, and a panel that could
+# reach those is a panel that can take the site down from a browser.
+#
+# `live` is deliberately absent. The gate decides whether the site MAY
+# be published; a person decides whether it IS. That is not a button.
+CONFIG_FIELDS = {
+    "extra.real": {
+        "name":          "the name on the page",
+        "person":        "the person, as they write it",
+        "title":         "the browser tab and the shared link",
+        "approach_lead": "the paragraph under 01 / Approach",
+        "about_lead":    "the opening of 06 / About",
+    },
+    "extra.contact": {
+        "email":       "the verified business address — never a placeholder",
+        "vcard_name":  "as it should appear in a phonebook",
+        "vcard_role":  "the line under the name on a saved card",
+        "vcard_org":   "the entity",
+        "vcard_phone": "optional, international format",
+        "vcard_url":   "optional",
+    },
+    "extra.legal": {
+        "entity":       "the legal name of the publisher",
+        "status":       "e.g. Entrepreneur individuel, SASU",
+        "registration": "SIRET / RCS",
+        "address":      "the registered address",
+        "publisher":    "directeur de la publication",
+    },
+}
+
+
 class Refused(Exception):
     """The edit was not made, and the file was not touched."""
 
@@ -88,11 +124,19 @@ def apply_edit(kind: str, index: int, field: str, value: str,
     end = starts[index] if index < len(starts) else len(text)
     block = text[start:end]
 
-    line = re.search(rf'^{re.escape(field)}\s*=\s*"(?:[^"\\]|\\.)*"\s*$', block, re.M)
+    line = re.search(
+        rf'^({re.escape(field)}\s*=\s*)"(?:[^"\\]|\\.)*"([ \t]*#.*)?$', block, re.M
+    )
     new_line = f'{field} = "{quote(value)}"'
 
     if line:
-        updated = block[: line.start()] + new_line + block[line.end():]
+        # Any trailing comment on the line belongs to the field, not to
+        # the value, and survives the edit.
+        updated = (
+            block[: line.start()]
+            + f'{line.group(1)}"{quote(value)}"{line.group(2) or ""}'
+            + block[line.end():]
+        )
     else:
         # An optional field that was never written has no line to
         # change, so one is added. Not at the end of the block — that is
@@ -184,6 +228,83 @@ def attach(kind: str, index: int, filename: str, raw: bytes, alt: str) -> str:
         if dest.exists():
             dest.unlink()
         raise
+
+
+def set_config(section: str, key: str, value: str) -> str:
+    """Change one launch field in config.toml.
+
+    Surgical, for the same reason as the content file: config.toml is
+    mostly comments explaining why each switch exists — the identity
+    swap, why `live` is false, why French is not built. A serializer
+    would take all of it.
+    """
+    if section not in CONFIG_FIELDS:
+        raise Refused(f"{section} is not editable here")
+    if key not in CONFIG_FIELDS[section]:
+        raise Refused(f"{section} has no editable field {key!r}")
+
+    value = value.strip()
+    if "\n" in value or "\r" in value:
+        raise Refused("a value is one line")
+    if len(value) > MAX_LEN:
+        raise Refused(f"{len(value)} characters; the limit is {MAX_LEN}")
+
+    text = CONFIG.read_text(encoding="utf-8")
+
+    header = re.search(rf"^\[{re.escape(section)}\]\s*$", text, re.M)
+    if not header:
+        raise Refused(f"config.toml has no [{section}]")
+    start = header.end()
+    nxt = re.search(r"^\[", text[start:], re.M)
+    end = start + (nxt.start() if nxt else len(text[start:]))
+    block = text[start:end]
+
+    # The trailing comment is kept. In config.toml it is often the only
+    # thing saying what the field is for — "never a placeholder",
+    # "international format" — and replacing the line without it would
+    # quietly delete the instruction along with the blank.
+    line = re.search(
+        rf'^({re.escape(key)}\s*=\s*)"(?:[^"\\]|\\.)*"([ \t]*#.*)?$', block, re.M
+    )
+    if not line:
+        raise Refused(f"[{section}] has no {key} line")
+
+    updated = (
+        block[: line.start()]
+        + f'{line.group(1)}"{quote(value)}"{line.group(2) or ""}'
+        + block[line.end():]
+    )
+    candidate = text[:start] + updated + text[end:]
+
+    original = text
+    CONFIG.write_text(candidate, encoding="utf-8")
+    try:
+        if original.count("#") != candidate.count("#"):
+            raise Refused("a comment was lost; the edit was undone")
+        leaked = _protected_terms_leaked()
+        if leaked:
+            raise Refused(
+                f"{leaked} is protected from this repository — it is public. "
+                "See NOTICE; the real identity goes in at handover."
+            )
+    except Exception:
+        CONFIG.write_text(original, encoding="utf-8")
+        raise
+
+    return f"[{section}] {key} updated"
+
+
+def _protected_terms_leaked() -> str:
+    """The client's trademark must not reach a tracked file. The terms
+    live in _ref/identifiers.txt, which is untracked — a list that named
+    what it guards would be the leak it prevents."""
+    ids = ROOT / "_ref" / "identifiers.txt"
+    if not ids.exists():
+        return ""
+    terms = [t.strip() for t in ids.read_text(encoding="utf-8").splitlines()
+             if t.strip() and not t.startswith("#")]
+    body = CONFIG.read_text(encoding="utf-8").lower()
+    return next((repr(t) for t in terms if t.lower() in body), "")
 
 
 def add(kind: str) -> str:
