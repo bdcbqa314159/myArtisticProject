@@ -10,6 +10,7 @@
  * touching the DOM at all.
  */
 import { splitWords } from "./words.js";
+import { shiftFor } from "./drift.js";
 /* Both failsafes in one place, so the ordering between them is visible.
  * The cover's lives in the inline script in the head and is 6000ms;
  * this one must come after it. */
@@ -260,10 +261,7 @@ function photographsDrift() {
         const height = window.innerHeight;
         for (const img of onScreen) {
             const box = img.getBoundingClientRect();
-            // 0 when the photograph's middle is at the top of the screen, 1 at
-            // the bottom. Centred is 0.5, which is where it sits still.
-            const through = (box.top + box.height / 2) / height;
-            const shift = (0.5 - through) * 2 * PARALLAX_PX;
+            const shift = shiftFor(box.top, box.height, height, PARALLAX_PX);
             img.style.transform = `translate3d(0, ${shift.toFixed(1)}px, 0)`;
         }
     }
