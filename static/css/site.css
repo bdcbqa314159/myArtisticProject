@@ -316,13 +316,43 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
   color: var(--accent);
   font: 500 0.8125rem/1 var(--sans);
   text-decoration: none;
-  transition: background-color 180ms ease, color 180ms ease;
+  transition: background-color 180ms ease, color 180ms ease,
+              transform 110ms cubic-bezier(.2, 0, .2, 1);
+  /* We draw the press ourselves; the default is a grey rectangle that
+     arrives late and leaves late. */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
 
-.btn:hover, .btn:focus-visible { background: var(--accent); border-color: var(--accent); color: var(--bg); }
-.btn.primary:hover, .btn.primary:focus-visible { background: transparent; color: var(--accent); }
+/* Hover, only where there is a pointer that can hover.
+   Unscoped, a tap on a phone leaves the hover state stuck on the button
+   until you touch something else — so the one device this page is made
+   for was the one where the buttons looked broken afterwards. */
+@media (hover: hover) {
+  .btn:hover { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .btn.primary:hover { background: transparent; color: var(--accent); }
+}
+
+.btn:focus-visible { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.btn.primary:focus-visible { background: transparent; color: var(--accent); }
+
+/* The press.
+   A millimetre down and a hair smaller, over 110ms — the amount a real
+   button moves. It is deliberately not a bounce: the brief asks for
+   "discret, pas trop gadget", and anything that overshoots reads as a
+   toy. This is the one state a touch device never had: before it, a
+   finger on a button produced nothing at all. */
+.btn:active {
+  transform: translateY(1px) scale(0.985);
+  transition-duration: 60ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: background-color 180ms ease, color 180ms ease; }
+  .btn:active { transform: none; }
+}
 
 /* ---- grids and cards ----------------------------------------------------- */
 
