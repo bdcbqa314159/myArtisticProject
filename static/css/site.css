@@ -1132,3 +1132,11 @@ section:not(.hero) > .wrap > .note { text-align: left; }
   #services > .wrap > .grid > :nth-child(3n + 2) { justify-self: end; }
   #services > .wrap > .grid > :nth-child(3n + 3) { justify-self: center; }
 }
+
+/* The photographs are given a little more than they show, so the drift
+   never pulls an edge into frame. The container already clips. */
+.case .image img { transform: translate3d(0, 0, 0); scale: 1.08; will-change: transform; }
+
+@media (prefers-reduced-motion: reduce) {
+  .case .image img { scale: 1; will-change: auto; }
+}
