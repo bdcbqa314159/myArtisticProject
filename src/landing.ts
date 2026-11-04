@@ -11,6 +11,7 @@
  */
 
 import { splitWords } from "./words.js";
+import { shiftFor } from "./drift.js";
 
 /* Both failsafes in one place, so the ordering between them is visible.
  * The cover's lives in the inline script in the head and is 6000ms;
@@ -235,6 +236,80 @@ function closeMenuOnNavigate(): void {
   });
 }
 
+/* ---- the photographs drift ---------------------------------------------
+ * "Ajouter un léger mouvement vertical lié au scroll (parallax)."
+ *
+ * Each photograph moves a little against the page as it passes — 14px
+ * either side of centre, which is an eighth of its own height and reads
+ * as depth rather than as a thing sliding about.
+ *
+ * The container already clips, and the image is scaled slightly in CSS,
+ * so the movement never pulls an edge into view.
+ *
+ * ON COST, since this is the third thing now running on the same
+ * scroll, after the blur and the nav's current-section marking:
+ *
+ *   - only photographs CURRENTLY ON SCREEN are touched. An observer
+ *     keeps the set; the rest are not measured, not written to, not
+ *     thought about.
+ *   - one frame is requested per scroll event at most, and coalesced —
+ *     a burst of scroll events produces one write, not twenty.
+ *   - nothing animates when the page is still. There is no running
+ *     loop; a frame happens because something moved.
+ *   - `transform` only. Never `top`, never `margin`: those are layout,
+ *     and layout during a scroll is how a page starts to stutter.
+ */
+const PARALLAX_PX = 14;
+
+function photographsDrift(): void {
+  if (reduced) return;
+
+  const shots = document.querySelectorAll<HTMLElement>(".case .image img");
+  if (shots.length === 0) return;
+
+  const onScreen = new Set<HTMLElement>();
+  let frame = 0;
+
+  function draw(): void {
+    frame = 0;
+    const height = window.innerHeight;
+    for (const img of onScreen) {
+      const box = img.getBoundingClientRect();
+      const shift = shiftFor(box.top, box.height, height, PARALLAX_PX);
+      img.style.transform = `translate3d(0, ${shift.toFixed(1)}px, 0)`;
+    }
+  }
+
+  function request(): void {
+    if (!frame && onScreen.size > 0) frame = requestAnimationFrame(draw);
+  }
+
+  const seen = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        const img = e.target as HTMLElement;
+        if (e.isIntersecting) {
+          onScreen.add(img);
+        } else {
+          onScreen.delete(img);
+          // Left where it was, it would be caught mid-drift the next
+          // time it came back.
+          img.style.transform = "";
+        }
+      }
+      request();
+    },
+    // A little early, so a photograph is already placed when its first
+    // pixel appears rather than jumping into position.
+    { rootMargin: "120px 0px" },
+  );
+
+  for (const img of shots) seen.observe(img);
+
+  addEventListener("scroll", request, { passive: true });
+  addEventListener("resize", request, { passive: true });
+}
+
 /* ---- let the press be seen ---------------------------------------------
  * "Comme la page défile très rapidement après le clic, on n'a pas
  * vraiment le temps de voir l'animation."
@@ -453,6 +528,7 @@ copyButtons();
 paletteControl();
 softWhileMoving();
 letThePressBeSeen();
+photographsDrift();
 
 /* LAST, and the ONLY place the page is shown.
  *
