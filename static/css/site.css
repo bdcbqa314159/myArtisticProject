@@ -848,41 +848,16 @@ section:not(.hero) > .wrap > .eyebrow::after {
 
 @media (min-width: 50rem) {
 
-  /* The rule belongs to the phone layout; beside a heading it would be a
-     line pointing at nothing. */
-  section:not(.hero) > .wrap > .eyebrow::after { display: none; }
+  /* THE LABEL RAIL IS GONE.
+     It existed to hold `01 / Approach` beside the heading, and the
+     numbers were removed. What it left behind was a split masthead: the
+     label pinned to the far left of an 8rem column while the heading sat
+     centred in the next one — the two halves of one device, no longer
+     looking at each other.
 
-  /* 1. The label leaves the stack and becomes a rail.
-        `01 / Approach` sat directly above its heading, so every section
-        opened with the same two left-aligned lines. Beside it instead, in
-        its own narrow column, it reads as a masthead mark — and the
-        heading now starts the page's text rather than following a label. */
-  section:not(.hero) > .wrap {
-    display: grid;
-    grid-template-columns: 8rem minmax(0, 1fr);
-    column-gap: 3.5rem;
-    align-items: start;
-  }
-
-  section:not(.hero) > .wrap > * { grid-column: 2; }
-
-  section:not(.hero) > .wrap > .eyebrow {
-    grid-column: 1;
-    grid-row: 1;
-    margin: 0;
-    /* optically level with the cap-height of the heading beside it */
-    padding-top: 0.75rem;
-  }
-
-  section:not(.hero) > .wrap > h2 { grid-row: 1; }
-
-  /* The grids keep the full measure. Pushing the photographs into the
-     narrower column to match the prose would shrink the work to gain an
-     alignment nobody asked for. */
-  section > .wrap > .grid,
-  section > .wrap > .work,
-  section > .wrap > .strip,
-  section > .wrap > .about { grid-column: 1 / -1; }
+     Sections are a single column again, so the centred label and the
+     centred heading stay together at every width, which is what the
+     phone layout has been doing all along. */
 
   /* 2. Alternate sections stagger their opening paragraph.
         Every other lead starts a step in from the heading above it. It is
@@ -895,9 +870,7 @@ section:not(.hero) > .wrap > .eyebrow::after {
     padding-left: 3.5rem;
   }
 
-  /* The disclaimer hangs the other way, into the rail, because it is an
-     aside about the section rather than part of it. */
-  section > .wrap > .note { grid-column: 1 / -1; }
+
 }
 
 /* Same stuck-hover as the buttons had: unscoped, a tap on a phone leaves
@@ -997,9 +970,9 @@ section:not(.hero) > .wrap > .eyebrow {
    pushing them back to anyway. */
 
 @media (min-width: 50rem) {
-  /* The section numeral belongs to the label rail on wide screens, so it
-     sits with it rather than beside the heading. */
-  section:not(.hero) > .wrap > .eyebrow { flex-direction: column; align-items: start; gap: 0.35rem; }
+  /* (The rule that stacked the label under its numeral lived here. The
+     numerals are gone, and it was quietly turning the centred label into
+     a vertically-centred column pinned to the left.) */
 }
 
 
@@ -1121,4 +1094,41 @@ section:not(.hero) > .wrap > .note { text-align: left; }
 @media (prefers-reduced-motion: reduce) {
   .btn:not(.primary):active,
   .btn.primary:active { background: var(--accent); color: var(--bg); }
+}
+
+/* ============================================================================
+   HOW WE CAN WORK TOGETHER — the blocks alternate
+
+   "Disposer les blocs en alternance : premier à gauche, deuxième à droite,
+   troisième au centre, puis répéter cette séquence. Sur mobile, aligner les
+   blocks verticalement à gauche."
+
+   So above the breakpoint the six become one column that zigzags: start,
+   end, centre, repeating. On a phone they stack at the left, as asked.
+
+   Two decisions inside that:
+
+   - the blocks keep a MEASURE. Left/right/centre only reads as placement
+     if each block is narrower than the space it sits in; full-width blocks
+     with different alignments look identical.
+   - the TEXT inside stays left in every one of them, including the centred
+     block. Centring the text as well would make the middle item a
+     different kind of thing rather than the same thing in a different
+     place, and he asked for a sequence, not a feature.
+
+   Scoped by id to Expertise. Concepts uses the same grid class and was not
+   part of the request, and an id beats a class — so the three-column rule
+   below the comment never has to be reordered around this.
+   ============================================================================ */
+
+#services > .wrap > .grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(2.5rem, 5vw, 3.5rem);
+}
+
+@media (min-width: 50rem) {
+  #services > .wrap > .grid > * { max-width: 34rem; }
+  #services > .wrap > .grid > :nth-child(3n + 1) { justify-self: start; }
+  #services > .wrap > .grid > :nth-child(3n + 2) { justify-self: end; }
+  #services > .wrap > .grid > :nth-child(3n + 3) { justify-self: center; }
 }
