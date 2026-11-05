@@ -1378,3 +1378,36 @@ html.js [data-copy] { display: inline-flex; }
 .dock img { height: 20px; width: auto; }
 
 .dock-name { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* ---- the two phrases exchange places ------------------------------------
+ * "Animer les 2 phrases pour qu'elles échangent visiblement leurs
+ *  positions. Déclencher l'échange une seule fois à l'apparition de la
+ *  section, sans boucle."
+ *
+ * Two lines rather than one wrapped sentence, because the heading IS a
+ * pair — a duality set as a single run of text has to be re-read to be
+ * seen as two halves.
+ *
+ * The distances are measured and written by script, not declared here:
+ * the two phrases are different lengths and wrap differently at every
+ * width, so a percentage would be right at one size and wrong at the
+ * rest. What lives here is only how the journey is made.
+ */
+.phrases .phrase { display: block; }
+
+/* The transition exists ONLY while the swap is happening. Left on
+   permanently it would animate the phrases every time anything else
+   moved them — a resize, a font arriving late — which is the loop the
+   brief rules out. */
+.swap.swapping .phrase {
+  /* The delay lets the block's own arrival finish first. Both at once
+     and the crossing happens underneath a fade, which is motion spent
+     on something nobody can make out. */
+  transition: transform 820ms cubic-bezier(.76, 0, .24, 1) 480ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Script never crosses them under reduced motion, so there is nothing
+     to undo — this is the belt to that braces. */
+  .swap.swapping .phrase { transition: none; }
+}

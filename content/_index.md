@@ -65,7 +65,15 @@ work_lead = "Organisations I have worked with, and the roles I held. Each can be
 work_note = "Professional references above do not imply that each organisation is a contracted partner."
 concepts_title = "Formats in development."
 concepts_lead = "Original ideas designed to evolve through partnerships and pilot projects. These are development concepts, not completed client commissions."
-ecosystem_title = "Independent by design. Collaborative by nature."
+# Two phrases, because the client asked for them to exchange places
+# visibly, once, as the section arrives — newFeedBack01 point 4. They are
+# the halves of one sentence and stay one field, so there is nothing for
+# a second copy to disagree with.
+#
+# Exactly two → they swap. One, or three, or none → the heading renders
+# as written and nothing moves. The effect is a property of the content's
+# shape rather than a switch somebody has to remember to set.
+ecosystem_title = ["Independent by design.", "Collaborative by nature."]
 ecosystem_lead = "I draw on cross-sector experience and a professional network spanning artistic creation, performance, sport, cultural venues, education and media. I shape creative collaborations around each project, with production handled by the right partners."
 about_title = "Built on practice. Open to new territories."
 about_text = "Working across artistic and operational roles helps me connect creative ambition with the realities of delivery. Through 10MILES I develop concepts and international collaborations, with a priority market abroad."
