@@ -152,6 +152,55 @@ def check(html: str, where: str) -> "list[str]":
     return bad
 
 
+def build_live_config(out: Path) -> Path:
+    """config.toml with `live = true`, for rendering only.
+
+    The launch configuration is the only one that will ever face the
+    public, and until this existed it was the only one nobody had
+    rendered. It is how "STAND-IN" came within one merge of being
+    printed across the client's own photographs: the badge was tied to
+    the presence of an image, not to whether that image was a
+    placeholder, and no check could see it because no check ever built
+    the page that would show it.
+
+    Written beside the build, never over config.toml.
+    """
+    text = (ROOT / "config.toml").read_text(encoding="utf-8")
+    live = out / "config.live.toml"
+    live.write_text(text.replace("live = false", "live = true"), encoding="utf-8")
+    return live
+
+
+def check_live(html: str) -> "list[str]":
+    """What must be true of the page the public would get."""
+    bad = []
+
+    if "noindex" in html:
+        bad.append("live: still noindex — the page would never be found")
+    if "data-palette-toggle" in html:
+        bad.append("live: the palette toggle is on the published page")
+    # The BADGE, not the words. The demo's placeholder alt text reads
+    # "Stand-in photograph…", so matching the phrase anywhere made a
+    # check that could never pass — and a check that always fails is
+    # read once and ignored afterwards.
+    #
+    # The badge is the thing that nearly shipped: it was tied to the
+    # presence of an image rather than to whether the image was a
+    # placeholder, so on launch day it would have been printed across
+    # the client's own photographs.
+    if 'class="stand-in"' in html or "class=stand-in" in html:
+        bad.append(
+            "live: the stand-in badge is on the published page — it would "
+            "sit on the client's own photographs"
+        )
+    if "class=\"skip\"" not in html and "class=skip" not in html:
+        bad.append("live: no skip link")
+    if "<main" not in html:
+        bad.append("live: no main landmark")
+
+    return bad
+
+
 def main() -> int:
     chrome = find_chrome()
     if not chrome:
@@ -200,6 +249,20 @@ def main() -> int:
                     )
                 if name.startswith("narrow") and open_menu:
                     problems.append("narrow: the nav is open before anyone asked")
+            # And the configuration that will face the public.
+            live_cfg = build_live_config(out)
+            built = subprocess.run(
+                ["zola", "--config", str(live_cfg), "build",
+                 "--base-url", url, "-o", str(out), "-f"],
+                cwd=ROOT, capture_output=True, text=True,
+            )
+            if built.returncode != 0:
+                problems.append("the site does not build with live = true")
+            else:
+                live_html = dom(chrome, url, 1280, 900)
+                problems += check_live(live_html)
+                dom(chrome, url, 1280, 3400, shots / "launch-page.png")
+
         finally:
             server.shutdown()
 
