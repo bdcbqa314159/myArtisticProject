@@ -668,6 +668,75 @@ function keepOneAddress() {
         });
     }
 }
+/* ---- the two phrases exchange places ------------------------------------
+ * "Animer les 2 phrases pour qu'elles échangent visiblement leurs
+ *  positions. Déclencher l'échange une seule fois à l'apparition de la
+ *  section, sans boucle."
+ *
+ * The heading is written in its FINAL order, which is the order a
+ * browser running no script displays and the order a reader is left
+ * with. The crossing is the opening state, put there by this function:
+ * the phrases start in each other's places and travel home.
+ *
+ * It has to be that way round. A swap that ENDS crossed would leave the
+ * sentence reversed for everyone who stayed on the page, and reversed
+ * permanently for anyone whose script never ran.
+ *
+ * MEASURED, NOT DECLARED. The distance is the gap between the two
+ * phrases' own tops, read from the page. A percentage would assume they
+ * are the same height, and they are not: they are different lengths and
+ * wrap at different widths. Reading it costs one layout, once, before
+ * anything has moved.
+ *
+ * Once, and never again — `unobserve` on the first crossing, and the
+ * transition is removed with the class that carried it.
+ */
+const SWAP_DONE_MS = 1400; // the 820ms journey plus its 480ms delay, rounded up
+function exchangePhrases() {
+    // No crossing at all under reduced motion: the heading is simply the
+    // heading, already in the right order.
+    if (reduced)
+        return;
+    const heading = document.querySelector(".swap");
+    if (!heading)
+        return;
+    const phrases = heading.querySelectorAll(".phrase");
+    const first = phrases[0];
+    const second = phrases[1];
+    if (!first || !second || phrases.length !== 2)
+        return;
+    const apart = second.offsetTop - first.offsetTop;
+    // Stacked by a stylesheet that has not loaded, or laid out side by
+    // side by some future change: either way there is no vertical journey
+    // to make, and a swap of nothing is worse than none.
+    if (apart <= 0)
+        return;
+    /* A few pixels sideways as well, in opposite directions, so the two
+     * pass each other rather than sliding through the same column. It is
+     * the difference between an exchange and a glitch. */
+    first.style.transform = `translate(-0.6rem, ${apart}px)`;
+    second.style.transform = `translate(0.6rem, ${-apart}px)`;
+    const seen = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+            if (!entry.isIntersecting)
+                continue;
+            seen.unobserve(entry.target);
+            heading.classList.add("swapping");
+            // Read the layout so the browser registers the crossed position
+            // as a starting point. Without it the class and the clearing
+            // are coalesced into one change and the phrases simply appear
+            // in place — the animation never happens.
+            void heading.offsetWidth;
+            first.style.transform = "";
+            second.style.transform = "";
+            // Take the transition away once it has been spent, so nothing
+            // that moves these phrases later — a resize, a late font —
+            // animates them again. The brief asked for once.
+            window.setTimeout(() => heading.classList.remove("swapping"), SWAP_DONE_MS);
+        }
+    }, { threshold: 0.6 });
+    seen.observe(heading);
+}
 /* ---- soft while moving ------------------------------------------------
  * "Les images sont légèrement floues pendant qu'on fait défiler la page,
  * puis deviennent nettes quand on s'arrête dessus."
@@ -830,6 +899,7 @@ closeMenuOnNavigate();
 copyButtons();
 paletteControl();
 softWhileMoving();
+exchangePhrases();
 keepOneAddress();
 photographsDrift();
 showTheRelease();

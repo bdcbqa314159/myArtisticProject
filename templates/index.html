@@ -227,7 +227,17 @@
 <section id="ecosystem" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">Professional Ecosystem</p>
-    <h2>{{ e.ecosystem_title }}</h2>
+    {# The two halves exchange places once, as the section arrives.
+       `swap` is added only when there are exactly two — with any other
+       number the heading is a heading, which is also what a browser
+       running no script gets. The order here is the FINAL one: script
+       crosses them first and the animation brings them home, so the
+       text a reader is left with is the text that was written. #}
+    <h2 class="phrases{% if e.ecosystem_title | length == 2 %} swap{% endif %}">
+      {%- for phrase in e.ecosystem_title %}
+      <span class="phrase">{{ phrase }}</span>
+      {%- endfor %}
+    </h2>
     <div class="section-intro"><p class="muted">{{ e.ecosystem_lead }}</p></div>
     {% if e.ecosystem_fields %}
     <ul class="strip">

@@ -52,6 +52,26 @@ INVARIANTS = [
         "already gone.",
     ),
     (
+        "the exchange is taken back after it happens",
+        "src/landing.ts",
+        r'classList\.remove\("swapping"\)',
+        1,
+        "The brief asks for the two phrases to exchange places ONCE, "
+        "sans boucle. `.swapping` is what carries the transition, so "
+        "leaving it on means anything that moves those phrases later — "
+        "a resize, a late font — animates them again.",
+    ),
+    (
+        "nothing animates the phrases unconditionally",
+        "static/css/site.css",
+        r'\.swap \.phrase\s*\{[^}]*transition',
+        0,
+        "The transition belongs to `.swap.swapping .phrase` and to "
+        "nothing wider. Written against `.swap .phrase` it is permanent, "
+        "and the single exchange becomes a thing that replays whenever "
+        "the layout shifts — which is the loop the brief rules out.",
+    ),
+    (
         "one cover in the markup",
         "templates/index.html",
         r'class="loader"',
