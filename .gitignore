@@ -38,6 +38,18 @@ node_modules/
 # where the client drops material before it is placed in content/
 /_client_input/
 
+# ---------------------------------------------------------------
+# THE REAL CONTENT, AND THE PREVIEW BUILT FROM IT.
+#
+# _dropin/ is where his names, photographs and showreel go; _local/ is
+# the site assembled from them. Both are ignored, and that is the whole
+# mechanism keeping client material out of a public repository — see
+# tools/dropin.py. The tracked tree keeps the placeholders and stays
+# publishable.
+# ---------------------------------------------------------------
+/_dropin/
+/_local/
+
 # The spec quotes the brief and names the client. It lives in _ref/
 # with the other client-derived documents.
 /specs/

@@ -145,6 +145,31 @@ def main() -> int:
                     "the placeholder the studio created — write it or remove it"
                 )
 
+    # --- the showreel ------------------------------------------------------
+    # Zola does not check that a path under static/ exists, so a typo in
+    # `video` builds clean and ships a player pointing at nothing: the
+    # section looks finished and is a dead rectangle. Nobody finds that
+    # before a client does.
+    #
+    # And the poster is required rather than optional once there is a
+    # film. `preload="none"` means the browser fetches nothing until
+    # someone presses play, so with no poster the showreel is a black
+    # box — worse than the honest empty slot it replaced.
+    video = (re.search(r'^video\s*=\s*"([^"]*)"', fm, re.M) or [None, ""])[1]
+    poster = (re.search(r'^poster\s*=\s*"([^"]*)"', fm, re.M) or [None, ""])[1]
+    if video:
+        if not (ROOT / "static" / video).exists():
+            problems.append(f"showreel: static/{video} does not exist")
+        if not poster:
+            problems.append(
+                "showreel: a video with no poster is a black rectangle until "
+                "someone presses play — set `poster`"
+            )
+        elif not (ROOT / "static" / poster).exists():
+            problems.append(f"showreel: static/{poster} does not exist")
+    elif poster:
+        problems.append("showreel: a poster with no video is never shown")
+
     # --- the legal notice -------------------------------------------------
     # Required of a publisher established in France whoever the audience
     # is, and a notice with gaps in it is worse than an honest absence —

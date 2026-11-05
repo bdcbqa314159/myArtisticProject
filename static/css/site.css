@@ -597,8 +597,17 @@ html.scrolling .case .image img { will-change: transform; }
   color: var(--faint);
 }
 
-.video { aspect-ratio: 16 / 9; min-height: 0; }
-.video video { width: 100%; height: 100%; }
+.video { aspect-ratio: 16 / 9; min-height: 0; padding: 0; }
+
+/* `contain`, not `cover`. A showreel that is not exactly 16:9 gets
+   letterboxed rather than cropped — losing the edges of someone's own
+   framing is not a decision a stylesheet gets to make. */
+.video video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--panel);
+}
 
 /* ---- ecosystem, about, contact -------------------------------------------- */
 
@@ -1007,14 +1016,28 @@ section:not(.hero) > .wrap > .eyebrow::after {
    happens at the two ends, when nothing is moving. */
 
 .case .image img,
-.placeholder {
+.placeholder:not(:has(video)) {
   transition: filter 400ms cubic-bezier(.2, 0, .2, 1);
 }
 
 html.scrolling .case .image img,
-html.scrolling .placeholder {
+html.scrolling .placeholder:not(:has(video)) {
   filter: blur(3px);
 }
+
+/* NOT THE SHOWREEL, once there is a film in it.
+ *
+ * The empty slot is a panel of flat colour and blurs with everything
+ * else, which is right — it is scenery. A player is not: blurring it
+ * takes its controls with it, and the reasoning above stops being true.
+ * A constant blur over a still image rasterises once and then
+ * composites; over sixty new frames a second there is nothing to reuse,
+ * so the one effect that was chosen for being cheap becomes the most
+ * expensive thing on the page, on the scroll, while decoding video.
+ *
+ * `:has()` rather than a class, because the condition IS "there is a
+ * video in here" and the template already decides that. A class would
+ * be the same fact written twice, in two files, free to disagree. */
 
 /* The smeared one blurs WITH the others, and trails as well.
  *
