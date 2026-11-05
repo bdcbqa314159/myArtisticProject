@@ -266,14 +266,32 @@ function markCurrentSection() {
                 a.removeAttribute("aria-current");
         }
     }
-    let frame = 0;
+    /* Throttled on a clock, not on a frame.
+     *
+     * An underline does not need frame precision — 80ms is four frames,
+     * and nobody has ever noticed a marker arriving a twentieth of a
+     * second late. A timer is also the version that can be TESTED: a
+     * headless browser never runs animation frames, so an
+     * rAF-coalesced marker is a marker no check here can ever observe.
+     *
+     * Leading and trailing: it moves at once when a scroll starts, and
+     * once more when it stops, so it is never left behind. */
+    let last = 0;
+    let trailing = 0;
     function request() {
-        if (!frame)
-            frame = requestAnimationFrame(() => { frame = 0; pick(); });
+        const now = Date.now();
+        clearTimeout(trailing);
+        if (now - last >= 80) {
+            last = now;
+            pick();
+        }
+        else {
+            trailing = window.setTimeout(request, 80 - (now - last));
+        }
     }
     addEventListener("scroll", request, { passive: true });
     addEventListener("resize", request, { passive: true });
-    request();
+    pick();
     marker = {
         lock(id) {
             if (!links.has(id))
