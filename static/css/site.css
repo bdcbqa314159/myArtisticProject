@@ -139,6 +139,14 @@ body {
 
 a { color: inherit; }
 button { font: inherit; cursor: pointer; }
+
+/* No grey rectangle on tap.
+   Safari and Chrome on a phone paint a translucent box over whatever
+   was touched — it arrives late, leaves late, and is the wrong shape
+   for a wordmark or a word. Removed everywhere, and replaced below with
+   a state we draw ourselves, because taking the feedback away and
+   giving nothing back is worse than the rectangle. */
+a, button, summary, label, input { -webkit-tap-highlight-color: transparent; }
 img { max-width: 100%; height: auto; display: block; }
 
 /* <figure> carries 1em/40px of UA margin, and a list used as a grid
@@ -186,6 +194,13 @@ header {
   gap: 20px;
   min-height: 64px;
 }
+
+/* The bar's own pressed states, in place of the rectangle. A colour
+   change on something that is already only text: it says "that
+   registered" without drawing a box around it. */
+.logo:active,
+.menu > summary:active,
+.links a:active { color: var(--muted); }
 
 .logo {
   font: 500 0.9375rem/1 var(--sans);
@@ -996,16 +1011,31 @@ section:not(.hero) > .wrap > .eyebrow::after {
   transition: filter 400ms cubic-bezier(.2, 0, .2, 1);
 }
 
-html.scrolling .case .image img:not(.smear),
+html.scrolling .case .image img,
 html.scrolling .placeholder {
   filter: blur(3px);
 }
 
-/* The smeared photograph is excluded from the round blur, not stacked
-   with it. `filter` is one property: the scrolling rule outranks
-   `.smear` and would simply replace it, so the trail would vanish at
-   exactly the moment it exists for. And the smear IS its blur — adding
-   a round one on top would be fog over movement. */
+/* The smeared one blurs WITH the others, and trails as well.
+ *
+ * It used to be excluded, on the reasoning that the smear was its blur.
+ * That is true at speed and false at rest: the trail is driven by
+ * velocity, so during a slow scroll it is near zero while every other
+ * photograph is at 3px — and the one chosen to be special was the only
+ * sharp thing on a moving page.
+ *
+ * `filter` takes a list, so it is both: the same blur as its
+ * neighbours, and the directional trail on top of it. */
+/* Written to outrank the rule above it rather than to sit beside it.
+   `html.scrolling .case .image img` is three classes and two elements;
+   `html.scrolling .smear` is two and one, so it lost — and `filter` is
+   a single property, so losing means being replaced entirely. The
+   photograph kept its neighbours' blur and silently lost its trail. */
+html.scrolling .case .image img.smear { filter: blur(3px) url(#smear); }
+
+/* `filter` is one property, so the scrolling rule and `.smear` cannot
+   both apply — whichever wins replaces the other. They are combined in
+   one declaration above instead. */
 
 @media (prefers-reduced-motion: reduce) {
   /* Belt as well as braces — the script does not add the class under
