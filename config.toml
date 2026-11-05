@@ -136,4 +136,4 @@ mark = "linkedin.svg"    # from brand.linkedin.com/downloads
 [extra.social.whatsapp]
 name = "WhatsApp"
 url = ""                 # https://wa.me/33XXXXXXXXX — the business number
-mark = "whatsapp.svg"    # from whatsapp.com/brand
+mark = "whatsapp.svg"    # in: the Green glyph, unmodified

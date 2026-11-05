@@ -28,6 +28,19 @@ of the trademark, minus the permission the download grants.
 
 When a file lands, record the date and the exact asset name below.
 
-| file | asset as named on the brand page | downloaded |
+| file | asset as named on the brand page | obtained |
 |---|---|---|
-| | | |
+| `whatsapp.svg` | `01_Glyph / 01_Digital RGB / 03_SVG / Digital_Glyph_Green_RGB_2026.svg`, from the Brand Resource Center download package | 2026-11-05 |
+| `linkedin.svg` | — still needed | — |
+
+`whatsapp.svg` is byte-identical to the file in that package:
+
+    sha256  f7b1311db718533e671645f57cd94b92f0e006e61d7e6581a80675fc5a478fc4
+
+Re-run `shasum -a 256` against the source before assuming it is still
+untouched. The package also ships Black and White glyphs for monochrome
+contexts; we use Green because the footer has four background states
+(cool and cream, each light and dark) and Green is the only single file
+that is legible in all of them. Switching to the monochrome pair is a
+`<picture>` element and a second filename, not a recolour — never a
+recolour.
