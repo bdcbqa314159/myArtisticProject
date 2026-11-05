@@ -11,6 +11,7 @@
  */
 import { splitWords } from "./words.js";
 import { shiftFor } from "./drift.js";
+import { ease, scrollDuration } from "./scroll.js";
 /* Both failsafes in one place, so the ordering between them is visible.
  * The cover's lives in the inline script in the head and is 6000ms;
  * this one must come after it. */
@@ -536,6 +537,55 @@ function photographsDrift() {
  * with them.
  */
 const PRESS_MS = 140;
+/* ---- one scroll, ours --------------------------------------------------
+ * Both the band and the buttons used `scrollIntoView({behavior:
+ * "smooth"})`. That hands the speed to the browser, which chooses it
+ * differently depending on the distance and differently again between
+ * Safari and Chrome — so the two never matched, and neither could be
+ * slowed.
+ *
+ * This is the same movement for every in-page link, at a speed we set.
+ *
+ * It yields to the reader: a wheel, a touch or a key during the
+ * animation stops it where it is. A page that keeps travelling after
+ * someone has started scrolling themselves is fighting them.
+ */
+let stopScrolling = null;
+function scrollTo(top) {
+    stopScrolling?.();
+    if (reduced) {
+        window.scrollTo(0, top);
+        return;
+    }
+    const from = window.scrollY;
+    const distance = top - from;
+    const ms = scrollDuration(distance);
+    const started = performance.now();
+    let frame = 0;
+    let cancelled = false;
+    const give = () => { cancelled = true; };
+    for (const ev of ["wheel", "touchstart", "keydown"]) {
+        addEventListener(ev, give, { passive: true, once: true });
+    }
+    function step(now) {
+        if (cancelled)
+            return finish();
+        const t = (now - started) / ms;
+        window.scrollTo(0, from + distance * ease(t));
+        if (t >= 1)
+            return finish();
+        frame = requestAnimationFrame(step);
+    }
+    function finish() {
+        cancelAnimationFrame(frame);
+        for (const ev of ["wheel", "touchstart", "keydown"]) {
+            removeEventListener(ev, give);
+        }
+        stopScrolling = null;
+    }
+    stopScrolling = () => { cancelled = true; finish(); };
+    frame = requestAnimationFrame(step);
+}
 function keepOneAddress() {
     // A fragment we arrived with still works — someone may have been sent
     // `/#work`. The browser jumps to it, and then it is taken off the
@@ -562,10 +612,12 @@ function keepOneAddress() {
             // band has nothing to show, and a pause there is just a delay.
             const wait = !reduced && a.classList.contains("btn") ? PRESS_MS : 0;
             setTimeout(() => {
-                target.scrollIntoView({
-                    behavior: reduced ? "auto" : "smooth",
-                    block: "start",
-                });
+                // Where the section's top should come to rest: under the bar,
+                // which is what `scroll-margin-top` was doing for the native
+                // version and has to be done by hand now.
+                const bar = document.querySelector("header");
+                const offset = bar ? bar.getBoundingClientRect().height : 0;
+                scrollTo(window.scrollY + target.getBoundingClientRect().top - offset);
                 // And the keyboard follows the page.
                 //
                 // Without this the focus stays on the link that was just used,

@@ -36,6 +36,7 @@ jobs:
       - run: ./tools/js-is-current.sh        # the committed JS matches src/
       - run: node tools/words-check.mjs      # a headline survives being split
       - run: node tools/drift-check.mjs      # the parallax arithmetic holds
+      - run: node tools/scroll-check.mjs     # the scroll is clamped and eased
       - run: python3 tools/icons.py          # favicon, touch icon, share image
       - run: python3 tools/vcard.py          # the saveable contact, or nothing at all
       - run: python3 tools/objects.py        # every content object is well formed

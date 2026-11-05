@@ -6,7 +6,7 @@
     "build": "tsc",
     "watch": "tsc --watch --preserveWatchOutput",
     "check": "tsc --noEmit",
-    "test": "./tools/js-is-current.sh && node tools/words-check.mjs && node tools/drift-check.mjs && python3 tools/icons.py && python3 tools/vcard.py && python3 tools/objects.py && python3 tools/content-check.py && python3 tools/invariants.py && zola build && python3 tools/render-check.py",
+    "test": "./tools/js-is-current.sh && node tools/words-check.mjs && node tools/drift-check.mjs && node tools/scroll-check.mjs && python3 tools/icons.py && python3 tools/vcard.py && python3 tools/objects.py && python3 tools/content-check.py && python3 tools/invariants.py && zola build && python3 tools/render-check.py",
     "deployed": "python3 tools/deployed-check.py"
   },
   "devDependencies": {
