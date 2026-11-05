@@ -314,7 +314,24 @@ ul.gate li{margin:.2rem 0}
 
 
 class Panel(http.server.BaseHTTPRequestHandler):
+    def from_this_machine(self) -> bool:
+        """The request must be addressed to loopback by name as well as
+        by route.
+
+        Binding to 127.0.0.1 stops another machine connecting. It does
+        NOT stop a page in this browser resolving its own domain to
+        127.0.0.1 and talking to the panel — DNS rebinding — and the
+        panel writes files. Checking the Host header costs one line and
+        closes it: a rebound request arrives naming the attacker's
+        domain, not localhost.
+        """
+        host = (self.headers.get("Host") or "").rsplit(":", 1)[0]
+        return host in {"127.0.0.1", "localhost", "[::1]", "::1"}
+
     def do_GET(self) -> None:
+        if not self.from_this_machine():
+            self.send_error(404)
+            return
         if not self.path.startswith(f"/{TOKEN}"):
             # Not a 403: an unauthorised reader should not learn that the
             # path exists and is merely guarded.
@@ -331,6 +348,9 @@ class Panel(http.server.BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_POST(self) -> None:
+        if not self.from_this_machine():
+            self.send_error(404)
+            return
         if not self.path.startswith(f"/{TOKEN}"):
             self.send_error(404)
             return
