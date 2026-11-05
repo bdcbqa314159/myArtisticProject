@@ -194,6 +194,10 @@ function syncBar(): void {
  * is visible. Without that, two sections are current at once on a tall
  * desktop window and the mark flickers between them.
  */
+/* The marker's own controls, so navigation can speak to it.
+ * Set when markCurrentSection runs; null if the band has no links. */
+let marker: { lock: (id: string) => void } | null = null;
+
 function markCurrentSection(): void {
   const links = new Map<string, HTMLAnchorElement>();
   for (const a of document.querySelectorAll<HTMLAnchorElement>(".links a")) {
@@ -202,24 +206,104 @@ function markCurrentSection(): void {
   }
   if (links.size === 0) return;
 
-  const seen = new IntersectionObserver(
-    (entries) => {
-      for (const e of entries) {
-        const a = links.get(e.target.id);
-        if (!a) continue;
-        a.classList.toggle("current", e.isIntersecting);
-        // The same fact, for a reader who cannot see the rule under it.
-        if (e.isIntersecting) a.setAttribute("aria-current", "true");
-        else a.removeAttribute("aria-current");
-      }
-    },
-    { rootMargin: "-10% 0px -70% 0px" },
-  );
-
+  const sections: Array<[string, HTMLElement]> = [];
   for (const id of links.keys()) {
-    const section = document.getElementById(id);
-    if (section) seen.observe(section);
+    const el = document.getElementById(id);
+    if (el) sections.push([id, el]);
   }
+  if (sections.length === 0) return;
+
+  let marked = "";
+  /* While a click is being honoured, the scroll is not in charge.
+   *
+   * A smooth scroll from the top to Contact passes through every
+   * section on the way, and a marker following the scroll walks the
+   * whole band one link at a time before settling — which looks like
+   * indecision. A click already says where the reader is going, so the
+   * answer is known before the journey starts. */
+  let locked = "";
+  let unlock = 0;
+
+  /* EXACTLY ONE section is current.
+   *
+   * It used to be each section deciding for itself, through an observer
+   * whose band was a fifth of the screen tall. Two consequences, both
+   * reported:
+   *
+   *   - where the band spanned a boundary, TWO sections were inside it
+   *     and both were underlined
+   *   - the LAST section could never get in. At the bottom of the page
+   *     there is no scroll left to bring Contact up into a band that
+   *     sits near the top of the screen, so it was never marked at all
+   *
+   * Independent toggles cannot answer "which one", because that is a
+   * question about all of them. So the set is read and one winner is
+   * chosen: the last section that has started, and at the foot of the
+   * page, the last section outright — because that is where the reader
+   * plainly is, whatever a band says.
+   */
+  function pick(): void {
+    if (locked) {
+      apply(locked);
+      return;
+    }
+    const line = window.innerHeight * 0.25;
+    const atBottom =
+      window.scrollY + window.innerHeight >=
+      document.documentElement.scrollHeight - 2;
+
+    // Read every top first, write one class after — no layout thrash.
+    const tops = sections.map(([id, el]) => [id, el.getBoundingClientRect().top] as const);
+
+    let current = "";
+    if (atBottom) {
+      current = tops[tops.length - 1]?.[0] ?? "";
+    } else {
+      for (const [id, top] of tops) {
+        if (top <= line) current = id;
+      }
+    }
+
+    apply(current);
+  }
+
+  function apply(current: string): void {
+    if (current === marked) return;
+    marked = current;
+
+    for (const [id, a] of links) {
+      const on = id === current;
+      a.classList.toggle("current", on);
+      // The same fact, for a reader who cannot see the rule under it.
+      if (on) a.setAttribute("aria-current", "true");
+      else a.removeAttribute("aria-current");
+    }
+  }
+
+  let frame = 0;
+  function request(): void {
+    if (!frame) frame = requestAnimationFrame(() => { frame = 0; pick(); });
+  }
+
+  addEventListener("scroll", request, { passive: true });
+  addEventListener("resize", request, { passive: true });
+  request();
+
+  marker = {
+    lock(id: string): void {
+      if (!links.has(id)) return;
+      locked = id;
+      apply(id);
+      // Long enough for a smooth scroll across the page to finish, and
+      // released by time rather than by a scroll-end event, which not
+      // every browser we care about reports.
+      clearTimeout(unlock);
+      unlock = window.setTimeout(() => {
+        locked = "";
+        request();
+      }, 900);
+    },
+  };
 }
 
 /* ---- the menu closes behind you --------------------------------------
@@ -237,6 +321,32 @@ function closeMenuOnNavigate(): void {
     if (WIDE.matches) return;
     if ((ev.target as HTMLElement).closest(".links a")) menu.open = false;
   });
+}
+
+/* ---- the release ------------------------------------------------------
+ * `:active` lasts as long as the button is held, which on a quick click
+ * is under 80ms — so the press was real and nobody saw it. This plays
+ * the return AFTER the button is let go, which is the half a person is
+ * actually looking at.
+ *
+ * A class rather than a transition, so it can be retriggered: clicking
+ * twice quickly should animate twice, and a transition that is already
+ * at its end does nothing.
+ */
+function showTheRelease(): void {
+  if (reduced) return;
+
+  for (const btn of document.querySelectorAll<HTMLElement>(".btn")) {
+    btn.addEventListener("pointerup", () => {
+      btn.classList.remove("released");
+      // Reading the layout is what makes the removal take effect before
+      // the class goes back on; without it the browser coalesces both
+      // into no change at all and the animation never restarts.
+      void btn.offsetWidth;
+      btn.classList.add("released");
+    });
+    btn.addEventListener("animationend", () => btn.classList.remove("released"));
+  }
 }
 
 /* ---- the photographs drift ---------------------------------------------
@@ -464,6 +574,9 @@ function keepOneAddress(): void {
 
       ev.preventDefault();
 
+      // The band knows where we are going before we get there.
+      marker?.lock(id as string);
+
       // Only the buttons wait. They have a press to finish — the nav
       // band has nothing to show, and a pause there is just a delay.
       const wait = !reduced && a.classList.contains("btn") ? PRESS_MS : 0;
@@ -666,6 +779,7 @@ paletteControl();
 softWhileMoving();
 keepOneAddress();
 photographsDrift();
+showTheRelease();
 
 /* LAST, and the ONLY place the page is shown.
  *

@@ -182,6 +182,9 @@ function syncBar() {
  * is visible. Without that, two sections are current at once on a tall
  * desktop window and the mark flickers between them.
  */
+/* The marker's own controls, so navigation can speak to it.
+ * Set when markCurrentSection runs; null if the band has no links. */
+let marker = null;
 function markCurrentSection() {
     const links = new Map();
     for (const a of document.querySelectorAll(".links a")) {
@@ -191,24 +194,102 @@ function markCurrentSection() {
     }
     if (links.size === 0)
         return;
-    const seen = new IntersectionObserver((entries) => {
-        for (const e of entries) {
-            const a = links.get(e.target.id);
-            if (!a)
-                continue;
-            a.classList.toggle("current", e.isIntersecting);
+    const sections = [];
+    for (const id of links.keys()) {
+        const el = document.getElementById(id);
+        if (el)
+            sections.push([id, el]);
+    }
+    if (sections.length === 0)
+        return;
+    let marked = "";
+    /* While a click is being honoured, the scroll is not in charge.
+     *
+     * A smooth scroll from the top to Contact passes through every
+     * section on the way, and a marker following the scroll walks the
+     * whole band one link at a time before settling — which looks like
+     * indecision. A click already says where the reader is going, so the
+     * answer is known before the journey starts. */
+    let locked = "";
+    let unlock = 0;
+    /* EXACTLY ONE section is current.
+     *
+     * It used to be each section deciding for itself, through an observer
+     * whose band was a fifth of the screen tall. Two consequences, both
+     * reported:
+     *
+     *   - where the band spanned a boundary, TWO sections were inside it
+     *     and both were underlined
+     *   - the LAST section could never get in. At the bottom of the page
+     *     there is no scroll left to bring Contact up into a band that
+     *     sits near the top of the screen, so it was never marked at all
+     *
+     * Independent toggles cannot answer "which one", because that is a
+     * question about all of them. So the set is read and one winner is
+     * chosen: the last section that has started, and at the foot of the
+     * page, the last section outright — because that is where the reader
+     * plainly is, whatever a band says.
+     */
+    function pick() {
+        if (locked) {
+            apply(locked);
+            return;
+        }
+        const line = window.innerHeight * 0.25;
+        const atBottom = window.scrollY + window.innerHeight >=
+            document.documentElement.scrollHeight - 2;
+        // Read every top first, write one class after — no layout thrash.
+        const tops = sections.map(([id, el]) => [id, el.getBoundingClientRect().top]);
+        let current = "";
+        if (atBottom) {
+            current = tops[tops.length - 1]?.[0] ?? "";
+        }
+        else {
+            for (const [id, top] of tops) {
+                if (top <= line)
+                    current = id;
+            }
+        }
+        apply(current);
+    }
+    function apply(current) {
+        if (current === marked)
+            return;
+        marked = current;
+        for (const [id, a] of links) {
+            const on = id === current;
+            a.classList.toggle("current", on);
             // The same fact, for a reader who cannot see the rule under it.
-            if (e.isIntersecting)
+            if (on)
                 a.setAttribute("aria-current", "true");
             else
                 a.removeAttribute("aria-current");
         }
-    }, { rootMargin: "-10% 0px -70% 0px" });
-    for (const id of links.keys()) {
-        const section = document.getElementById(id);
-        if (section)
-            seen.observe(section);
     }
+    let frame = 0;
+    function request() {
+        if (!frame)
+            frame = requestAnimationFrame(() => { frame = 0; pick(); });
+    }
+    addEventListener("scroll", request, { passive: true });
+    addEventListener("resize", request, { passive: true });
+    request();
+    marker = {
+        lock(id) {
+            if (!links.has(id))
+                return;
+            locked = id;
+            apply(id);
+            // Long enough for a smooth scroll across the page to finish, and
+            // released by time rather than by a scroll-end event, which not
+            // every browser we care about reports.
+            clearTimeout(unlock);
+            unlock = window.setTimeout(() => {
+                locked = "";
+                request();
+            }, 900);
+        },
+    };
 }
 /* ---- the menu closes behind you --------------------------------------
  * <details> does the opening, the closing and the keyboard on its own.
@@ -228,6 +309,31 @@ function closeMenuOnNavigate() {
         if (ev.target.closest(".links a"))
             menu.open = false;
     });
+}
+/* ---- the release ------------------------------------------------------
+ * `:active` lasts as long as the button is held, which on a quick click
+ * is under 80ms — so the press was real and nobody saw it. This plays
+ * the return AFTER the button is let go, which is the half a person is
+ * actually looking at.
+ *
+ * A class rather than a transition, so it can be retriggered: clicking
+ * twice quickly should animate twice, and a transition that is already
+ * at its end does nothing.
+ */
+function showTheRelease() {
+    if (reduced)
+        return;
+    for (const btn of document.querySelectorAll(".btn")) {
+        btn.addEventListener("pointerup", () => {
+            btn.classList.remove("released");
+            // Reading the layout is what makes the removal take effect before
+            // the class goes back on; without it the browser coalesces both
+            // into no change at all and the animation never restarts.
+            void btn.offsetWidth;
+            btn.classList.add("released");
+        });
+        btn.addEventListener("animationend", () => btn.classList.remove("released"));
+    }
 }
 /* ---- the photographs drift ---------------------------------------------
  * "Ajouter un léger mouvement vertical lié au scroll (parallax)."
@@ -432,6 +538,8 @@ function keepOneAddress() {
             if (!target)
                 return; // let the browser deal with it
             ev.preventDefault();
+            // The band knows where we are going before we get there.
+            marker?.lock(id);
             // Only the buttons wait. They have a press to finish — the nav
             // band has nothing to show, and a pause there is just a delay.
             const wait = !reduced && a.classList.contains("btn") ? PRESS_MS : 0;
@@ -617,6 +725,7 @@ paletteControl();
 softWhileMoving();
 keepOneAddress();
 photographsDrift();
+showTheRelease();
 /* LAST, and the ONLY place the page is shown.
  *
  * There must be exactly one of these. There were briefly two — an older
