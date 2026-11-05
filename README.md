@@ -77,10 +77,32 @@ enforces, so the documentation cannot drift from the rules.
 ## Running it
 
 ```sh
-npm run deployed    # did what we merged actually reach the site?
-./preview.sh        # or double-click preview.command
-npx tsc             # after editing src/
-npm test            # tsc + zola build + the drift check
+npm run deployed            # did what we merged actually reach the site?
+./preview.sh                # the placeholder site — or double-click preview.command
+python3 tools/dropin.py --serve   # the same site with the REAL content
+npx tsc                     # after editing src/
+npm test                    # tsc + zola build + the drift check
+```
+
+### Two previews, and why
+
+`./preview.sh` serves the tracked tree: placeholders, no real name, the
+version that gets published.
+
+`tools/dropin.py` serves the real thing. The client's names, photographs
+and showreel go in `_dropin/`, which is git-ignored; the script lays them
+over a copy of the tree in `_local/`, which is also ignored, and serves
+that. **Nothing it does touches a tracked file, and there is no flag to
+make it.** That is the mechanism keeping his material out of a public
+repository — not a habit, and not a reviewer noticing.
+
+`_local/` is an ordinary checkout, so every tool already here works
+inside it unchanged: the studio panel, `objects.py`, and the same
+`content-check.py` gate — pointed at the version with the real names in.
+
+```sh
+python3 tools/dropin.py --init    # create _dropin/, one slot per placeholder
+python3 tools/dropin.py           # assemble, and list what is still missing
 ```
 
 ## Why the compiled JS is in the repo

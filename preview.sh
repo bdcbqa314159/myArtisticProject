@@ -15,6 +15,10 @@ step() { printf '  %s\n' "$*"; }
 
 say "starting a preview of the page"
 
+# This serves the TRACKED tree — placeholders, no real name, the version
+# that gets published. For the real content see tools/dropin.py, which
+# serves a copy assembled from _dropin/ and never touches a tracked file.
+
 # Zola builds the site. The compiled JavaScript is in the repository
 # already, so there is no Node and no build step here.
 if ! command -v zola >/dev/null 2>&1; then
