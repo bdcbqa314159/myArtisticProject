@@ -11,7 +11,7 @@
  */
 import { splitWords } from "./words.js";
 import { shiftFor } from "./drift.js";
-import { ease, scrollDuration } from "./scroll.js";
+import { animateScroll } from "./scroll.js";
 /* Both failsafes in one place, so the ordering between them is visible.
  * The cover's lives in the inline script in the head and is 6000ms;
  * this one must come after it. */
@@ -294,19 +294,52 @@ function markCurrentSection() {
     addEventListener("resize", request, { passive: true });
     pick();
     marker = {
+        /* Held from the click until the journey ends — however it ends.
+         *
+         * This used to be a 900ms timer, which was a guess at how long the
+         * BROWSER's smooth scroll took. We now run the scroll ourselves and
+         * it lasts up to 1100ms, so the guess was short: every jump over
+         * about 1200px — which is every jump on a phone — released the
+         * marker while the page was still moving, and it walked the band
+         * for the last third of the trip. That walk is the exact thing the
+         * lock exists to prevent.
+         *
+         * A duration would fix that arithmetic and still be wrong in the
+         * other direction: a reader who flicks the page mid-flight cancels
+         * the scroll, and a lock held to its full term then points at a
+         * destination nobody is travelling to any more.
+         *
+         * So it is not a duration. `release()` is called by the scroll when
+         * it settles, and a cancelled scroll settles too.
+         */
         lock(id) {
             if (!links.has(id))
                 return;
             locked = id;
             apply(id);
-            // Long enough for a smooth scroll across the page to finish, and
-            // released by time rather than by a scroll-end event, which not
-            // every browser we care about reports.
+            // A backstop, and only that. If the scroll never reports back —
+            // an exception between the click and the first frame — the band
+            // heals itself instead of staying wrong for the rest of the
+            // visit. Deliberately far longer than any real scroll, so it can
+            // never be what ordinarily ends the lock.
             clearTimeout(unlock);
-            unlock = window.setTimeout(() => {
-                locked = "";
-                request();
-            }, 900);
+            unlock = window.setTimeout(() => marker?.release(id), 3000);
+        },
+        /* Released by the journey that locked it, and by no other.
+         *
+         * A second click while the first scroll is still running locks the
+         * band on the new section and then abandons the old journey — which
+         * settles, as it must, and reports its ending. Without this test
+         * that ending would release the lock the NEW click had just taken,
+         * and two quick taps would leave the band following the scroll
+         * again: the original complaint, reintroduced by the fix for it.
+         */
+        release(id) {
+            if (!locked || locked !== id)
+                return;
+            clearTimeout(unlock);
+            locked = "";
+            request();
         },
     };
 }
@@ -551,40 +584,41 @@ const PRESS_MS = 140;
  * someone has started scrolling themselves is fighting them.
  */
 let stopScrolling = null;
-function scrollTo(top) {
+/* The browser's half of the scroll: a clock, a frame scheduler, a
+ * scrollbar, and the three events that mean "I'll take it from here".
+ * The loop itself is in scroll.ts, where it can be tested. */
+const INTERRUPTIONS = ["wheel", "touchstart", "keydown"];
+const browserScroll = {
+    now: () => performance.now(),
+    position: () => window.scrollY,
+    moveTo: (y) => window.scrollTo(0, y),
+    frame: (cb) => requestAnimationFrame(cb),
+    cancelFrame: (h) => cancelAnimationFrame(h),
+    whenInterrupted(give) {
+        for (const ev of INTERRUPTIONS) {
+            addEventListener(ev, give, { passive: true, once: true });
+        }
+        return () => {
+            for (const ev of INTERRUPTIONS)
+                removeEventListener(ev, give);
+        };
+    },
+};
+function scrollTo(top, onSettled) {
+    // A newer journey replaces an older one, and the older one settles
+    // rather than being dropped — whoever was waiting on it still gets
+    // its ending.
     stopScrolling?.();
     if (reduced) {
         window.scrollTo(0, top);
+        onSettled?.();
         return;
     }
-    const from = window.scrollY;
-    const distance = top - from;
-    const ms = scrollDuration(distance);
-    const started = performance.now();
-    let frame = 0;
-    let cancelled = false;
-    const give = () => { cancelled = true; };
-    for (const ev of ["wheel", "touchstart", "keydown"]) {
-        addEventListener(ev, give, { passive: true, once: true });
-    }
-    function step(now) {
-        if (cancelled)
-            return finish();
-        const t = (now - started) / ms;
-        window.scrollTo(0, from + distance * ease(t));
-        if (t >= 1)
-            return finish();
-        frame = requestAnimationFrame(step);
-    }
-    function finish() {
-        cancelAnimationFrame(frame);
-        for (const ev of ["wheel", "touchstart", "keydown"]) {
-            removeEventListener(ev, give);
-        }
+    const abandon = animateScroll(browserScroll, top, () => {
         stopScrolling = null;
-    }
-    stopScrolling = () => { cancelled = true; finish(); };
-    frame = requestAnimationFrame(step);
+        onSettled?.();
+    });
+    stopScrolling = abandon;
 }
 function keepOneAddress() {
     // A fragment we arrived with still works — someone may have been sent
@@ -617,7 +651,10 @@ function keepOneAddress() {
                 // version and has to be done by hand now.
                 const bar = document.querySelector("header");
                 const offset = bar ? bar.getBoundingClientRect().height : 0;
-                scrollTo(window.scrollY + target.getBoundingClientRect().top - offset);
+                scrollTo(window.scrollY + target.getBoundingClientRect().top - offset, 
+                // The band stops guessing where the reader is the moment the
+                // journey actually ends — arrived, or abandoned.
+                () => marker?.release(id));
                 // And the keyboard follows the page.
                 //
                 // Without this the focus stays on the link that was just used,

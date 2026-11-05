@@ -24,3 +24,79 @@ export function ease(t: number): number {
   const x = t < 0 ? 0 : t > 1 ? 1 : t;
   return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 }
+
+/* ---- the loop itself ---------------------------------------------------
+ * Moved here from landing.ts so that it can be TESTED.
+ *
+ * The page's version read the real clock, called the real
+ * `requestAnimationFrame` and wrote the real `scrollTop`, which made it
+ * unverifiable: the headless browser used for checks runs no animation
+ * frames at all — measured, twice, with and without virtual time. So the
+ * one guarantee that matters here, that a journey reports its end
+ * EXACTLY ONCE however it ends, could only be argued for.
+ *
+ * It is argued for by a test now. Everything the loop touches arrives
+ * through `env`, so a fake clock and a fake frame scheduler drive it in
+ * Node, and the browser supplies the real ones.
+ *
+ * This is deliberately not a general animation library. It is this
+ * scroll, with its environment handed to it.
+ */
+
+export interface ScrollEnv {
+  now(): number;
+  position(): number;
+  moveTo(y: number): void;
+  frame(cb: (now: number) => void): number;
+  cancelFrame(handle: number): void;
+  /** The reader taking over. Called once with a function to invoke if
+   *  they do; whatever it returns is called when the journey ends, to
+   *  take the listeners off again. */
+  whenInterrupted(give: () => void): () => void;
+}
+
+/** Travel to `to`, and call `onSettled` exactly once when the journey
+ *  ends — arrived, abandoned by the reader, or replaced by a newer one.
+ *
+ *  Returns a function that abandons it. */
+export function animateScroll(
+  env: ScrollEnv,
+  to: number,
+  onSettled?: () => void,
+): () => void {
+  const from = env.position();
+  const distance = to - from;
+  const ms = scrollDuration(distance);
+  const started = env.now();
+
+  let handle = 0;
+  let cancelled = false;
+  let settled = false;
+
+  const release = env.whenInterrupted(() => { cancelled = true; });
+
+  /* Exactly once, by all three roads out.
+   *
+   * Twice is reachable without the guard: abandoning runs this, and the
+   * frame already in flight then runs it again. Whoever is listening —
+   * the navigation band, which is holding its marker still until this
+   * says the journey is over — is entitled to assume one. */
+  function finish(): void {
+    if (settled) return;
+    settled = true;
+    env.cancelFrame(handle);
+    release();
+    onSettled?.();
+  }
+
+  function step(now: number): void {
+    if (cancelled) return finish();
+    const t = (now - started) / ms;
+    env.moveTo(from + distance * ease(t));
+    if (t >= 1) return finish();
+    handle = env.frame(step);
+  }
+
+  handle = env.frame(step);
+  return () => { cancelled = true; finish(); };
+}
