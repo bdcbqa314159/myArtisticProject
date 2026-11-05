@@ -117,6 +117,23 @@ and iconography. The mark carries no letterform on purpose — a
 letterform would be a logo, and that is hers to design.
 
 --------------------------------------------------------------------
+THIRD-PARTY BRAND MARKS
+--------------------------------------------------------------------
+The LinkedIn and WhatsApp marks in static/img/brand/ are the trademarks
+of their respective owners and are neither the Author's work nor the
+Client's. They are not licensed by this file or by any other file here.
+
+Each is used under the terms accepted when it is downloaded from the
+owner's own brand page, and those terms are narrow: the mark is used as
+published, and it links to the Client's own presence on that service.
+Pointed at the service's homepage it would be decoration rather than a
+link, which the terms do not permit — tools/content-check.py refuses to
+publish that arrangement.
+
+Nothing here claims affiliation with, endorsement by, or sponsorship
+from either company.
+
+--------------------------------------------------------------------
 NO INVENTED REFERENCES
 --------------------------------------------------------------------
 The client's brief requires that missing content stays visibly flagged

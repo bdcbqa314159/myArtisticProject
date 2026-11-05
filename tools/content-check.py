@@ -13,6 +13,8 @@ paragraphs:
     "verified" means a dated record of what was checked against — not
     a flag someone remembers flipping
   * no placeholder email address, ever (brief §4.08)
+  * no social link that goes nowhere, and no brand mark pointed at
+    the service's own homepage instead of the client's profile
   * no stand-in photograph on a live site (NOTICE)
   * no legal notice with blanks in it, and the icons exist
   * nothing still carrying the studio's "To be written" placeholder
@@ -97,6 +99,37 @@ def main() -> int:
         problems.append("no contact address configured")
     elif re.search(r"example\.(com|org)|@example|placeholder|todo|xxx", address, re.I):
         problems.append(f"placeholder contact address: {address}")
+
+    # --- elsewhere: the two links the client named -------------------------
+    # LinkedIn and WhatsApp Business, and both marks carry the same
+    # condition from their owners: the mark links to YOUR OWN presence on
+    # the service. Pointed at the service's own homepage it is no longer
+    # a link, it is decoration, which neither brand's terms permit — so
+    # the bare homepage is rejected as firmly as an empty field. The mark
+    # file has to be there too: an alt-less broken image in the footer is
+    # the one outcome worse than no icon.
+    homepages = re.compile(r"^https?://(www\.)?(linkedin\.com|whatsapp\.com)/?$", re.I)
+    for who, block in re.findall(
+        r"\[extra\.social\.(\w+)\](.*?)(?=\n\[|\n# ----|\Z)", cfg, re.S
+    ):
+        name = (re.search(r'name\s*=\s*"([^"]*)"', block) or [None, who])[1]
+        url = (re.search(r'url\s*=\s*"([^"]*)"', block) or [None, ""])[1]
+        mark = (re.search(r'mark\s*=\s*"([^"]*)"', block) or [None, ""])[1]
+        if not url:
+            problems.append(f"{name} link not configured (config.toml, extra.social)")
+            continue
+        if homepages.match(url):
+            problems.append(
+                f"{name} points at the service's homepage, not a profile — "
+                "the mark is licensed as a link to our own presence there"
+            )
+        if who == "whatsapp" and not re.match(r"^https://wa\.me/\d{6,}$", url):
+            problems.append(f"{name} link is not a wa.me business number: {url}")
+        if mark and not (ROOT / "static" / "img" / "brand" / mark).exists():
+            problems.append(
+                f"{name} is linked but static/img/brand/{mark} is missing — "
+                "download it from the owner's own brand page (see NOTICE)"
+            )
 
     # --- objects the editor created and nobody finished --------------------
     # A new object cannot be blank — objects.py fails on an empty

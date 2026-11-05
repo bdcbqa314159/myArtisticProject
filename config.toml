@@ -111,3 +111,29 @@ publisher = ""         # directeur de la publication
 host_name = "GitHub, Inc."
 host_address = "88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, United States"
 host_url = "https://github.com"
+
+# ---------------------------------------------------------------
+# ELSEWHERE — the two the client named: LinkedIn and WhatsApp Business.
+#
+# `url` is empty until he gives us his own, and that is the real
+# blocker, not the logos: both marks are licensed as a link to YOUR OWN
+# presence on the service. Pointed at linkedin.com or whatsapp.com a
+# mark stops being a link and becomes decoration, which neither brand's
+# terms permit — so a placeholder here is the one version we are not
+# allowed to publish. The studio panel can fill `url` in; `name` and
+# `mark` are ours and are not editable from a browser.
+#
+# `mark` is the file in static/img/brand/, downloaded from the owner's
+# own brand page and used unmodified. Until both the URL and the file
+# exist the entry shows a note to ourselves in the footer and the gate
+# refuses to go live. See static/img/brand/SOURCES.md and NOTICE.
+# ---------------------------------------------------------------
+[extra.social.linkedin]
+name = "LinkedIn"
+url = ""                 # his profile, e.g. https://www.linkedin.com/in/...
+mark = "linkedin.svg"    # from brand.linkedin.com/downloads
+
+[extra.social.whatsapp]
+name = "WhatsApp"
+url = ""                 # https://wa.me/33XXXXXXXXX — the business number
+mark = "whatsapp.svg"    # from whatsapp.com/brand

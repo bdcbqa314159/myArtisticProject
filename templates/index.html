@@ -304,6 +304,24 @@
     <button class="palette" type="button" data-palette-toggle aria-live="polite">Palette</button>
     {% endif %}
     <span>{{ id.name }}{% if e.place %} <span class="muted">· {{ e.place }}</span>{% endif %}</span>
+    {# Elsewhere. A name alone until the client's own URL and the owner's
+       own mark are both in — a mark pointed at a service's homepage is
+       decoration, and the build refuses to publish one. #}
+    {% if config.extra.social %}
+    <nav class="dock" aria-label="Elsewhere">
+      {% for key, s in config.extra.social %}
+        {% if s.url %}
+        <a href="{{ s.url }}" target="_blank" rel="noopener noreferrer me">
+          <img src="{{ get_url(path='img/brand/' ~ s.mark) }}" alt="" aria-hidden="true" width="20" height="20">
+          <span class="dock-name">{{ s.name }}</span>
+        </a>
+        {% elif not config.extra.live %}
+        <span class="pending">{{ s.name }} — link to configure</span>
+        {% endif %}
+      {% endfor %}
+    </nav>
+    {% endif %}
+
     <span>
       <a href="{{ get_url(path='legal/') }}">{{ e.legal_link | default(value="Legal") }}</a>
       <span class="credit-studio"><a href="{{ config.extra.author_url }}" rel="author">site by {{ config.extra.author }}</a></span>

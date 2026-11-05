@@ -64,6 +64,15 @@ CONFIG_FIELDS = {
         "vcard_phone": "optional, international format",
         "vcard_url":   "optional",
     },
+    # Only `url`. The mark filename and the service's name are the
+    # studio's, and a mark pointing at a file that is not there is a
+    # broken image in the footer — not a thing to expose to a browser.
+    "extra.social.linkedin": {
+        "url": "his LinkedIn profile, not linkedin.com",
+    },
+    "extra.social.whatsapp": {
+        "url": "https://wa.me/ and the business number",
+    },
     "extra.legal": {
         "entity":       "the legal name of the publisher",
         "status":       "e.g. Entrepreneur individuel, SASU",
