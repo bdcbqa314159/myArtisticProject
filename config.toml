@@ -139,6 +139,6 @@ mark_dark = "linkedin-white.png"
 
 [extra.social.whatsapp]
 name = "WhatsApp"
-url = "https://www.whatsapp.com"   # https://wa.me/<number> when we have it   # https://wa.me/<number> when we have it
+url = "https://www.whatsapp.com"   # https://wa.me/<number> when we have it
 mark = "whatsapp-black.svg"      # in: the Glyph, unmodified
 mark_dark = "whatsapp-white.svg"
