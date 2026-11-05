@@ -114,7 +114,6 @@ def main() -> int:
     ):
         name = (re.search(r'name\s*=\s*"([^"]*)"', block) or [None, who])[1]
         url = (re.search(r'url\s*=\s*"([^"]*)"', block) or [None, ""])[1]
-        mark = (re.search(r'mark\s*=\s*"([^"]*)"', block) or [None, ""])[1]
         if not url:
             problems.append(f"{name} link not configured (config.toml, extra.social)")
             continue
@@ -125,11 +124,15 @@ def main() -> int:
             )
         if who == "whatsapp" and not re.match(r"^https://wa\.me/\d{6,}$", url):
             problems.append(f"{name} link is not a wa.me business number: {url}")
-        if mark and not (ROOT / "static" / "img" / "brand" / mark).exists():
-            problems.append(
-                f"{name} is linked but static/img/brand/{mark} is missing — "
-                "download it from the owner's own brand page (see NOTICE)"
-            )
+        for field in ("mark", "mark_dark"):
+            f = (re.search(rf'{field}\s*=\s*"([^"]*)"', block) or [None, ""])[1]
+            if not f:
+                problems.append(f"{name} has no {field} configured")
+            elif not (ROOT / "static" / "img" / "brand" / f).exists():
+                problems.append(
+                    f"{name} is linked but static/img/brand/{f} is missing — "
+                    "download it from the owner's own brand page (see NOTICE)"
+                )
 
     # --- objects the editor created and nobody finished --------------------
     # A new object cannot be blank — objects.py fails on an empty

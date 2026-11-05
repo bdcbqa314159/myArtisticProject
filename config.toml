@@ -123,17 +123,23 @@ host_url = "https://github.com"
 # allowed to publish. The studio panel can fill `url` in; `name` and
 # `mark` are ours and are not editable from a browser.
 #
-# `mark` is the file in static/img/brand/, downloaded from the owner's
-# own brand page and used unmodified. Until both the URL and the file
-# exist the entry shows a note to ourselves in the footer and the gate
-# refuses to go live. See static/img/brand/SOURCES.md and NOTICE.
+# `mark` and `mark_dark` are the files in static/img/brand/, downloaded
+# from each owner's own brand page and used unmodified. Two of each
+# because the footer has four background states and one file cannot be
+# legible on all of them — both brands publish a black and a white
+# variant for exactly this, so the pair is their artwork, not our
+# recolour. Until the URL and both files exist the entry shows a note to
+# ourselves in the footer and the gate refuses to go live. See
+# static/img/brand/SOURCES.md and NOTICE.
 # ---------------------------------------------------------------
 [extra.social.linkedin]
 name = "LinkedIn"
 url = ""                 # his profile, e.g. https://www.linkedin.com/in/...
-mark = "linkedin.svg"    # from brand.linkedin.com/downloads
+mark = "linkedin-black.png"      # in: the In Bug, unmodified
+mark_dark = "linkedin-white.png"
 
 [extra.social.whatsapp]
 name = "WhatsApp"
 url = ""                 # https://wa.me/33XXXXXXXXX — the business number
-mark = "whatsapp.svg"    # in: the Green glyph, unmodified
+mark = "whatsapp-black.svg"      # in: the Glyph, unmodified
+mark_dark = "whatsapp-white.svg"
