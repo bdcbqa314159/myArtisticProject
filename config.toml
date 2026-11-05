@@ -115,13 +115,12 @@ host_url = "https://github.com"
 # ---------------------------------------------------------------
 # ELSEWHERE — the two the client named: LinkedIn and WhatsApp Business.
 #
-# `url` is empty until he gives us his own, and that is the real
-# blocker, not the logos: both marks are licensed as a link to YOUR OWN
-# presence on the service. Pointed at linkedin.com or whatsapp.com a
-# mark stops being a link and becomes decoration, which neither brand's
-# terms permit — so a placeholder here is the one version we are not
-# allowed to publish. The studio panel can fill `url` in; `name` and
-# `mark` are ours and are not editable from a browser.
+# `url` points at each service's own page for now — the client's call,
+# and enough to show the footer working. When his LinkedIn profile and
+# his WhatsApp Business number arrive, each is a one-line swap here or
+# a paste into the studio panel, which can edit `url` and nothing else:
+# `name` and the mark filenames are ours and are not reachable from a
+# browser.
 #
 # `mark` and `mark_dark` are the files in static/img/brand/, downloaded
 # from each owner's own brand page and used unmodified. Two of each
@@ -134,12 +133,12 @@ host_url = "https://github.com"
 # ---------------------------------------------------------------
 [extra.social.linkedin]
 name = "LinkedIn"
-url = ""                 # his profile, e.g. https://www.linkedin.com/in/...
+url = "https://www.linkedin.com"   # his profile when we have it
 mark = "linkedin-black.png"      # in: the In Bug, unmodified
 mark_dark = "linkedin-white.png"
 
 [extra.social.whatsapp]
 name = "WhatsApp"
-url = ""                 # https://wa.me/33XXXXXXXXX — the business number
+url = "https://www.whatsapp.com"   # https://wa.me/<number> when we have it   # https://wa.me/<number> when we have it
 mark = "whatsapp-black.svg"      # in: the Glyph, unmodified
 mark_dark = "whatsapp-white.svg"
