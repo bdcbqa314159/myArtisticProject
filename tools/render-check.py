@@ -188,6 +188,15 @@ def check_live(html: str) -> "list[str]":
     # presence of an image rather than to whether the image was a
     # placeholder, so on launch day it would have been printed across
     # the client's own photographs.
+    # The footer's "link to configure" label is the studio's own note to
+    # itself. content-check.py already refuses to publish an unset social
+    # link, so this is the second lock on the same door — the first one is
+    # a rule in a script, and this one is what the browser actually got.
+    if "link to configure" in html:
+        bad.append(
+            "live: a social link still shows the studio's placeholder label"
+        )
+
     if 'class="stand-in"' in html or "class=stand-in" in html:
         bad.append(
             "live: the stand-in badge is on the published page — it would "

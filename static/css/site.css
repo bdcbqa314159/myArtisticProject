@@ -1329,3 +1329,29 @@ html.js [data-copy] { display: inline-flex; }
   /* A link to a section of the same page is meaningless on paper. */
   a[href^="#"] { text-decoration: none; }
 }
+
+/* Elsewhere, in the footer. Small, quiet, and a name beside each mark —
+   an icon alone is a guess, and often the wrong one. Colour and
+   underline come from `.footer a` above; only the layout is new, plus a
+   press state, because on a phone there is no hover to fall back on. */
+.dock { display: flex; flex-wrap: wrap; align-items: center; gap: 1.25rem; }
+
+.dock a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: color 160ms ease;
+}
+
+.dock a:active { color: var(--ink); }
+
+/* The marks are their owners' artwork and are used as published: scaled,
+   and nothing else. Never recoloured, masked, boxed or redrawn — see
+   static/img/brand/SOURCES.md.
+
+   Height only, because they are not the same shape: WhatsApp's glyph is
+   square and LinkedIn's In Bug is not. Pinning both dimensions would
+   stretch one of them, and a stretched mark is a modified mark. */
+.dock img { height: 20px; width: auto; }
+
+.dock-name { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }

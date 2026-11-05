@@ -13,6 +13,8 @@ paragraphs:
     "verified" means a dated record of what was checked against — not
     a flag someone remembers flipping
   * no placeholder email address, ever (brief §4.08)
+  * no social link that goes nowhere, and no brand mark pointed at
+    the service's own homepage instead of the client's profile
   * no stand-in photograph on a live site (NOTICE)
   * no legal notice with blanks in it, and the icons exist
   * nothing still carrying the studio's "To be written" placeholder
@@ -97,6 +99,36 @@ def main() -> int:
         problems.append("no contact address configured")
     elif re.search(r"example\.(com|org)|@example|placeholder|todo|xxx", address, re.I):
         problems.append(f"placeholder contact address: {address}")
+
+    # --- elsewhere: the two links the client named -------------------------
+    # LinkedIn and WhatsApp Business. The client's decision is that the
+    # services' own pages are enough for now, so a homepage is a valid
+    # destination here and is not flagged — swapping in his profile and
+    # his wa.me number later is a one-line edit each, in config.toml or
+    # from the studio panel.
+    #
+    # What is still checked: a link that goes nowhere at all, and a mark
+    # file that is not on disk. An alt-less broken image in the footer is
+    # the one outcome worse than no icon.
+    for who, block in re.findall(
+        r"\[extra\.social\.(\w+)\](.*?)(?=\n\[|\n# ----|\Z)", cfg, re.S
+    ):
+        name = (re.search(r'name\s*=\s*"([^"]*)"', block) or [None, who])[1]
+        url = (re.search(r'url\s*=\s*"([^"]*)"', block) or [None, ""])[1]
+        if not url:
+            problems.append(f"{name} link not configured (config.toml, extra.social)")
+            continue
+        if not url.startswith("https://"):
+            problems.append(f"{name} link is not https: {url}")
+        for field in ("mark", "mark_dark"):
+            f = (re.search(rf'{field}\s*=\s*"([^"]*)"', block) or [None, ""])[1]
+            if not f:
+                problems.append(f"{name} has no {field} configured")
+            elif not (ROOT / "static" / "img" / "brand" / f).exists():
+                problems.append(
+                    f"{name} is linked but static/img/brand/{f} is missing — "
+                    "download it from the owner's own brand page (see NOTICE)"
+                )
 
     # --- objects the editor created and nobody finished --------------------
     # A new object cannot be blank — objects.py fails on an empty

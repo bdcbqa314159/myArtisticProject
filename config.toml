@@ -111,3 +111,34 @@ publisher = ""         # directeur de la publication
 host_name = "GitHub, Inc."
 host_address = "88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, United States"
 host_url = "https://github.com"
+
+# ---------------------------------------------------------------
+# ELSEWHERE — the two the client named: LinkedIn and WhatsApp Business.
+#
+# `url` points at each service's own page for now — the client's call,
+# and enough to show the footer working. When his LinkedIn profile and
+# his WhatsApp Business number arrive, each is a one-line swap here or
+# a paste into the studio panel, which can edit `url` and nothing else:
+# `name` and the mark filenames are ours and are not reachable from a
+# browser.
+#
+# `mark` and `mark_dark` are the files in static/img/brand/, downloaded
+# from each owner's own brand page and used unmodified. Two of each
+# because the footer has four background states and one file cannot be
+# legible on all of them — both brands publish a black and a white
+# variant for exactly this, so the pair is their artwork, not our
+# recolour. Until the URL and both files exist the entry shows a note to
+# ourselves in the footer and the gate refuses to go live. See
+# static/img/brand/SOURCES.md and NOTICE.
+# ---------------------------------------------------------------
+[extra.social.linkedin]
+name = "LinkedIn"
+url = "https://www.linkedin.com"   # his profile when we have it
+mark = "linkedin-black.png"      # in: the In Bug, unmodified
+mark_dark = "linkedin-white.png"
+
+[extra.social.whatsapp]
+name = "WhatsApp"
+url = "https://www.whatsapp.com"   # https://wa.me/<number> when we have it   # https://wa.me/<number> when we have it
+mark = "whatsapp-black.svg"      # in: the Glyph, unmodified
+mark_dark = "whatsapp-white.svg"
