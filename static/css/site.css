@@ -491,8 +491,13 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
      into frame. The frame above already clips. */
   transform: translate3d(0, 0, 0);
   scale: 1.08;
-  will-change: transform;
 }
+
+/* `will-change` only while the page is moving.
+   Left on permanently it asks the browser to keep a composited layer
+   for every photograph for the life of the page — six layers held
+   against a drift that only happens during a scroll. */
+html.scrolling .case .image img { will-change: transform; }
 
 .case .image.empty { background: var(--panel); }
 
@@ -1143,7 +1148,12 @@ section:not(.hero) > .wrap > .note { text-align: left; }
   gap: clamp(2.5rem, 5vw, 3.5rem);
 }
 
-@media (min-width: 50rem) {
+/* The zigzag starts at 64rem, not 50.
+   At 820px the three positions are about 80px apart — close enough that
+   it reads as alignment that went wrong rather than as a sequence. A
+   tablet gets the plain column, which is honest, and the stagger
+   appears where there is room to see it. */
+@media (min-width: 64rem) {
   #services > .wrap > .grid > * { max-width: 34rem; }
   #services > .wrap > .grid > :nth-child(3n + 1) { justify-self: start; }
   #services > .wrap > .grid > :nth-child(3n + 2) { justify-self: end; }
@@ -1153,7 +1163,7 @@ section:not(.hero) > .wrap > .note { text-align: left; }
 /* The photographs are given a little more than they show, so the drift
    never pulls an edge into frame. The container already clips. */
 @media (prefers-reduced-motion: reduce) {
-  .case .image img { scale: 1; will-change: auto; }
+  .case .image img { scale: 1; }
 }
 
 /* The smear filter's own element — machinery, never seen. */
@@ -1200,3 +1210,55 @@ section:not(.hero) > .wrap > .note { text-align: left; }
    ring around the whole screen — the scroll is the feedback. */
 section:focus,
 section:focus-visible { outline: none; }
+
+
+/* Two controls need script to do anything: the palette toggle reloads
+   the page, and the copy button writes to the clipboard. Rendered
+   without it they are buttons that do nothing when pressed, which is a
+   worse answer than not being there. `js` is set by the inline script in
+   the head, before first paint. */
+.palette,
+[data-copy] { display: none; }
+
+html.js .palette { display: inline-block; }
+html.js [data-copy] { display: inline-flex; }
+
+/* ============================================================================
+   PRINT
+
+   Not an afterthought on a page like this: "save as PDF" is how a
+   portfolio gets forwarded to someone who was not in the room.
+
+   Ink on paper, everything that moves stopped, and the things that only
+   make sense on a screen taken out.
+   ============================================================================ */
+
+@media print {
+  :root {
+    --ink: #000;
+    --muted: #333;
+    --faint: #555;
+    --line: #bbb;
+    --bg: #fff;
+    --panel: #eee;
+    --tint: #fff;
+    --accent: #000;
+  }
+
+  .skip,
+  header,
+  .palette,
+  [data-copy],
+  .loader { display: none; }
+
+  /* Nothing hidden by a reveal that will never be released, and nothing
+     blurred by a scroll that cannot happen. */
+  .reveal, .split .wi { opacity: 1; transform: none; }
+  .case .image img, .placeholder { filter: none; scale: 1; }
+
+  section { break-inside: avoid; border-bottom: 1px solid var(--line); }
+  .case .image { break-inside: avoid; }
+
+  /* A link to a section of the same page is meaningless on paper. */
+  a[href^="#"] { text-decoration: none; }
+}
