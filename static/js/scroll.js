@@ -23,4 +23,43 @@ export function ease(t) {
     const x = t < 0 ? 0 : t > 1 ? 1 : t;
     return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 }
+/** Travel to `to`, and call `onSettled` exactly once when the journey
+ *  ends — arrived, abandoned by the reader, or replaced by a newer one.
+ *
+ *  Returns a function that abandons it. */
+export function animateScroll(env, to, onSettled) {
+    const from = env.position();
+    const distance = to - from;
+    const ms = scrollDuration(distance);
+    const started = env.now();
+    let handle = 0;
+    let cancelled = false;
+    let settled = false;
+    const release = env.whenInterrupted(() => { cancelled = true; });
+    /* Exactly once, by all three roads out.
+     *
+     * Twice is reachable without the guard: abandoning runs this, and the
+     * frame already in flight then runs it again. Whoever is listening —
+     * the navigation band, which is holding its marker still until this
+     * says the journey is over — is entitled to assume one. */
+    function finish() {
+        if (settled)
+            return;
+        settled = true;
+        env.cancelFrame(handle);
+        release();
+        onSettled?.();
+    }
+    function step(now) {
+        if (cancelled)
+            return finish();
+        const t = (now - started) / ms;
+        env.moveTo(from + distance * ease(t));
+        if (t >= 1)
+            return finish();
+        handle = env.frame(step);
+    }
+    handle = env.frame(step);
+    return () => { cancelled = true; finish(); };
+}
 //# sourceMappingURL=scroll.js.map
