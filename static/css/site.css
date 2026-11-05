@@ -232,12 +232,28 @@ header {
 @media (min-width: 50rem) {
   .links a { color: var(--muted); }
   .links a:hover, .links a:focus-visible { color: var(--ink); }
-  .links a.current {
-    color: var(--ink);
-    /* A rule under the current one rather than a weight change, so the
-       row does not reflow as you scroll past each section. */
-    box-shadow: 0 1px 0 0 currentColor;
+  /* The rule is drawn by a pseudo-element so it can MOVE rather than
+     appear. A `box-shadow` can only switch on, which in a row of seven
+     links reads as blinking; this grows from the middle, which reads as
+     the band following the page.
+
+     Still a rule and not a weight change, so the row never reflows. */
+  .links a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.35em;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transition: transform 260ms cubic-bezier(.22, .61, .36, 1);
   }
+
+  .links a { position: relative; }
+
+  .links a.current { color: var(--ink); }
+  .links a.current::after { transform: scaleX(1); }
 }
 
 /* ---- type -------------------------------------------------------------
@@ -381,14 +397,35 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
    "discret, pas trop gadget", and anything that overshoots reads as a
    toy. This is the one state a touch device never had: before it, a
    finger on a button produced nothing at all. */
+/* The press, and the release.
+ *
+ * `:active` alone lasts exactly as long as the finger or the mouse
+ * button does — on a quick click that is under 80ms, and the 110ms
+ * transition never arrives anywhere. The press was real and
+ * unnoticeable, which is the complaint.
+ *
+ * So the press is deeper, and the RELEASE is animated: a class added on
+ * click plays the return over 260ms, which happens after the button has
+ * been let go and is therefore the part anyone actually sees. */
 .btn:active {
-  transform: translateY(1px) scale(0.985);
-  transition-duration: 60ms;
+  transform: translateY(2px) scale(0.97);
+  transition-duration: 40ms;
+}
+
+.btn.released {
+  animation: btn-release 260ms cubic-bezier(.22, .61, .36, 1);
+}
+
+@keyframes btn-release {
+  from { transform: translateY(2px) scale(0.97); }
+  to   { transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .btn { transition: background-color 180ms ease, color 180ms ease; }
   .btn:active { transform: none; }
+  .btn.released { animation: none; }
+  .links a::after { transition: none; }
 }
 
 /* ---- grids and cards ----------------------------------------------------- */
