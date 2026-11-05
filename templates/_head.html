@@ -7,12 +7,34 @@
 {# Most hosts serve no headers, so this is a meta tag. It is not an
    anti-XSS measure — nothing a visitor types is rendered back. What it
    buys: connect-src 'none' means a script that somehow got in could not
-   send what it found anywhere. #}
+   send what it found anywhere.
+
+   THE HASH, NOT 'unsafe-inline'.
+
+   There is exactly one inline script on this site — the boot script
+   below — and `script-src` is the directive that decides whether an
+   injected one runs. With 'unsafe-inline' the answer was yes, for any
+   script at all; the single script we actually wanted was indulged by a
+   rule that indulged everything.
+
+   The hash names that one script and refuses every other. The usual
+   objection is that a hash drifts from the script it describes and
+   silently breaks the page — so it is checked:
+   `tools/csp-check.py` hashes the inline script in the BUILT page,
+   after minification, and fails the build when the two disagree.
+
+   If it ever did drift, the page still opens: the boot script is what
+   adds `booting`, and `.loader` is `display: none` without it. A
+   blocked script means no cover rather than a cover nobody can lift.
+
+   `data:` is gone from img-src too. The only `data:` in either built
+   page was this policy quoting itself — no image used one, so the
+   permission bought nothing. #}
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
-  img-src 'self' data:;
+  img-src 'self';
   style-src 'self';
-  script-src 'self' 'unsafe-inline';
+  script-src 'self' 'sha256-S5z115ZJ/h3aHd7ry/JMsJUw7Ie2eTvj9g4zH79QneA=';
   connect-src 'none';
   base-uri 'none';
   object-src 'none'">
