@@ -195,10 +195,15 @@ def main() -> int:
     ledger = ROOT / "content" / "PLACEHOLDERS.txt"
     if ledger.exists():
         n = len(ledger.read_text().split())
-        problems.append(
-            f"{n} stand-in photograph(s) still present "
-            "(python3 tools/placeholders.py --purge)"
-        )
+        # An empty ledger is a ledger of nothing, not a complaint about
+        # nothing: it used to report "0 stand-in photograph(s) still
+        # present", which is a gate that can never be satisfied by
+        # replacing the photographs — only by deleting the file.
+        if n:
+            problems.append(
+                f"{n} stand-in photograph(s) still present "
+                "(python3 tools/placeholders.py --purge)"
+            )
 
     # --- concepts stay marked as in development ---------------------------
     for block in re.findall(r"\[\[extra\.concepts\]\](.*?)(?=\n\[\[|\Z)", fm, re.S):

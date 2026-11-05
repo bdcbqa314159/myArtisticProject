@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """The real content, on this machine, without ever committing it.
 
-    python3 tools/dropin.py --init     # create _dropin/ with a slot per placeholder
+    python3 tools/dropin.py --init     # create _dropin/, full of stand-in content
+    python3 tools/dropin.py --init --bare   # ...or with the slots empty
     python3 tools/dropin.py            # assemble _local/ and say what is still missing
     python3 tools/dropin.py --serve    # assemble, then serve it
 
@@ -46,6 +47,10 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import dropin_samples as samples
 
 ROOT = Path(__file__).resolve().parent.parent
 DROPIN = ROOT / "_dropin"
@@ -102,6 +107,16 @@ def check() -> None:
     gate that decides whether the published site may go live is the same
     gate, pointed at the version with the real names in it.
     """
+    # Generators first. `_local/` is a real checkout, so the things the
+    # site builds for itself — the saveable contact card, the icons —
+    # have to be built there as well, or the gate reports a card that is
+    # promised and missing and the fixture can never come out clean.
+    for script in ("vcard.py", "icons.py"):
+        path = LOCAL / "tools" / script
+        if path.exists():
+            subprocess.run([sys.executable, str(path)],
+                           capture_output=True, text=True, cwd=LOCAL)
+
     for script in ("objects.py", "content-check.py"):
         path = LOCAL / "tools" / script
         if not path.exists():
@@ -113,31 +128,79 @@ def check() -> None:
             print("\n".join("  " + ln for ln in text.splitlines()))
 
 
-def init() -> int:
-    """Create _dropin/ with a slot for every placeholder on the page."""
+def init(bare: bool = False) -> int:
+    """Create _dropin/, full by default.
+
+    Empty slots are a folder of instructions. A full one is a site that
+    already works — so replacing a single photograph shows what a single
+    photograph does, instead of needing six references, three concepts,
+    five legal fields and a film before anything can be judged at all.
+
+    `--bare` gives the empty version, for when the real content is going
+    in wholesale and the fixture would only be in the way.
+    """
     if DROPIN.exists():
-        print(f"\n  {DROPIN.name}/ is already there — leaving it alone.\n")
+        print(f"\n  {DROPIN.name}/ is already there — leaving it alone.")
+        print("  Delete it yourself if you want a fresh one.\n")
         return 0
 
-    (DROPIN / "content").mkdir(parents=True)
-    (DROPIN / "static" / "video").mkdir(parents=True)
+    content = DROPIN / "content"
+    video = DROPIN / "static" / "video"
+    content.mkdir(parents=True)
+    video.mkdir(parents=True)
 
-    # The real files, copied as they stand. Editing a copy of the thing
-    # itself beats filling in a form that has to be translated back: it
-    # is TOML either way, and this way there is no second format to keep
-    # in step with the first.
-    shutil.copy2(ROOT / "content" / "_index.md", DROPIN / "content" / "_index.md")
-    shutil.copy2(ROOT / "config.toml", DROPIN / "config.toml")
+    source_content = (ROOT / "content" / "_index.md").read_text(encoding="utf-8")
+    source_config = (ROOT / "config.toml").read_text(encoding="utf-8")
+
+    made: list[str] = []
+    if bare:
+        # The real files, as they stand. It is TOML either way, so there
+        # is no second format to keep in step with the first.
+        (content / "_index.md").write_text(source_content, encoding="utf-8")
+        (DROPIN / "config.toml").write_text(source_config, encoding="utf-8")
+    else:
+        scratch = DROPIN / ".scratch"
+        scratch.mkdir(exist_ok=True)
+        try:
+            made += samples.images(content, scratch)
+            made += samples.showreel(video, scratch)
+        finally:
+            shutil.rmtree(scratch, ignore_errors=True)
+
+        have_images = len([m for m in made if m.startswith("work-")]) == 6
+        have_video = "showreel.mp4" in made and "poster.jpg" in made
+
+        (content / "_index.md").write_text(
+            samples.fill_content(source_content, have_images, have_video),
+            encoding="utf-8")
+        (DROPIN / "config.toml").write_text(
+            samples.fill_config(source_config), encoding="utf-8")
+
+        # The stand-in ledger lists photographs this fixture replaces.
+        # Emptying it retires them; the gate counts entries, not files.
+        (content / "PLACEHOLDERS.txt").write_text("", encoding="utf-8")
 
     (DROPIN / "README.md").write_text(README, encoding="utf-8")
+
+    print(f"\n  {DROPIN.name}/ is ready.\n")
+    if bare:
+        print("    content/_index.md   every text placeholder on the page")
+        print("    config.toml         address, legal notice, social links")
+        print("    content/            photographs go here")
+        print("    static/video/       the showreel and its poster\n")
+    else:
+        print(f"    a full set of stand-in content — {len(made)} file(s) generated")
+        for name in made:
+            print(f"      {name}")
+        missing = []
+        if not any(m.startswith("work-") for m in made):
+            missing.append("images (needs Chrome and sips)")
+        if "showreel.mp4" not in made:
+            missing.append("the showreel (needs ffmpeg)")
+        for m in missing:
+            print(f"      — skipped: {m}")
+        print("\n    Nothing here is real. Replace it a piece at a time.")
     print(f"""
-  {DROPIN.name}/ is ready.
-
-    {DROPIN.name}/content/_index.md   every text placeholder on the page
-    {DROPIN.name}/config.toml         address, legal notice, social links
-    {DROPIN.name}/content/            photographs go here
-    {DROPIN.name}/static/video/       the showreel and its poster
-
   Read {DROPIN.name}/README.md, then:
 
     python3 tools/dropin.py --serve
@@ -145,14 +208,21 @@ def init() -> int:
     return 0
 
 
-README = """# Drop the real content here
+README = """# The real content goes here
 
 This folder is **ignored by git**. Nothing in it can reach the public
 repository, which is the point: the client's names, photographs and
 showreel live here and nowhere else.
 
-The folder mirrors the repository's own paths. A file here lands at the
-same path in the preview — there is no manifest to keep up to date.
+It starts **full**, with a complete set of stand-in content, so the site
+already works before you touch anything. Replace a piece at a time and
+watch the real thing arrive — rather than needing six references, three
+concepts, five legal fields and a film before there is anything to look
+at.
+
+**Nothing here is real.** "Test Organisation 01", "sample-fixture, not a
+real record", images generated on this machine. Nothing reads as a
+credential, and nothing came from anyone else's camera.
 
 ## See it
 
@@ -160,54 +230,67 @@ same path in the preview — there is no manifest to keep up to date.
 
 That assembles `_local/` — the tracked site with everything here laid
 over it — and serves that. `./preview.sh` still shows the placeholder
-site, which is the one that gets published; use this for the real thing.
+site, which is the one that gets published.
+
+## It runs as the finished site
+
+`live = true` in this folder's `config.toml`. That is why the page wears
+the real identity instead of the 10MILES demo one, and why the palette
+toggle and the stand-in badges are gone — it is the launch
+configuration, which is the thing worth looking at.
+
+Safe **here and only here**: this file is ignored and nothing publishes
+it. The tracked `config.toml` stays `false`, and flipping that one is a
+decision made with the repository in front of you, not a side effect.
 
 ## The slots
 
-### Text
+The folder mirrors the repository's own paths. A file here lands at the
+same path in the preview — there is no manifest to keep up to date.
 
-`content/_index.md` and `config.toml` are copies of the real files. Edit
-them here. Everything marked *"supplied at handover"* is a placeholder
-waiting for you, and so is every empty `url`, `email` and legal field in
-`config.toml`.
+| | |
+|---|---|
+| `content/_index.md` | every text placeholder: references, concepts, titles |
+| `config.toml` | identity, contact, legal notice, social links |
+| `content/work-01.jpg` … `work-06.jpg` | the six photographs |
+| `static/video/showreel.mp4` | the film |
+| `static/video/poster.jpg` | the still shown before it plays |
 
 ### Photographs
 
-Drop them in `content/` and point an entry at one:
+Drop one in `content/` and point an entry at it:
 
-    image = "work-01.jpg"
-    alt   = "what the photograph shows, for someone who cannot see it"
+    image = "whatever-you-called-it.jpg"
+    alt   = "what it shows, for someone who cannot see it"
 
 `alt` is not optional — the build refuses an image without one. JPEG,
-PNG or WebP. Roughly 1600px on the long edge is plenty; the site resizes
-and converts to WebP by itself.
+PNG or WebP; about 1600px on the long edge is plenty, and the site
+resizes and converts to WebP itself.
 
 ### The showreel
 
-    static/video/showreel.mp4     the film
-    static/video/poster.jpg       the still shown before it plays
-
-and in `content/_index.md`:
-
-    video  = "video/showreel.mp4"
-    poster = "video/poster.jpg"
-
-**The poster is required when there is a video.** The player does not
-load the film until someone presses play, so with no poster the section
-is a black rectangle — the one state worse than the empty slot that is
-there now.
-
-MP4 (H.264/AAC) plays everywhere that matters. Keep it under ~50MB: it
-is served as a plain file, so the viewer waits for exactly as long as it
-takes to arrive.
+**The poster is required when there is a video.** The player loads
+nothing until someone presses play, so with no poster the section is a
+black rectangle. MP4 (H.264/AAC) plays everywhere that matters; keep it
+under ~50MB, because the viewer waits exactly as long as it takes to
+arrive.
 
 ## What is still missing
 
     python3 tools/dropin.py
 
-Assembles the preview and then runs the repository's own checks against
-it — the same gate that decides whether the site may go live, pointed at
-the version with the real names in. It lists what is still unfilled.
+Assembles the preview, builds what the site builds for itself, and then
+runs the repository's own checks against it — the same gate that decides
+whether the site may go live, pointed at the version with the real names
+in. Out of the box it reports nothing, because the fixture is complete.
+As you replace it with real content, it will tell you what is not.
+
+## Starting empty instead
+
+    rm -rf _dropin && python3 tools/dropin.py --init --bare
+
+For when the real content is going in wholesale and the fixture would
+only be in the way.
 """
 
 
@@ -223,7 +306,7 @@ def serve() -> int:
 
 def main(argv: list[str]) -> int:
     if "--init" in argv:
-        return init()
+        return init(bare="--bare" in argv)
 
     if not DROPIN.exists():
         print("\n  no _dropin/ yet — run: python3 tools/dropin.py --init\n")

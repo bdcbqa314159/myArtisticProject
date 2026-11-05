@@ -101,9 +101,17 @@ inside it unchanged: the studio panel, `objects.py`, and the same
 `content-check.py` gate — pointed at the version with the real names in.
 
 ```sh
-python3 tools/dropin.py --init    # create _dropin/, one slot per placeholder
+python3 tools/dropin.py --init    # create _dropin/, full of stand-in content
 python3 tools/dropin.py           # assemble, and list what is still missing
 ```
+
+`--init` starts it **full**: six verified references, three concepts, a
+contact, a complete legal notice, six generated images and a real MP4
+showreel — enough that the site passes every gate it would have to pass
+to go live, and runs as the launch configuration rather than the demo.
+Replace a piece at a time and watch the real thing arrive. Nothing in it
+is real, nothing came from anyone else's camera, and the generator needs
+no network. `--init --bare` gives empty slots instead.
 
 ## Why the compiled JS is in the repo
 
