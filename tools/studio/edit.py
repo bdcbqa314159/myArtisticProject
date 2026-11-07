@@ -87,6 +87,36 @@ class Refused(Exception):
     """The edit was not made, and the file was not touched."""
 
 
+# Anything that cannot appear in a TOML basic string. Newlines are
+# already refused by each caller with a clearer message; this catches
+# the rest — a bell, a vertical tab, a DEL, the invisible things that
+# arrive with text pasted out of a word processor.
+CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
+def plain(value: str, what: str = "that text") -> str:
+    """Refuse what would produce a file the site cannot build.
+
+    `quote()` escapes the two characters that could END a string early.
+    It does not make a string VALID, and a control character in the
+    middle of one is invalid TOML — which the panel happily wrote until
+    this existed. The result passed `objects.check()`, because that is a
+    regular expression over lines and not a parser, and then `zola
+    build` refused the site.
+
+    A tool with a GUI must not be able to produce a file that does not
+    load. That is the whole difference between an editor and a hazard.
+    """
+    found = CONTROL.search(value)
+    if found:
+        raise Refused(
+            f"{what} contains a character that cannot be written here "
+            f"(code {ord(found.group(0))}) — it is usually invisible, and "
+            "arrives with text pasted out of another application"
+        )
+    return value
+
+
 def quote(value: str) -> str:
     """A TOML basic string. Anything that could end the string early, or
     start a line that looks like TOML, is escaped rather than trusted."""
@@ -111,6 +141,7 @@ def apply_edit(kind: str, index: int, field: str, value: str,
         raise Refused("a value is one line; a newline would end the string early")
     if len(value) > MAX_LEN:
         raise Refused(f"{len(value)} characters; the limit is {MAX_LEN}")
+    plain(value)
 
     # `source` lets two edits be composed into ONE candidate. Writing
     # them one after another would leave the first on disk when the
@@ -196,6 +227,7 @@ def attach(kind: str, index: int, filename: str, raw: bytes, alt: str) -> str:
         raise Refused("that is the placeholder, not a description")
     if len(alt) > MAX_LEN:
         raise Refused(f"{len(alt)} characters; the limit is {MAX_LEN}")
+    plain(alt, "that description")
 
     if not raw:
         raise Refused("no file arrived")
@@ -288,6 +320,7 @@ def set_text(key: str, value: str) -> str:
         raise Refused("a value is one line")
     if len(value) > MAX_LEN:
         raise Refused(f"{len(value)} characters; the limit is {MAX_LEN}")
+    plain(value)
     if not value:
         raise Refused("that would leave it empty — remove the field instead")
 
@@ -339,6 +372,7 @@ def set_config(section: str, key: str, value: str) -> str:
         raise Refused("a value is one line")
     if len(value) > MAX_LEN:
         raise Refused(f"{len(value)} characters; the limit is {MAX_LEN}")
+    plain(value)
 
     text = CONFIG.read_text(encoding="utf-8")
 
