@@ -85,13 +85,14 @@ INVARIANTS = [
     (
         "an open level does not paint over itself",
         "static/css/site.css",
-        r"\[open\] > summary (?:img|\.patch) \{ display: none; \}",
-        2,
-        "Each level hides what opened it: the card's fridge once the "
-        "group is at the front, and a project's cover once its carousel "
-        "is. Scoped to the no-script case by mistake once already, and "
-        "the same photograph appeared twice — one full screen, one "
-        "floating in a corner.",
+        r"\.group\[open\] > summary,\s*html\.js \.shots\[open\] > summary"
+        r" \{ display: none; \}",
+        1,
+        "Each level hides what opened it — the card's fridge once the "
+        "group is at the front, a project's cover once its carousel is. "
+        "Scoped to the no-script case by mistake once already, and the "
+        "same photograph appeared twice: one full screen, one floating "
+        "in a corner.",
     ),
     (
         "an open print stops being transformed",
@@ -103,6 +104,28 @@ INVARIANTS = [
         "print resolves `inset: 0` against the print instead of the "
         "screen. This page has met that rule twice: once with "
         "`backdrop-filter` on the header, once here.",
+    ),
+    (
+        "the carousel opens on the photograph that was tapped",
+        "static/css/site.css",
+        r"scroll-snap-align: start;",
+        1,
+        "Centred, the first photograph sat in the middle with empty "
+        "ground to its left, so the reader scrolled backwards to find "
+        "out there was nothing there. It opens flush left on the one "
+        "that was tapped.",
+    ),
+    (
+        "the group's blur is on a pseudo-element, not on the group",
+        "static/css/site.css",
+        r"\.group-front \{(?:[^}]*)backdrop-filter",
+        0,
+        "`backdrop-filter` makes an element the containing block for "
+        "every `position: fixed` descendant, and a project's carousel "
+        "is one — put the blur on this box and level three anchors to "
+        "it instead of the screen. The same rule has caught this page "
+        "twice already, with `backdrop-filter` on the header and with "
+        "`transform` on a print. The blur belongs on ::before.",
     ),
     (
         "one cover in the markup",

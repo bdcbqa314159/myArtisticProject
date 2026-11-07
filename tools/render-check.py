@@ -316,8 +316,22 @@ addEventListener("load", () => setTimeout(() => {
     const left = shots.open;
     group.open = true;
     setTimeout(() => {
-      out.textContent = "RESULT both=" + both + " left=" + left
-        + " reopened=" + shots.open;
+      // THE GROUND IS THE WAY OUT, one level at a time.
+      // A carousel closes back to the group it came from, not out of
+      // both — so the reader lands where they were, not at the start.
+      const front = group.querySelector(".group-front");
+      const reel = shots.querySelector(".reel");
+      shots.open = true;
+      reel.dispatchEvent(new MouseEvent("click", {bubbles: true}));
+      setTimeout(() => {
+        const afterReel = "carousel=" + shots.open + " group=" + group.open;
+        front.dispatchEvent(new MouseEvent("click", {bubbles: true}));
+        setTimeout(() => {
+          out.textContent = "RESULT both=" + both + " left=" + left
+            + " reopened=" + shots.open + " " + afterReel
+            + " afterFront=" + group.open;
+        }, 20);
+      }, 20);
     }, 20);
   }, 20);
 }, 0));
@@ -350,6 +364,13 @@ def check_reopen(chrome: str, out: Path, url: str) -> "list[str]":
     if "reopened=false" not in verdict:
         bad.append("reopen: a reference reopens into the carousel rather than "
                    "its patchwork")
+    # One level at a time: the ground under a carousel closes the
+    # carousel and leaves the group it came from standing.
+    if "carousel=false group=true" not in verdict:
+        bad.append("ground: clicking beside a photograph does not close the "
+                   f"carousel back to its group ({verdict})")
+    if "afterFront=false" not in verdict:
+        bad.append("ground: clicking beside the group does not close it")
     return bad
 
 

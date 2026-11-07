@@ -1515,6 +1515,15 @@ html.js [data-copy] { display: inline-flex; }
  * fridge is hidden while this is up — two of them on screen at once is
  * the page telling you it has lost track of where you are.
  */
+/* THE PAGE BEHIND IS BLURRED, NOT HIDDEN.
+   Covering it said "you are somewhere else"; blurring it says "you are
+   still here, looking closer" — and the reader keeps their place.
+
+   The blur is on a PSEUDO-ELEMENT, not on this box. `backdrop-filter`
+   makes an element the containing block for every `position: fixed`
+   descendant, and a project's carousel is one of those — put it here
+   and level three would anchor to this instead of the screen, which is
+   the same rule that has already caught this page twice. */
 html.js .group[open] > .group-front {
   position: fixed;
   inset: 0;
@@ -1522,45 +1531,34 @@ html.js .group[open] > .group-front {
   display: grid;
   place-items: center;
   padding: var(--gutter);
-  background: var(--bg);
 }
 
+html.js .group[open] > .group-front::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  backdrop-filter: blur(16px) saturate(0.85);
+  background: color-mix(in oklch, var(--bg) 62%, transparent);
+}
+
+/* `96vw` ignored the padding around it, so on a phone the group was
+   31px wider than the space it was being centred in and sat against
+   one edge. A percentage is of the padding box, which is the box it is
+   actually centred in. */
 html.js .group[open] > .group-front .fridge {
-  width: min(96vw, 1100px);
+  width: min(100%, 1100px);
   max-height: 84vh;
 }
 
-html.js .group[open] > summary .patch { display: none; }
 
-/* The way out of each level, above the sheet it opened. */
+/* NO CLOSE BUTTON. The ground around the work is the way out.
+   A button in a corner is a thing to find; the empty space is already
+   where the thumb is not. Escape does it too, and script puts the
+   focus back on the summary afterwards so the keyboard does not lose
+   its place. */
 html.js .group[open] > summary,
-html.js .shots[open] > summary {
-  position: fixed;
-  z-index: 60;
-  inset: 0 0 auto auto;
-  padding: calc(var(--gutter) / 1.6);
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-}
-
-html.js .shots[open] > summary { z-index: 80; }
-
-html.js .group[open] > summary::after,
-html.js .shots[open] > summary::after {
-  content: "Close";
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 2px;
-}
-
-@media (hover: hover) {
-  html.js .group[open] > summary:hover::after,
-  html.js .shots[open] > summary:hover::after { color: var(--ink); }
-}
+html.js .shots[open] > summary { display: none; }
 
 /* ---- level three: one project's photographs ------------------------------
  * THE OPEN PRINT STOPS BEING A PRINT.
@@ -1594,8 +1592,9 @@ html.js .shots[open] {
 }
 
 html.js .shots[open] > summary .shots-name { display: block; }
-html.js .shots[open] > summary img { display: none; }
 
+/* The carousel blurs what is behind it — the group it came from. Safe
+   on this box, unlike the one above: nothing inside it is fixed. */
 html.js .shots[open] > .reel {
   position: fixed;
   inset: 0;
@@ -1603,7 +1602,8 @@ html.js .shots[open] > .reel {
   margin: 0;
   padding: 0 var(--gutter);
   align-items: center;
-  background: var(--bg);
+  backdrop-filter: blur(16px) saturate(0.85);
+  background: color-mix(in oklch, var(--bg) 62%, transparent);
   scroll-padding-inline: var(--gutter);
 }
 
@@ -1710,7 +1710,12 @@ html.js:has(.group[open]) { overflow: hidden; }
      framing is not a decision a stylesheet gets to make. The same
      reasoning as the showreel. */
   object-fit: contain;
-  scroll-snap-align: center;
+  /* START, not centre. Centred, the first photograph sat in the middle
+     with empty ground to its left and the reader had to scroll
+     backwards to understand there was nothing there. The photograph
+     that was tapped is the one that opens, flush left, with the next
+     one showing at the edge to say there is more. */
+  scroll-snap-align: start;
   background: var(--panel);
 }
 
