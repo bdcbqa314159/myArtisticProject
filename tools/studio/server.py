@@ -210,6 +210,20 @@ a.b:hover,button.b:hover{border-color:var(--muted)}
 #say{font-size:.82rem;color:var(--muted);min-height:1.2em}
 #say.bad{color:var(--warn)}
 iframe{flex:1;width:100%;border:0;background:var(--bg)}
+#sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:2rem}
+#sheet[hidden]{display:none}
+#photo{background:var(--bg);border:1px solid var(--line);border-radius:10px;
+  padding:1.4rem;max-width:30rem;width:100%;display:grid;gap:.75rem}
+#photo h2{margin:0;font-size:.95rem;font-weight:600}
+#pview{max-height:11rem;width:auto;max-width:100%;justify-self:center;border-radius:6px;display:none}
+#pview[src]{display:block}
+#photo label{font-size:.85rem;display:grid;gap:.2rem}
+#photo i{font-style:normal;color:var(--muted);font-size:.78rem}
+#photo textarea{font:inherit;font-size:.9rem;padding:.5rem;border:1px solid var(--line);
+  border-radius:6px;background:transparent;color:var(--ink);resize:vertical}
+#perr{margin:0;min-height:1.1em;font-size:.82rem;color:var(--warn)}
+#photo menu{display:flex;gap:.5rem;justify-content:flex-end;margin:0;padding:0}
+.b.go{border-color:var(--accent);color:var(--accent)}
 </style></head><body>
 <header>
   <h1>Studio</h1>
@@ -219,6 +233,15 @@ iframe{flex:1;width:100%;border:0;background:var(--bg)}
   <a class="b" id="open" href="/site/" target="_blank">Open the site</a>
 </header>
 <iframe id="view" src="/site/"></iframe>
+<div id="sheet" hidden><form id="photo">
+  <h2 id="ptitle">Photograph</h2>
+  <img id="pview" alt="">
+  <label for="palt">What does it show?<i>Required — it is what someone who cannot see it is read.</i></label>
+  <textarea id="palt" rows="3" maxlength="600"></textarea>
+  <p id="perr"></p>
+  <menu><button type="button" id="pno" class="b">Cancel</button>
+        <button id="pyes" class="b go">Save</button></menu>
+</form></div>
 <script>
 const say = (m, bad) => { const s = document.getElementById("say");
   s.textContent = m; s.classList.toggle("bad", !!bad); };
@@ -242,7 +265,15 @@ function arm() {
     [data-edit]:hover{background:color-mix(in oklch,currentColor 8%,transparent);
       box-shadow:0 0 0 4px color-mix(in oklch,currentColor 8%,transparent);cursor:text}
     [data-edit][contenteditable="true"]{background:color-mix(in oklch,currentColor 12%,transparent);
-      box-shadow:0 0 0 4px color-mix(in oklch,currentColor 12%,transparent)}`;
+      box-shadow:0 0 0 4px color-mix(in oklch,currentColor 12%,transparent)}
+    [data-photo]{position:relative;cursor:copy}
+    [data-photo]::after{content:attr(data-hint);position:absolute;inset:auto 0 0 0;
+      padding:.5rem .7rem;font:500 11px/1.3 system-ui;letter-spacing:.08em;
+      text-transform:uppercase;text-align:center;
+      background:color-mix(in oklch,currentColor 85%,transparent);
+      color:canvas;opacity:0;transition:opacity 140ms;pointer-events:none}
+    [data-photo]:hover::after,[data-photo].over::after{opacity:1}
+    [data-photo].over{outline:2px dashed currentColor;outline-offset:3px}`;
   doc.head.appendChild(style);
 
   /* ON THE DOCUMENT, IN THE CAPTURE PHASE.
@@ -253,6 +284,12 @@ function arm() {
      they were added, and ours is always added second. Capture happens
      before any of them. */
   doc.addEventListener("click", (ev) => {
+    const photo = ev.target.closest("[data-photo]");
+    if (photo) {
+      ev.preventDefault(); ev.stopPropagation();
+      if (busy) { say("Still saving the last one.", true); return; }
+      return choose(photo);
+    }
     const el = ev.target.closest("[data-edit]");
     if (!el || el.isContentEditable) return;
     ev.preventDefault();
@@ -260,7 +297,124 @@ function arm() {
     if (busy) { say("Still saving the last one.", true); return; }
     edit(doc, el);
   }, true);
+
+  for (const fig of doc.querySelectorAll("[data-photo]")) {
+    fig.dataset.hint = fig.classList.contains("empty")
+      ? "Drop a photograph here, or click" : "Drop a new one, or click to replace";
+  }
+
+  /* A drop anywhere else in the frame must do NOTHING. Without this the
+     browser's default takes over and navigates away from the site to
+     the dropped file — the panel's frame replaced by a lone JPEG, and
+     no obvious way back. */
+  doc.addEventListener("dragover", (ev) => ev.preventDefault());
+  doc.addEventListener("drop", (ev) => ev.preventDefault());
+
+  for (const fig of doc.querySelectorAll("[data-photo]")) {
+    fig.addEventListener("dragover", (ev) => {
+      ev.preventDefault(); ev.stopPropagation(); fig.classList.add("over");
+    });
+    fig.addEventListener("dragleave", () => fig.classList.remove("over"));
+    fig.addEventListener("drop", (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      fig.classList.remove("over");
+      if (busy) { say("Still saving the last one.", true); return; }
+      const file = ev.dataTransfer && ev.dataTransfer.files[0];
+      if (file) ask(fig, file);
+    });
+  }
 }
+
+/* ---- photographs -------------------------------------------------------
+ * The file and its description arrive together or not at all — the verb
+ * refuses them apart, and so does this. That rule is the reason the
+ * photograph is not just an editable filename: the moment someone
+ * attaches one is the only moment they know what it shows.
+ */
+const sheet = document.getElementById("sheet");
+const palt = document.getElementById("palt");
+const perr = document.getElementById("perr");
+const pview = document.getElementById("pview");
+const ptitle = document.getElementById("ptitle");
+let pending = null;
+
+function choose(fig) {
+  const pick = document.createElement("input");
+  pick.type = "file";
+  pick.accept = "image/jpeg,image/png,image/webp";
+  pick.addEventListener("change", () => {
+    if (pick.files[0]) ask(fig, pick.files[0]);
+  });
+  pick.click();
+}
+
+function ask(fig, file) {
+  pending = {fig, file};
+  ptitle.textContent = file ? file.name : "Description";
+  perr.textContent = "";
+  palt.value = fig.dataset.alt || "";
+  pview.removeAttribute("src");
+  if (file) {
+    const look = new FileReader();
+    look.onload = () => pview.src = look.result;
+    look.readAsDataURL(file);
+  }
+  sheet.hidden = false;
+  palt.focus();
+}
+
+document.getElementById("pno").addEventListener("click", () => {
+  sheet.hidden = true; pending = null; say("Nothing changed.");
+});
+sheet.addEventListener("click", (ev) => {
+  if (ev.target === sheet) document.getElementById("pno").click();
+});
+document.addEventListener("keydown", (ev) => {
+  if (ev.key === "Escape" && !sheet.hidden) document.getElementById("pno").click();
+});
+
+document.getElementById("photo").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  if (!pending) return;
+  const alt = palt.value.replace(/\s+/g, " ").trim();
+  if (!alt) { perr.textContent = "A photograph needs a description."; palt.focus(); return; }
+
+  const [kind, index] = pending.fig.dataset.photo.split(".");
+  const done = (body, where) => {
+    busy = true;
+    sheet.hidden = true;
+    say("Saving…");
+    fetch(location.pathname + where, {method: "POST",
+      headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)})
+      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) { busy = false; say(r.message || "Refused.", true); return; }
+        say(r.message || "Saved.");
+        return settled(alt);
+      })
+      .catch(e => { busy = false; say(String(e), true); });
+    pending = null;
+  };
+
+  /* No new file means the description alone changed, which is an
+     ordinary field edit — `attach` would refuse it for having no
+     photograph, and refusing to fix a description is not helpful. */
+  if (!pending.file) {
+    return done({kind, index: Number(index), field: "alt", value: alt}, "/edit");
+  }
+
+  const read = new FileReader();
+  read.onload = () => done({
+    kind, index: Number(index),
+    filename: pending.file.name,
+    /* The header is `data:<type>;base64,` — everything after the comma
+       is the file. */
+    data: String(read.result).split(",")[1],
+    alt,
+  }, "/attach");
+  read.onerror = () => { perr.textContent = "That file could not be read."; };
+  read.readAsDataURL(pending.file);
+});
 
 function edit(doc, el) {
   const was = el.textContent;
