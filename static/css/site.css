@@ -1431,22 +1431,61 @@ html.js [data-copy] { display: inline-flex; }
  * with a thumb gesture, a keyboard and a screen reader already working,
  * which is the whole argument for using them instead of writing them.
  */
-.projects {
-  list-style: none;
-  margin: 0 0 1.1rem;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+/* ---- the patchwork -------------------------------------------------------
+ * "the man is the background and then we see 4 small over it, and when
+ *  we click over it we see the whole group in carrousel starting by the
+ *  man in costume."
+ *
+ * One photograph holds the card, four sit on it like contact prints
+ * laid on a print, and a tap opens all of them. The grid of equal
+ * thumbnails that stood here said every photograph weighed the same;
+ * this says one of them is the picture and the others are what else
+ * there is.
+ */
+.patch { position: relative; margin: 0 0 1.1rem; }
+
+.patch-big {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  background: var(--panel);
 }
 
-/* The open one takes the whole width.
-   Left in its column the strip would be half a card wide — a carousel
-   through a letterbox. `:has()` lets the LIST react to a state two
-   elements down, which is the one thing that used to need script. */
-/* Inline, the open project took the whole row. With script it comes to
-   the FRONT instead, so only the no-script path still reflows. */
-html:not(.js) .projects li:has(details[open]) { grid-column: 1 / -1; }
+.patch-tiles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  inset: auto 10px 10px 10px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.patch-tiles img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  /* Lifted off the photograph underneath by the page's own ground
+     rather than by a shadow — there are no shadows anywhere else here. */
+  outline: 2px solid var(--bg);
+  outline-offset: -1px;
+}
+
+.patch-count {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bg);
+  background: color-mix(in oklch, var(--ink) 80%, transparent);
+}
 
 .project summary {
   list-style: none;
@@ -1458,31 +1497,12 @@ html:not(.js) .projects li:has(details[open]) { grid-column: 1 / -1; }
 
 .project summary::-webkit-details-marker { display: none; }
 
-.project summary img {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  background: var(--panel);
-  transition: filter 300ms cubic-bezier(.2, 0, .2, 1);
-}
-
-/* The miniature, with nothing in it yet. Same box as a filled one, so
-   a half-assembled portfolio reads as unfinished rather than broken. */
-.shot-empty {
-  display: grid;
-  place-items: center;
-  aspect-ratio: 4 / 3;
-  background: var(--panel);
-  color: var(--faint);
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  text-align: center;
-  padding: 0.5rem;
-}
+/* The shape is the patchwork's business now — the big one is 3:2, a
+   tile is square. Forced to 4:3 here, every tile was crushed. */
+.project summary img { transition: filter 300ms cubic-bezier(.2, 0, .2, 1); }
 
 .project-name {
-  display: block;
+  display: none;
   margin-top: 0.4rem;
   font-size: 0.72rem;
   letter-spacing: 0.1em;
@@ -1493,13 +1513,13 @@ html:not(.js) .projects li:has(details[open]) { grid-column: 1 / -1; }
 
 @media (hover: hover) {
   .project summary:hover .project-name { color: var(--ink); }
-  .project summary:hover img { filter: brightness(1.08); }
+  .project summary:hover .patch-big { filter: brightness(1.08); }
 }
 
 /* The open project says so, since the thumbnail stays on screen. */
-.project[open] summary .project-name { color: var(--ink); }
+html.js .project[open] > summary .project-name { display: block; color: var(--ink); }
 .project[open] summary img,
-.project[open] summary .shot-empty { display: none; }
+.project[open] summary .patch-count { display: none; }
 
 /* ---- the carousel -------------------------------------------------------
  * One line, snapped. `mandatory` rather than `proximity` because a
@@ -1558,7 +1578,6 @@ html:not(.js) .projects li:has(details[open]) { grid-column: 1 / -1; }
 .reel::-webkit-scrollbar-track { background: transparent; }
 
 @media (min-width: 50rem) {
-  .projects { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .reel img { height: min(26vw, 360px); max-width: 46vw; }
 }
 
