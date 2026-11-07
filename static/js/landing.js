@@ -771,6 +771,25 @@ function closeTheCarousel() {
             return;
         shut(innermost());
     });
+    /* CLOSING A GROUP PUTS ITS PROJECTS BACK.
+     *
+     * <details> remembers. Open a project's carousel, close the group
+     * around it, and the project stays open — so the next visit to that
+     * reference lands straight in the carousel, past the patchwork the
+     * reader was going back for. Reported from the page: "i get back at
+     * ref4 and i end up directly at the carrousel".
+     *
+     * `toggle` rather than a click handler, so it holds however the
+     * group was closed: its own summary, Escape, or the ground. */
+    for (const group of document.querySelectorAll(".group")) {
+        group.addEventListener("toggle", () => {
+            if (group.open)
+                return;
+            for (const shots of group.querySelectorAll(".shots[open]")) {
+                shots.open = false;
+            }
+        });
+    }
     /* A photograph does not fill the sheet, so there is always ground
      * around it, and clicking the ground means "I am done". Only the
      * ground: a click that lands on a photograph is someone looking at
