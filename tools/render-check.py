@@ -262,9 +262,16 @@ def check_gallery(html: str) -> "list[str]":
     # OUT of the count chip: at 9px inside a label it read as
     # punctuation and had to be pointed out, which is the opposite of
     # what it is for.
+    # ONE PER PRINT IN THE FOCUS, not one on the card. The card is one
+    # photograph and obviously a thing to tap; the focus is five of
+    # them and nothing there said that each one opens in turn.
     lights = len(LOOK.findall(html))
-    if lights != 1:
-        bad.append(f"gallery: one fridge, {lights} light(s) inviting a tap")
+    if lights != 5:
+        bad.append(f"gallery: 5 projects in the focus, {lights} light(s) "
+                   "inviting a tap")
+    if re.search(r'<figure class=["\']?patch["\']?>(?:(?!</figure>).)*class=["\']?look', html, re.S):
+        bad.append("gallery: the light is back on the card, where the next "
+                   "move is already obvious — it belongs in the focus")
     if IN_CHIP.search(html):
         bad.append("gallery: the light is back inside the count chip, where "
                    "it reads as punctuation rather than as an invitation")

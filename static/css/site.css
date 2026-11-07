@@ -1524,10 +1524,14 @@ html.js [data-copy] { display: inline-flex; }
  * photograph that moves, which is where the eye goes and the hand
  * follows.
  *
- * ON THE EDGE, half on the photograph and half off it. Anywhere inside
- * and it would collide with the prints, which sit somewhere different
- * in each of the six arrangements; on the edge it is clear of all of
- * them and it is where the thumb already is.
+ * ON EVERY PRINT IN THE FOCUS, not on the card. The card is one
+ * photograph and obviously a thing to tap; the focus is five of them
+ * and nothing there says that each one opens in turn. That is where a
+ * reader stops, and so that is where the invitation belongs.
+ *
+ * Low on each print, half over its edge, so it never covers the work.
+ * It rotates with the print it belongs to, which is what makes it read
+ * as pinned to that photograph rather than floated over the group.
  *
  * Drawn here: no icon to license, no file to fetch, and it takes the
  * palette with it.
@@ -1535,11 +1539,11 @@ html.js [data-copy] { display: inline-flex; }
 .look {
   position: absolute;
   left: 50%;
-  bottom: -11px;
+  bottom: -9px;
   z-index: 3;
-  width: 22px;
-  height: 22px;
-  margin-left: -11px;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
   border: 1px solid color-mix(in oklch, var(--ink) 55%, transparent);
   border-radius: 50%;
   background: var(--bg);
@@ -1550,7 +1554,7 @@ html.js [data-copy] { display: inline-flex; }
 .look::after {
   content: "";
   position: absolute;
-  inset: 7px;
+  inset: 5.5px;
   border-radius: 50%;
   background: var(--ink);
   animation: lit 3.4s ease-in-out infinite;
@@ -1568,6 +1572,10 @@ html.js [data-copy] { display: inline-flex; }
   animation: halo 3.4s ease-out infinite;
 }
 
+/* The one underneath has no edge to hang off — it IS the frame, and
+   the fridge clips at its boundary — so its light sits inside. */
+.slot-1 .look { bottom: 11px; }
+
 @keyframes lit {
   0%, 100% { transform: scale(0.55); opacity: 0.5; }
   40%      { transform: scale(1);    opacity: 1; }
@@ -1580,8 +1588,8 @@ html.js [data-copy] { display: inline-flex; }
 
 @media (hover: hover) {
   /* Quicker under a pointer — the small reward for having noticed it. */
-  .group summary:hover .look::after,
-  .group summary:hover .look::before { animation-duration: 1.5s; }
+  .shots > summary:hover .look::after,
+  .shots > summary:hover .look::before { animation-duration: 1.5s; }
 }
 
 @media (prefers-reduced-motion: reduce) {
