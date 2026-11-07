@@ -197,9 +197,20 @@
               {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                 {%- set_global n = n + 1 %}
                 {%- if n == 1 %}
+                {# NOT LAZY, and that is the whole point of it.
+                   There are six of these — one per reference, exactly
+                   what the page carried before the gallery existed, and
+                   they were eager then so the cover would wait for them
+                   and nothing would trickle in. Made lazy with
+                   everything else, four of the six had not arrived by
+                   the time a phone reached them: a dark panel with
+                   prints floating on nothing, which is what "a broken
+                   ref" looks like.
+                   The tiles and the carousel stay lazy. Those are the
+                   ninety-eight nobody can wait for. #}
                 {% set big = resize_image(path="@/" ~ ph.file, width=900, op="fit_width", format="webp", quality=72) %}
                 <img class="patch-big" src="{{ big.url }}" width="{{ big.width }}" height="{{ big.height }}"
-                     alt="{{ ph.alt }}" loading="lazy" decoding="async">
+                     alt="{{ ph.alt }}" decoding="async">
                 {% endif %}
               {%- endif %}{% endfor %}{% endif %}{% endfor %}
 
