@@ -61,7 +61,7 @@ while lsof -i :"$PANEL_PORT" >/dev/null 2>&1; do PANEL_PORT=$((PANEL_PORT + 1));
 PANEL_URL=""
 if [ -f tools/studio/server.py ]; then
   PANEL_OUT=$(mktemp -t studio)
-  python3 tools/studio/server.py "$PANEL_PORT" >"$PANEL_OUT" 2>&1 &
+  python3 tools/studio/server.py "$PANEL_PORT" "http://127.0.0.1:$PORT" >"$PANEL_OUT" 2>&1 &
   PANEL_PID=$!
   for _ in 1 2 3 4 5 6 7 8 9 10; do
     PANEL_URL=$(head -n 1 "$PANEL_OUT" 2>/dev/null)

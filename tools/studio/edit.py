@@ -239,6 +239,88 @@ def attach(kind: str, index: int, filename: str, raw: bytes, alt: str) -> str:
         raise
 
 
+# The page's own words — the titles and leads in content/_index.md's
+# [extra] block. An allowlist rather than "any key in the file", for the
+# same reason CONFIG_FIELDS is one: that block also holds `video`,
+# `poster`, `nav` and `ecosystem_fields`, and a panel that could reach
+# those is a panel that can point the page at a film that is not there
+# or empty the navigation.
+#
+# Nothing wrote these before. The panel could edit objects and the
+# launch fields and not one of the sentences a visitor actually reads,
+# which is most of why it felt like a form rather than the site.
+TEXT_FIELDS = {
+    "eyebrow":          "the line above the name",
+    "roles":            "the lead under the name",
+    "intro":            "the paragraph under that",
+    "cta_work":         "the first button",
+    "cta_contact":      "the second button",
+    "approach_title":   "the heading of 01 / Approach",
+    "showreel_label":   "the word on the empty showreel slot",
+    "showreel_spec":    "the line under it",
+    "services_title":   "the heading of 02 / Expertise",
+    "work_title":       "the heading of 03 / Selected Work",
+    "work_lead":        "the paragraph under it",
+    "work_note":        "the note under the references",
+    "concepts_title":   "the heading of 04 / Concepts",
+    "concepts_lead":    "the paragraph under it",
+    "ecosystem_lead":   "the paragraph in 05 / Ecosystem",
+    "about_title":      "the heading of 06 / About",
+    "about_text":       "the second paragraph of About",
+    "contact_title":    "the heading of 07 / Contact",
+    "contact_lead":     "the paragraph under it",
+    "contact_pending":  "what stands in for the address until there is one",
+}
+
+
+def set_text(key: str, value: str) -> str:
+    """One of the page's own sentences, in content/_index.md.
+
+    Surgical, like every other writer here: the file is mostly comments
+    explaining why each decision was made — the voice rule, the ordering
+    of the references — and a serialiser would take all of them.
+    """
+    if key not in TEXT_FIELDS:
+        raise Refused(f"{key!r} is not editable here")
+
+    value = value.strip()
+    if "\n" in value or "\r" in value:
+        raise Refused("a value is one line")
+    if len(value) > MAX_LEN:
+        raise Refused(f"{len(value)} characters; the limit is {MAX_LEN}")
+    if not value:
+        raise Refused("that would leave it empty — remove the field instead")
+
+    leak = _protected_terms_leaked()
+    if leak:
+        raise Refused(leak)
+
+    text = CONTENT.read_text(encoding="utf-8")
+    parts = text.split("+++")
+    if len(parts) < 3:
+        raise Refused("content/_index.md has no front matter")
+
+    fm = parts[1]
+    # Only before the first [[array]]: the same name can appear inside an
+    # object, and writing the heading into a reference would be a quiet
+    # disaster to find.
+    cut = fm.find("\n[[")
+    head = fm if cut < 0 else fm[:cut]
+    tail = "" if cut < 0 else fm[cut:]
+
+    line = re.search(rf'^({re.escape(key)}\s*=\s*)"(?:[^"\\]|\\.)*"([ \t]*#.*)?$',
+                     head, re.M)
+    if not line:
+        raise Refused(f"content/_index.md has no {key} line")
+
+    head = (head[: line.start()]
+            + f'{line.group(1)}"{quote(value)}"{line.group(2) or ""}'
+            + head[line.end():])
+
+    return _commit("+++".join([parts[0], head + tail] + parts[2:]),
+                   f"{key} updated")
+
+
 def set_config(section: str, key: str, value: str) -> str:
     """Change one launch field in config.toml.
 

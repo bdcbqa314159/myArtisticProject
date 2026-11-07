@@ -85,17 +85,17 @@
 <section class="hero" id="top">
   <div class="wrap hero-grid">
     <div>
-      {% if e.eyebrow %}<p class="eyebrow">{{ e.eyebrow }}</p>{% endif %}
+      {% if e.eyebrow %}<p class="eyebrow" data-edit="eyebrow">{{ e.eyebrow }}</p>{% endif %}
       <h1>{{ id.name }}</h1>
-      {% if e.roles %}<p class="lead">{{ e.roles }}</p>{% endif %}
+      {% if e.roles %}<p class="lead" data-edit="roles">{{ e.roles }}</p>{% endif %}
       {# The positioning sentence belongs with the words it qualifies.
          It used to sit in the right-hand column, which on a phone put it
          BELOW the call to action — the reader met "Explore selected
          work" before being told what the work is. #}
-      {% if e.intro %}<p class="muted hero-intro">{{ e.intro }}</p>{% endif %}
+      {% if e.intro %}<p class="muted hero-intro" data-edit="intro">{{ e.intro }}</p>{% endif %}
       <div class="actions">
-        {% if e.cta_work %}<a class="btn primary" href="#work">{{ e.cta_work }}</a>{% endif %}
-        {% if e.cta_contact %}<a class="btn" href="#contact">{{ e.cta_contact }}</a>{% endif %}
+        {% if e.cta_work %}<a class="btn primary" href="#work" data-edit="cta_work">{{ e.cta_work }}</a>{% endif %}
+        {% if e.cta_contact %}<a class="btn" href="#contact" data-edit="cta_contact">{{ e.cta_contact }}</a>{% endif %}
       </div>
     </div>
     {# The maquette's narrow right-hand column: the masthead line and the
@@ -116,7 +116,7 @@
 <section id="approach" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">Approach</p>
-    <h2>{{ e.approach_title }}</h2>
+    <h2 data-edit="approach_title">{{ e.approach_title }}</h2>
     <div class="section-intro"><p class="muted">{{ id.approach_lead }}</p></div>
 
     {# No video yet, so no player and no decorative play button — the
@@ -128,8 +128,8 @@
         <source src="{{ get_url(path=e.video) }}" type="video/mp4">
       </video>
       {% else %}
-      <span class="eyebrow">{{ e.showreel_label }}</span>
-      <span class="small">{{ e.showreel_spec }}</span>
+      <span class="eyebrow" data-edit="showreel_label">{{ e.showreel_label }}</span>
+      <span class="small" data-edit="showreel_spec">{{ e.showreel_spec }}</span>
       {% endif %}
     </figure>
   </div>
@@ -141,12 +141,12 @@
 <section id="services" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">Expertise</p>
-    <h2>{{ e.services_title }}</h2>
+    <h2 data-edit="services_title">{{ e.services_title }}</h2>
     <ol class="grid three">
       {% for s in e.services %}
       <li class="card">
-        <h3>{{ s.name }}</h3>
-        <p class="muted">{{ s.text }}</p>
+        <h3 data-edit="capability.{{ loop.index }}.name">{{ s.name }}</h3>
+        <p class="muted" data-edit="capability.{{ loop.index }}.text">{{ s.text }}</p>
       </li>
       {% endfor %}
     </ol>
@@ -167,8 +167,8 @@
 <section id="work" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">Selected Work</p>
-    <h2>{{ e.work_title }}</h2>
-    <div class="section-intro"><p class="muted">{{ e.work_lead }}</p></div>
+    <h2 data-edit="work_title">{{ e.work_title }}</h2>
+    <div class="section-intro"><p class="muted" data-edit="work_lead">{{ e.work_lead }}</p></div>
 
     <ol class="grid two">
       {% for w in e.work %}
@@ -186,16 +186,16 @@
             <figcaption>Image / case study</figcaption>
           {% endif %}
         </figure>
-        <p class="tag">{{ w.domain }}</p>
-        <h3>{{ w.name }}</h3>
-        <p class="muted">{{ w.text }}</p>
-        <p class="meta{% if not w.verified %} role-unverified{% endif %}">{{ w.role }}</p>
+        <p class="tag" data-edit="reference.{{ loop.index }}.domain">{{ w.domain }}</p>
+        <h3 data-edit="reference.{{ loop.index }}.name">{{ w.name }}</h3>
+        <p class="muted" data-edit="reference.{{ loop.index }}.text">{{ w.text }}</p>
+        <p class="meta{% if not w.verified %} role-unverified{% endif %}" data-edit="reference.{{ loop.index }}.role">{{ w.role }}</p>
       </li>
       {% endfor %}
     </ol>
 
     {# Legal, not editorial. It ships intact. #}
-    {% if e.work_note %}<p class="note">{{ e.work_note }}</p>{% endif %}
+    {% if e.work_note %}<p class="note" data-edit="work_note">{{ e.work_note }}</p>{% endif %}
   </div>
 </section>
 {% endif %}
@@ -205,16 +205,16 @@
 <section id="concepts" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">Original Concepts</p>
-    <h2>{{ e.concepts_title }}</h2>
-    <div class="section-intro"><p class="muted">{{ e.concepts_lead }}</p></div>
+    <h2 data-edit="concepts_title">{{ e.concepts_title }}</h2>
+    <div class="section-intro"><p class="muted" data-edit="concepts_lead">{{ e.concepts_lead }}</p></div>
     <ol class="grid three">
       {% for c in e.concepts %}
       <li class="card">
         {# The status is the point of this section: a concept must never
            read as a commission already delivered. #}
-        <span class="status">{{ c.status }}</span>
-        <h3>{{ c.name }}</h3>
-        <p class="muted">{{ c.text }}</p>
+        <span class="status" data-edit="concept.{{ loop.index }}.status">{{ c.status }}</span>
+        <h3 data-edit="concept.{{ loop.index }}.name">{{ c.name }}</h3>
+        <p class="muted" data-edit="concept.{{ loop.index }}.text">{{ c.text }}</p>
       </li>
       {% endfor %}
     </ol>
@@ -238,7 +238,7 @@
       <span class="phrase">{{ phrase }}</span>
       {%- endfor %}
     </h2>
-    <div class="section-intro"><p class="muted">{{ e.ecosystem_lead }}</p></div>
+    <div class="section-intro"><p class="muted" data-edit="ecosystem_lead">{{ e.ecosystem_lead }}</p></div>
     {% if e.ecosystem_fields %}
     <ul class="strip">
       {% for f in e.ecosystem_fields %}<li class="pill">{{ f }}</li>{% endfor %}
@@ -253,16 +253,16 @@
 <section id="about" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">About</p>
-    <h2>{{ e.about_title }}</h2>
+    <h2 data-edit="about_title">{{ e.about_title }}</h2>
     <div class="about">
       <div>
         <p class="lead">{{ id.about_lead }}</p>
-        {% if e.about_text %}<p class="muted">{{ e.about_text }}</p>{% endif %}
+        {% if e.about_text %}<p class="muted" data-edit="about_text">{{ e.about_text }}</p>{% endif %}
       </div>
       {% if e.about_pillars %}
       <ul class="roles">
         {% for p in e.about_pillars %}
-        <li class="role"><strong>{{ p.name }}</strong><span class="muted small">{{ p.text }}</span></li>
+        <li class="role"><strong data-edit="pillar.{{ loop.index }}.name">{{ p.name }}</strong><span class="muted small" data-edit="pillar.{{ loop.index }}.text">{{ p.text }}</span></li>
         {% endfor %}
       </ul>
       {% endif %}
@@ -282,8 +282,8 @@
 <section class="contact" id="contact" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">Contact</p>
-    <h2>{{ e.contact_title }}</h2>
-    <div class="section-intro"><p class="muted">{{ e.contact_lead }}</p></div>
+    <h2 data-edit="contact_title">{{ e.contact_title }}</h2>
+    <div class="section-intro"><p class="muted" data-edit="contact_lead">{{ e.contact_lead }}</p></div>
     {% if config.extra.contact.email %}
     <div class="actions">
       <a class="btn primary" href="mailto:{{ config.extra.contact.email }}">{{ config.extra.contact.email }}</a>
@@ -297,7 +297,7 @@
       <button class="btn" type="button" data-copy="{{ config.extra.contact.email }}">{{ e.contact_copy }}</button>
     </div>
     {% else %}
-    <p class="pending">{{ e.contact_pending }}</p>
+    <p class="pending" data-edit="contact_pending">{{ e.contact_pending }}</p>
     {% endif %}
   </div>
 </section>
