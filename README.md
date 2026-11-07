@@ -82,6 +82,7 @@ npm run deployed            # did what we merged actually reach the site?
 python3 tools/dropin.py --serve   # the same site with the REAL content
 npx tsc                     # after editing src/
 npm test                    # tsc + zola build + the drift check
+python3 tools/fr-check.py   # has the French page kept up with the English one?
 ```
 
 ### Two previews, and why
