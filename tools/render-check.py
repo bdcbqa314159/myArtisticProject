@@ -21,6 +21,7 @@ skips the check and says so, rather than failing for the wrong reason.
 """
 
 import http.server
+import re
 import shutil
 import socketserver
 import subprocess
@@ -81,13 +82,15 @@ def find_chrome() -> Optional[str]:
     return None
 
 
-def dom(chrome: str, url: str, width: int, height: int, shot: Path = None) -> str:
+def dom(chrome: str, url: str, width: int, height: int, shot: Path = None,
+        no_js: bool = False) -> str:
     """Render the page and return the DOM. With `shot`, also save a picture.
 
     The picture is the point of running a browser at all: the DOM says
     whether the page is broken, and only an image says whether it looks
     right. In CI it is uploaded as an artifact, which is how a layout
     can be reviewed by someone who cannot run a browser locally."""
+    off = ["--disable-javascript"] if no_js else []
     return subprocess.run(
         [
             chrome,
@@ -110,6 +113,7 @@ def dom(chrome: str, url: str, width: int, height: int, shot: Path = None) -> st
             # downloading, and a screenshot with empty image slots looks
             # exactly like a page whose images are broken — it has twice
             # nearly had a non-bug reported.
+            *off,
             f"--virtual-time-budget={10000 if shot else 3000}",
             "--dump-dom",
             url,
@@ -150,6 +154,110 @@ def check(html: str, where: str) -> "list[str]":
     # right instrument for a one-frame question.
 
     return bad
+
+
+# A reference with projects in it, rendered for real.
+#
+# The tracked page carries none — the client's work arrives at handover
+# — so every check here was running against the one shape the gallery
+# does NOT have. That is the same hole `build_live_config` exists to
+# close: the configuration nobody renders is the one that breaks.
+WITH_PROJECTS = """
+[[extra.project]]
+id = "probe-a"
+reference = 1
+name = "Probe A"
+
+[[extra.project]]
+id = "probe-b"
+reference = 1
+name = "Probe B"
+
+[[extra.photo]]
+project = "probe-a"
+file = "fragment-01.jpg"
+alt = "Probe photograph one"
+
+[[extra.photo]]
+project = "probe-a"
+file = "fragment-02.jpg"
+alt = "Probe photograph two"
+
+[[extra.photo]]
+project = "probe-b"
+file = "fragment-03.jpg"
+alt = "Probe photograph three"
+"""
+
+
+# The minifier drops quotes and reorders attributes, so matching has to
+# be done on the tag and the attribute, never on their order. A regex
+# written against the template's spelling matched nothing once already,
+# in csp-check.py, and reported the opposite of the truth.
+DETAILS = re.compile(r'<details[^>]*\bclass=["\']?project[\s"\'>]')
+REEL = re.compile(r'\bclass=["\']?reel[\s"\'>]')
+LAZY = re.compile(r'\bloading=["\']?lazy')
+
+
+def check_gallery(html: str) -> "list[str]":
+    """Every project and every photograph reached the page."""
+    bad = []
+    # NOT every <details> — the mobile menu is one too, which is how
+    # this first reported three projects where two were configured.
+    projects = len(DETAILS.findall(html))
+    if projects != 2:
+        bad.append(f"gallery: 2 projects configured, {projects} rendered")
+    if "Probe A" not in html or "Probe B" not in html:
+        bad.append("gallery: a project's name is missing")
+    for shot in ("Probe photograph one", "Probe photograph two",
+                 "Probe photograph three"):
+        tag = re.search(r"<img[^>]*" + re.escape(shot) + r"[^>]*>", html)
+        if not tag:
+            bad.append(f"gallery: {shot!r} is on no page")
+        elif not LAZY.search(tag.group(0)):
+            # EACH photograph, not "some image on the page". The cover is
+            # lazy too, so a check for any lazy image stayed true with
+            # every reel photograph eager — which is the whole thing this
+            # is meant to prevent.
+            bad.append(f"gallery: {shot!r} is eager, so the cover waits for it")
+    # The thumbnail is the first photograph, not a separate field, so a
+    # project that lost its cover silently would show a bare name.
+    reels = len(REEL.findall(html))
+    if reels != 2:
+        bad.append(f"gallery: 2 reels expected to swipe, {reels} rendered")
+
+    return bad
+
+
+def build_with_projects(out: Path) -> Path:
+    """A whole site, copied, with two projects added to reference 1.
+
+    A COPY, not the real content file. Zola's content directory is
+    fixed, so rendering a different page means either editing the
+    tracked one and hoping to put it back, or building somewhere else.
+    The studio check already learned this the hard way by dropping test
+    images into content/ — found by `git status`, not by the check.
+    """
+    # BESIDE the output, never inside it. `zola build -o <out> -f`
+    # wipes the output directory first, so a source root nested in it
+    # deletes itself on the way to being built — which is what the first
+    # run of this did, reporting a missing image rather than the cause.
+    root = out.with_name(out.name + "-with-projects")
+    if root.exists():
+        shutil.rmtree(root)
+    root.mkdir(parents=True)
+    for name in ("content", "templates", "static"):
+        shutil.copytree(ROOT / name, root / name,
+                        ignore=shutil.ignore_patterns("processed_images"))
+    shutil.copy2(ROOT / "config.toml", root / "config.toml")
+
+    page = root / "content" / "_index.md"
+    text = page.read_text(encoding="utf-8")
+    mark = "# ---- 04 original concepts"
+    text = (text.replace(mark, WITH_PROJECTS + "\n" + mark, 1)
+            if mark in text else text.replace("+++", WITH_PROJECTS + "\n+++", 1))
+    page.write_text(text, encoding="utf-8")
+    return root
 
 
 def build_live_config(out: Path) -> Path:
@@ -259,6 +367,22 @@ def main() -> int:
                 if name.startswith("narrow") and open_menu:
                     problems.append("narrow: the nav is open before anyone asked")
             # And the configuration that will face the public.
+            # --- a reference that has projects ---------------------
+            probe_root = build_with_projects(out)
+            made = subprocess.run(
+                ["zola", "--root", str(probe_root), "build",
+                 "--base-url", url, "-o", str(out), "-f"],
+                capture_output=True, text=True,
+            )
+            if made.returncode != 0:
+                problems.append("the site does not build with projects in it:\n"
+                                + made.stderr[-400:])
+            else:
+                problems += check_gallery(dom(chrome, url, 500, 1400))
+                # And with no script at all: <details> and scroll-snap are
+                # the whole mechanism, so the gallery must not need one.
+                problems += check_gallery(dom(chrome, url, 500, 1400, None, no_js=True))
+
             live_cfg = build_live_config(out)
             built = subprocess.run(
                 ["zola", "--config", str(live_cfg), "build",

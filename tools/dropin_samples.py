@@ -148,17 +148,24 @@ def render(html: str, dest: Path, scratch: Path) -> bool:
 
 
 # How many projects each reference carries, and how many photographs
-# each of those carries. The client's own example — "reference1 has 5
-# projects, then 3, 4, 6, 7, 3 photos each" — so the fixture is uneven
-# the way real work is, rather than a tidy grid that hides every
-# layout problem.
+# each of those carries.
+#
+# TWO TO FOUR PROJECTS. On a 390px phone four thumbnails are two clean
+# rows; beyond that a reference stops reading as a curated selection and
+# starts reading as a contact sheet, which is the opposite of the point.
+# Two is allowed and has to look deliberate rather than unfinished.
+#
+# FOUR TO SIX PHOTOGRAPHS. Enough to be worth a swipe, few enough to
+# reach the end of.
+#
+# Uneven on purpose: a tidy grid hides every layout problem there is.
 SHAPE = [
-    [3, 4, 6, 7, 3],      # reference 1 — five projects
-    [4, 5, 3],
-    [6, 3, 4, 5],
-    [5, 7],
-    [3, 4, 4],
-    [4, 6, 3, 5],
+    [5, 4, 6, 4],         # reference 1 — four projects
+    [4, 6, 5],
+    [6, 4, 5, 4],
+    [5, 6],               # two is allowed, and must still look deliberate
+    [4, 5, 6],
+    [6, 4, 5, 4],
 ]
 
 
