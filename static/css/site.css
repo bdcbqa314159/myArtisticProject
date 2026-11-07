@@ -1507,7 +1507,13 @@ html.js [data-copy] { display: inline-flex; }
    own shape asks for. */
 .reel img {
   flex: 0 0 auto;
-  height: min(58vh, 420px);
+  /* The height is chosen so that a LANDSCAPE photograph — the common
+     case — fills the width exactly and shows no bars at all. Set by
+     viewport height instead, a 3:2 photograph sat in a 420px box with
+     130px of panel above and below it, which was invisible against the
+     drawn panels of the first fixture and obvious the moment real
+     photography went in. */
+  height: min(64vw, 320px);
   width: auto;
   max-width: 86vw;
   /* Both dimensions can bind — a wide photograph hits the width before
@@ -1526,7 +1532,7 @@ html.js [data-copy] { display: inline-flex; }
 
 @media (min-width: 50rem) {
   .projects { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .reel img { height: min(54vh, 460px); max-width: 46vw; }
+  .reel img { height: min(26vw, 360px); max-width: 46vw; }
 }
 
 @media (prefers-reduced-motion: reduce) {

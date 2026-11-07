@@ -467,6 +467,179 @@ def add(kind: str) -> str:
                    f"{kind} added — fill it in")
 
 
+def _front(text: str) -> "tuple[str, str, str]":
+    parts = text.split("+++")
+    if len(parts) < 3:
+        raise Refused("content/_index.md has no front matter")
+    return parts[0], parts[1], "+++".join([""] + parts[2:])[0:]
+
+
+def _insert_at(fm: str, array: str) -> int:
+    """Where a new block of this kind goes.
+
+    After the last one of its own kind if there are any — and if there
+    are none, before the next section's comment rather than at the end
+    of the file, so the first project does not land in the middle of the
+    concepts.
+    """
+    starts = [m.start() for m in re.finditer(rf"\[\[{re.escape(array)}\]\]", fm)]
+    if starts:
+        last = starts[-1]
+        following = re.search(r"\n(?=\[\[|# ----)", fm[last:])
+        return last + (following.start() + 1 if following else len(fm[last:]))
+    mark = fm.find("# ---- 04 original concepts")
+    return mark if mark >= 0 else len(fm)
+
+
+def _projects(fm: str) -> "list[dict]":
+    return blocks(fm, "extra.project")
+
+
+def add_project(reference: int) -> str:
+    """A new project on one of the references.
+
+    Not `add()`: that fills every required field with "To be written",
+    which for a project means an `id` that is not unique the second time
+    and a `reference` that is not a number. The result would be refused
+    by the checker and undone — an add button that never adds.
+    """
+    _, fm, _ = _front(CONTENT.read_text(encoding="utf-8"))
+    if not 1 <= reference <= len(blocks(fm, "extra.work")):
+        raise Refused(f"there is no reference {reference}")
+
+    taken = {p.get("id", "") for p in _projects(fm)}
+    letters = "abcdefghijklmnop"
+    new_id = next((f"r{reference}-{c}" for c in letters
+                   if f"r{reference}-{c}" not in taken), "")
+    if not new_id:
+        raise Refused("that reference already has as many projects as this adds")
+
+    block = (f"[[extra.project]]\n"
+             f'id = "{new_id}"\n'
+             f"reference = {reference}\n"
+             f'name = "{UNWRITTEN}"\n')
+
+    text = CONTENT.read_text(encoding="utf-8")
+    head, fm, tail = _front(text)
+    at = _insert_at(fm, "extra.project")
+    fm = fm[:at] + block + "\n" + fm[at:]
+    return _commit(head + "+++" + fm + tail, f"project {new_id} added — name it")
+
+
+def _block_span(fm: str, array: str, which: int) -> "tuple[int, int]":
+    starts = [m.start() for m in re.finditer(rf"\[\[{re.escape(array)}\]\]", fm)]
+    if which >= len(starts):
+        raise Refused("that one is not there")
+    begin = starts[which]
+    following = re.search(r"\n(?=\[\[|# ----)", fm[begin:])
+    end = begin + (following.start() + 1 if following else len(fm[begin:]))
+    return begin, end
+
+
+def remove_project(project_id: str) -> str:
+    """A project, and every photograph that belonged to it.
+
+    Both or neither. Removing the project alone leaves its photographs
+    naming something that is gone — which the checker refuses, so the
+    edit would be undone and the button would appear broken rather than
+    forbidden.
+    """
+    text = CONTENT.read_text(encoding="utf-8")
+    head, fm, tail = _front(text)
+
+    where = [i for i, p in enumerate(_projects(fm)) if p.get("id") == project_id]
+    if not where:
+        raise Refused(f"no project has the id {project_id!r}")
+
+    # Photographs first: removing them shifts no project index.
+    shots = blocks(fm, "extra.photo")
+    gone = 0
+    for i in range(len(shots) - 1, -1, -1):
+        if shots[i].get("project") == project_id:
+            begin, end = _block_span(fm, "extra.photo", i)
+            fm = fm[:begin] + fm[end:]
+            gone += 1
+
+    begin, end = _block_span(fm, "extra.project", where[0])
+    fm = fm[:begin] + fm[end:]
+
+    return _commit(head + "+++" + fm + tail,
+                   f"{project_id} removed, with {gone} photograph(s)")
+
+
+def attach_photo(project_id: str, filename: str, raw: bytes, alt: str) -> str:
+    """A photograph into a project's reel.
+
+    Unlike a reference's single image, this is a new OBJECT rather than
+    a field — so it appends rather than replaces, and a project's reel
+    grows by dropping one more on it.
+
+    Everything that guards `attach()` guards this: the description is
+    required and arrives with the file, the type comes from the content
+    and not from the name, and nothing is ever overwritten.
+    """
+    alt = plain(alt.strip(), "that description")
+    if not alt:
+        raise Refused("a photograph needs a description — what does it show?")
+    if UNWRITTEN in alt:
+        raise Refused("that is the placeholder, not a description")
+    if len(alt) > MAX_LEN:
+        raise Refused(f"{len(alt)} characters; the limit is {MAX_LEN}")
+
+    if not raw:
+        raise Refused("no file arrived")
+    if len(raw) > MAX_IMAGE:
+        raise Refused(f"{len(raw) // 1024 // 1024}MB; the limit is 12MB")
+
+    kind_of = next((k for sig, k in MAGIC.items() if raw.startswith(sig)), None)
+    if kind_of is None and raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+        kind_of = "webp"
+    if kind_of is None:
+        raise Refused("that is not a JPEG, PNG or WebP — whatever it is named")
+
+    _, fm, _ = _front(CONTENT.read_text(encoding="utf-8"))
+    if not any(p.get("id") == project_id for p in _projects(fm)):
+        raise Refused(f"no project has the id {project_id!r}")
+
+    stem = _safe_name(filename).rsplit(".", 1)[0] or project_id
+    name = f"{stem}.{kind_of}"
+    dest = ROOT / "content" / name
+    n = 2
+    while dest.exists() and dest.read_bytes() != raw:
+        name = f"{stem}-{n}.{kind_of}"
+        dest = ROOT / "content" / name
+        n += 1
+    dest.write_bytes(raw)
+
+    try:
+        text = CONTENT.read_text(encoding="utf-8")
+        head, fm, tail = _front(text)
+        at = _insert_at(fm, "extra.photo")
+        block = (f"[[extra.photo]]\n"
+                 f'project = "{project_id}"\n'
+                 f'file = "{name}"\n'
+                 f'alt = "{quote(alt)}"\n')
+        fm = fm[:at] + block + "\n" + fm[at:]
+        return _commit(head + "+++" + fm + tail, f"{name} added to {project_id}")
+    except Exception:
+        if dest.exists():
+            dest.unlink()
+        raise
+
+
+def remove_photo(file: str) -> str:
+    """One photograph out of a reel. The file stays — another may use it."""
+    text = CONTENT.read_text(encoding="utf-8")
+    head, fm, tail = _front(text)
+    shots = blocks(fm, "extra.photo")
+    where = [i for i, s in enumerate(shots) if s.get("file") == file]
+    if not where:
+        raise Refused(f"no photograph named {file!r}")
+    begin, end = _block_span(fm, "extra.photo", where[0])
+    fm = fm[:begin] + fm[end:]
+    return _commit(head + "+++" + fm + tail, f"{file} removed from its project")
+
+
 def remove(kind: str, index: int) -> str:
     """Delete one object. The last of its kind cannot go: `objects.py`
     fails on an empty class, and this undoes anything that fails."""

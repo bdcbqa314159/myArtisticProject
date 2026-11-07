@@ -183,7 +183,7 @@
            it works with no script at all, arrives with keyboard and
            screen-reader behaviour already correct, and closes its
            siblings because they share a `name`. #}
-        <ol class="projects">
+        <ol class="projects" data-reference="{{ ref }}">
           {% for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}
           {% set_global cover = "" %}
           {% set_global cover_alt = "" %}
@@ -201,9 +201,14 @@
                 <img src="{{ thumb.url }}" width="{{ thumb.width }}" height="{{ thumb.height }}"
                      alt="{{ cover_alt }}" loading="lazy" decoding="async">
                 {% endif %}
-                <span class="project-name">{{ pr.name }}</span>
+                <span class="project-name" data-edit="project.{{ loop.index }}.name">{{ pr.name }}</span>
               </summary>
-              <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}">
+              {# `data-reel` is what the studio drops a photograph onto.
+                 A reference's single image is REPLACED by a drop; a reel
+                 GROWS by one, because a photograph here is an object of
+                 its own rather than a field on something. #}
+              <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}"
+                   data-reel="{{ pr.id }}">
                 {% for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                 {% set shot = resize_image(path="@/" ~ ph.file, width=1100, op="fit_width", format="webp", quality=74) %}
                 <img src="{{ shot.url }}" width="{{ shot.width }}" height="{{ shot.height }}"
