@@ -35,6 +35,27 @@ import objects                                              # noqa: E402
 SERVER = (ROOT / "tools" / "studio" / "server.py").read_text(encoding="utf-8")
 
 
+def without_portfolio(page: str) -> str:
+    """The page with its projects and photographs taken out.
+
+    The real page carries a full portfolio — five projects on some
+    references, which is the cap — so adding two more is refused for a
+    reason that has nothing to do with what is being tested. Stripping
+    first makes these cases independent of how full the page happens to
+    be, the same lesson as asserting deltas rather than totals.
+    """
+    out, skip = [], False
+    for line in page.splitlines(keepends=True):
+        if line.startswith("[[extra.project]]") or line.startswith("[[extra.photo]]"):
+            skip = True
+            continue
+        if skip and (line.startswith("[[") or line.startswith("# ----")):
+            skip = False
+        if not skip:
+            out.append(line)
+    return "".join(out)
+
+
 def main() -> int:
     bad: "list[str]" = []
 
@@ -92,7 +113,9 @@ def main() -> int:
         objects.CONTENT = edit.CONTENT
         edit.CONFIG = tmp / "config.toml"
         shutil.copy2(ROOT / "config.toml", edit.CONFIG)
-        original = edit.CONTENT.read_text(encoding="utf-8")
+        full_page = edit.CONTENT.read_text(encoding="utf-8")
+        original = without_portfolio(full_page)
+        edit.CONTENT.write_text(original, encoding="utf-8")
 
         # --- the characters that cannot be written ----------------------
         # A TOML basic string is ended by a quote and escaped by a
@@ -224,18 +247,33 @@ def main() -> int:
         # stand-in portfolio they were measuring the content rather than
         # the change, and failed for being right about the wrong thing.
         edit.CONTENT.write_text(original, encoding="utf-8")
+
+        roomy = 1
+
         before_p = {p["id"] for p in objects.blocks(objects.front_matter(), "extra.project")}
         before_s = len(objects.blocks(objects.front_matter(), "extra.photo"))
 
-        edit.add_project(1)
-        edit.add_project(1)
+        edit.add_project(roomy)
+        edit.add_project(roomy)
         made = objects.blocks(objects.front_matter(), "extra.project")
         fresh = [p["id"] for p in made if p["id"] not in before_p]
         ok(len(fresh) == 2, f"two adds produced {len(fresh)} project(s)")
         ok(len(set(fresh)) == 2,
            f"a second project did not get its own id: {fresh}")
-        ok(all(i.startswith("r1-") for i in fresh),
-           f"a project added to reference 1 landed elsewhere: {fresh}")
+        ok(all(i.startswith(f"r{roomy}-") for i in fresh),
+           f"a project added to reference {roomy} landed elsewhere: {fresh}")
+
+        # Filled to the cap, it says so — rather than failing with the
+        # checker's words about a file the reader has never seen.
+        for _ in range(3):
+            edit.add_project(roomy)
+        saying(lambda: edit.add_project(roomy), "already has five",
+               "adding to a full reference is refused, but not for a "
+               "reason anyone who pressed a button can act on")
+        edit.CONTENT.write_text(original, encoding="utf-8")
+        edit.add_project(roomy)
+        edit.add_project(roomy)
+        fresh = [p["id"] for p in objects.blocks(objects.front_matter(), "extra.project")]
 
         # `saying`, not `refuses`: the checker refuses these too, so
         # deleting the early guard left every assertion passing and the
@@ -342,7 +380,7 @@ def main() -> int:
         print()
         return 1
 
-    print("\n  studio: the panel refuses what it must, at 56 points, and the guide still quotes it correctly\n")
+    print("\n  studio: the panel refuses what it must, at 58 points, and the guide still quotes it correctly\n")
     return 0
 
 

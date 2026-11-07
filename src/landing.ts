@@ -805,26 +805,36 @@ function exchangePhrases(): void {
  * looking at it, not someone leaving.
  */
 function closeTheCarousel(): void {
-  const openOne = (): HTMLDetailsElement | null =>
-    document.querySelector<HTMLDetailsElement>(".project[open]");
+  /* INNERMOST FIRST. Two things can be open at once now — a group at
+   * the front, and one project's carousel on top of it — and Escape
+   * must take the top one off rather than both. Closing the group
+   * while its carousel is up would drop the reader two levels for one
+   * keystroke. */
+  const innermost = (): HTMLDetailsElement | null =>
+    document.querySelector<HTMLDetailsElement>(".shots[open]")
+    ?? document.querySelector<HTMLDetailsElement>(".group[open]");
 
-  addEventListener("keydown", (ev) => {
-    if (ev.key !== "Escape") return;
-    const box = openOne();
+  const shut = (box: HTMLDetailsElement | null): void => {
     if (!box) return;
     box.open = false;
     // The summary that opened it takes the focus back, or the keyboard
-    // is left standing on an element that is no longer on the screen.
+    // is left standing on an element no longer on the screen.
     box.querySelector("summary")?.focus();
+  };
+
+  addEventListener("keydown", (ev) => {
+    if (ev.key !== "Escape") return;
+    shut(innermost());
   });
 
+  /* A photograph does not fill the sheet, so there is always ground
+   * around it, and clicking the ground means "I am done". Only the
+   * ground: a click that lands on a photograph is someone looking at
+   * it, not someone leaving. */
   for (const reel of document.querySelectorAll<HTMLElement>(".reel")) {
     reel.addEventListener("click", (ev) => {
       if (ev.target !== reel) return;
-      const box = reel.closest("details");
-      if (!box || !box.open) return;
-      box.open = false;
-      box.querySelector("summary")?.focus();
+      shut(reel.closest("details"));
     });
   }
 }

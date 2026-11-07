@@ -111,6 +111,72 @@ project = "check-a"
 file = ""
 alt = "Une description."
 '''),
+    ("a sixth project on one reference", "a patchwork shows five", '''
+[[extra.project]]
+id = "check-a"
+reference = 1
+name = "P"
+
+[[extra.project]]
+id = "check-b"
+reference = 1
+name = "P"
+
+[[extra.project]]
+id = "check-c"
+reference = 1
+name = "P"
+
+[[extra.project]]
+id = "check-d"
+reference = 1
+name = "P"
+
+[[extra.project]]
+id = "check-e"
+reference = 1
+name = "P"
+
+[[extra.project]]
+id = "check-f"
+reference = 1
+name = "P"
+'''),
+    ("a sixth photograph in one project", "a carousel takes five", '''
+[[extra.project]]
+id = "check-a"
+reference = 1
+name = "A"
+[[extra.photo]]
+project = "check-a"
+file = "x0.png"
+alt = "une"
+
+[[extra.photo]]
+project = "check-a"
+file = "x1.png"
+alt = "une"
+
+[[extra.photo]]
+project = "check-a"
+file = "x2.png"
+alt = "une"
+
+[[extra.photo]]
+project = "check-a"
+file = "x3.png"
+alt = "une"
+
+[[extra.photo]]
+project = "check-a"
+file = "x4.png"
+alt = "une"
+
+[[extra.photo]]
+project = "check-a"
+file = "x5.png"
+alt = "une"
+'''),
     ("a misspelt field, which the template would ignore in silence",
      "unknown field", '''
 [[extra.project]]
@@ -120,6 +186,27 @@ name = "A"
 titel = "typo"
 '''),
 ]
+
+
+# The page's own projects, taken out before anything is injected.
+#
+# These cases add a project or two; the page now carries a full
+# portfolio with a cap of five per reference, so injecting into it
+# tripped the CAP rather than the thing being tested — a check failing
+# on a problem it had created. Stripping first makes every case here
+# independent of how full the real page happens to be, which is the
+# same lesson as asserting deltas rather than totals.
+def without_portfolio(page: str) -> str:
+    out, skip = [], False
+    for line in page.splitlines(keepends=True):
+        if line.startswith("[[extra.project]]") or line.startswith("[[extra.photo]]"):
+            skip = True
+            continue
+        if skip and (line.startswith("[[") or line.startswith("# ----")):
+            skip = False
+        if not skip:
+            out.append(line)
+    return "".join(out)
 
 
 def run(page: str, tmp: Path) -> "tuple[int, str]":
@@ -138,7 +225,8 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as raw:
         tmp = Path(raw)
         shutil.copytree(ROOT / "content", tmp / "content")
-        original = (tmp / "content" / "_index.md").read_text(encoding="utf-8")
+        full = (tmp / "content" / "_index.md").read_text(encoding="utf-8")
+        original = without_portfolio(full)
         if MARK not in original:
             print(f"\n  cannot find {MARK!r} in the page — this check is stale\n",
                   file=sys.stderr)
@@ -146,9 +234,13 @@ def main() -> int:
 
         # The page as it stands must pass, or every refusal below is
         # meaningless: a checker that refuses everything is not a checker.
-        code, said = run(original, tmp)
+        code, said = run(full, tmp)
         if code != 0:
             bad.append(f"the real page does not pass its own checker: {said.strip()}")
+
+        code, said = run(original, tmp)
+        if code != 0:
+            bad.append(f"the page without its portfolio does not pass: {said.strip()}")
 
         # ...and so must the page with a sound project and photograph in
         # it, or the new kinds are unusable however well they refuse.

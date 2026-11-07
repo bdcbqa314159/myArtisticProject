@@ -216,6 +216,28 @@ def check() -> int:
                     f"one of the {len(references)} there are"
                 )
 
+    # THE CAPS. Five projects on a fridge and five photographs in a
+    # project — fewer is fine, more is not. The patchwork shows one
+    # large and four over it, so a sixth project would be a project the
+    # page silently does not mention, which is worse than a build that
+    # stops and says so.
+    from collections import Counter
+    per_ref = Counter(p.get("reference", "") for p in projects)
+    for ref, many in sorted(per_ref.items()):
+        if many > 5:
+            problems.append(
+                f"reference {ref}: {many} projects, and a patchwork shows "
+                "five — the rest would be on no page"
+            )
+
+    per_project = Counter(s.get("project", "") for s in blocks(fm, "extra.photo"))
+    for owner, many in sorted(per_project.items()):
+        if many > 5:
+            problems.append(
+                f"project {owner}: {many} photographs, and a carousel takes "
+                "five"
+            )
+
     for i, photo in enumerate(blocks(fm, "extra.photo"), 1):
         owner = photo.get("project", "").strip()
         if owner and owner not in seen:

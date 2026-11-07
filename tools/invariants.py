@@ -74,22 +74,35 @@ INVARIANTS = [
     (
         "the miniatures blur with everything else",
         "static/css/site.css",
-        r"html\.scrolling \.project summary img",
+        r"html\.scrolling \.fridge img",
         2,
-        "A reference with projects shows thumbnails instead of its one "
+        "A reference shows a fridge of prints instead of its one "
         "photograph, and the softening was written against the "
         "photograph — so the day the gallery arrived, the effect the "
         "client had approved stopped happening on most of the page and "
         "no check noticed. Twice: the rule, and the reduced-motion reset.",
     ),
     (
-        "an open project does not paint over itself",
+        "an open level does not paint over itself",
         "static/css/site.css",
-        r"\.project\[open\] summary img,",
+        r"\[open\] > summary (?:img|\.patch) \{ display: none; \}",
+        2,
+        "Each level hides what opened it: the card's fridge once the "
+        "group is at the front, and a project's cover once its carousel "
+        "is. Scoped to the no-script case by mistake once already, and "
+        "the same photograph appeared twice — one full screen, one "
+        "floating in a corner.",
+    ),
+    (
+        "an open print stops being transformed",
+        "static/css/site.css",
+        r"\.shots\[open\] \{\s*position: static;\s*transform: none;",
         1,
-        "The thumbnail must be hidden once the carousel is at the front. "
-        "Scoped to the no-script case by mistake, the same photograph "
-        "appeared twice — once full screen and once floating in a corner.",
+        "`transform` makes an element the containing block for every "
+        "`position: fixed` descendant, so a carousel inside a rotated "
+        "print resolves `inset: 0` against the print instead of the "
+        "screen. This page has met that rule twice: once with "
+        "`backdrop-filter` on the header, once here.",
     ),
     (
         "one cover in the markup",

@@ -156,12 +156,13 @@ def check(html: str, where: str) -> "list[str]":
     return bad
 
 
-# A reference with projects in it, rendered for real.
+# A reference with a full fridge on it, rendered for real.
 #
-# The tracked page carries none — the client's work arrives at handover
-# — so every check here was running against the one shape the gallery
-# does NOT have. That is the same hole `build_live_config` exists to
-# close: the configuration nobody renders is the one that breaks.
+# The probe REPLACES the page's portfolio rather than adding to it: a
+# reference takes five projects and the real page already has five on
+# some of them, so appending pushed it over the cap and the extra
+# projects were on no page — the check then reported its own
+# photographs missing.
 WITH_PROJECTS = """
 [[extra.project]]
 id = "probe-a"
@@ -172,6 +173,21 @@ name = "Probe A"
 id = "probe-b"
 reference = 1
 name = "Probe B"
+
+[[extra.project]]
+id = "probe-c"
+reference = 1
+name = "Probe C"
+
+[[extra.project]]
+id = "probe-d"
+reference = 1
+name = "Probe D"
+
+[[extra.project]]
+id = "probe-e"
+reference = 1
+name = "Probe E"
 
 [[extra.photo]]
 project = "probe-a"
@@ -187,91 +203,103 @@ alt = "Probe photograph two"
 project = "probe-b"
 file = "fragment-03.jpg"
 alt = "Probe photograph three"
+
+[[extra.photo]]
+project = "probe-c"
+file = "fragment-02.jpg"
+alt = "Probe cover c"
+
+[[extra.photo]]
+project = "probe-d"
+file = "fragment-03.jpg"
+alt = "Probe cover d"
+
+[[extra.photo]]
+project = "probe-e"
+file = "fragment-04.jpg"
+alt = "Probe cover e"
 """
 
 
-# The minifier drops quotes and reorders attributes, so matching has to
-# be done on the tag and the attribute, never on their order. A regex
-# written against the template's spelling matched nothing once already,
-# in csp-check.py, and reported the opposite of the truth.
-DETAILS = re.compile(r'<details[^>]*\bclass=["\']?project[\s"\'>]')
-# ITS OWN probes, not every project on the page. Counting all of them
-# asserted an empty page, and the moment the page gained a stand-in
-# portfolio this reported seventeen where two were configured — right
-# about the number, wrong about the question.
-# ONE PATCHWORK PER REFERENCE, whatever the projects do. The probes are
-# two extra projects on reference 1; they add photographs to its group
-# and must not add a second group. An earlier version of this looked for
-# `data-reel=probe-`, which a reference's reel never carries — it names
-# the FIRST project, and the probes are appended after the real ones.
-REEL = re.compile(r'\bdata-reel=')
-# The TILES, not the list that holds them. Counting the <ol> passed
-# with every tile missing — it renders empty just as happily.
-TILES = re.compile(r'<li><img')
-BIG = re.compile(r'<img[^>]*patch-big[^>]*>')
+def strip_portfolio(page: str) -> str:
+    out, skip = [], False
+    for line in page.splitlines(keepends=True):
+        if line.startswith("[[extra.project]]") or line.startswith("[[extra.photo]]"):
+            skip = True
+            continue
+        if skip and (line.startswith("[[") or line.startswith("# ----")):
+            skip = False
+        if not skip:
+            out.append(line)
+    return "".join(out)
+
+
+GROUP = re.compile(r'<details[^>]*\bclass=["\']?group[\s"\'>]')
+SHOTS = re.compile(r'\bclass=["\']?shots ')
+SLOT = {k: re.compile(rf'\bslot-{k}[\s"\'>]') for k in range(1, 6)}
 LAZY = re.compile(r'\bloading=["\']?lazy')
 
 
 def check_gallery(html: str) -> "list[str]":
-    """Every project and every photograph reached the page."""
+    """The three levels are all there, and the right way round."""
     bad = []
-    # NOT every <details> — the mobile menu is one too, which is how
-    # this first reported three projects where two were configured.
-    reels, tiles, big = (len(REEL.findall(html)), len(TILES.findall(html)),
-                         len(BIG.findall(html)))
-    if not (reels == big == 6):
-        bad.append(f"gallery: 6 references, but {big} large photograph(s) "
-                   f"and {reels} carousel(s)")
+
+    if len(GROUP.findall(html)) != 1:
+        bad.append(f"gallery: one reference has projects, "
+                   f"{len(GROUP.findall(html))} fridges rendered")
+
+    # Five projects, so five prints on the fridge — and each appears
+    # twice, once on the card and once at the front.
+    for k in range(1, 6):
+        many = len(SLOT[k].findall(html))
+        if many != 2:
+            bad.append(f"gallery: slot {k} appears {many} time(s); it belongs "
+                       "on the card and again at the front")
+
+    shots = len(SHOTS.findall(html))
+    if shots != 5:
+        bad.append(f"gallery: 5 projects, {shots} of them open a carousel")
+
     # THE BIG ONE IS NOT LAZY, and the carousel is.
     #
     # Six photographs — one per reference, what the page carried before
     # the gallery — so the cover waits for them exactly as it used to.
-    # Made lazy with the other ninety-eight, four of the six had not
-    # arrived by the time a phone reached them, and a reference was a
-    # dark panel with prints floating on nothing.
-    for tag in BIG.findall(html):
-        if LAZY.search(tag):
-            bad.append("gallery: a reference's photograph is lazy, so the "
-                       "card can be reached before it arrives")
-            break
-
-    if tiles != 24:
-        bad.append(f"gallery: 4 tiles over each of 6 photographs is 24, "
-                   f"{tiles} rendered")
-    if not DETAILS.search(html):
-        bad.append("gallery: nothing opens — no project is a <details>")
+    # Made lazy with the rest, four of six had not arrived by the time a
+    # phone reached them: a dark panel with prints floating on nothing.
+    ground = re.search(r'<li class=["\']?slot-1["\']?>\s*<img[^>]*>', html)
+    if not ground:
+        bad.append("gallery: the fridge has no photograph underneath it")
+    elif LAZY.search(ground.group(0)):
+        bad.append("gallery: a reference's photograph is lazy, so the card "
+                   "can be reached before it arrives")
 
     for shot in ("Probe photograph one", "Probe photograph two",
                  "Probe photograph three"):
-        tag = re.search(r"<img[^>]*" + re.escape(shot) + r"[^>]*>", html)
-        if not tag:
+        # EVERY occurrence, not the first. A project's first photograph
+        # is also its cover, and the cover is eager on purpose — so
+        # searching for one tag found the cover and called the carousel
+        # eager. The carousel copy is the one that must be lazy.
+        tags = re.findall(r"<img[^>]*" + re.escape(shot) + r"[^>]*>", html)
+        if not tags:
             bad.append(f"gallery: {shot!r} is on no page")
-        elif not LAZY.search(tag.group(0)):
-            # EACH photograph, not "some image on the page". The cover is
-            # lazy too, so a check for any lazy image stayed true with
-            # every reel photograph eager — which is the whole thing this
-            # is meant to prevent.
-            bad.append(f"gallery: {shot!r} is eager, so the cover waits for it")
-    # The thumbnail is the first photograph, not a separate field, so a
-    # project that lost its cover silently would show a bare name.
-
+        elif not any(LAZY.search(t) for t in tags):
+            bad.append(f"gallery: {shot!r} is eager everywhere it appears, "
+                       "so the card waits for the whole carousel")
 
     return bad
 
 
 def build_with_projects(out: Path) -> Path:
-    """A whole site, copied, with two projects added to reference 1.
+    """A whole site, copied, with one reference's fridge filled in.
 
     A COPY, not the real content file. Zola's content directory is
     fixed, so rendering a different page means either editing the
     tracked one and hoping to put it back, or building somewhere else.
-    The studio check already learned this the hard way by dropping test
-    images into content/ — found by `git status`, not by the check.
+
+    BESIDE the output, never inside it: `zola build -o <out> -f` wipes
+    the output directory first, so a source root nested in it deletes
+    itself on the way to being built.
     """
-    # BESIDE the output, never inside it. `zola build -o <out> -f`
-    # wipes the output directory first, so a source root nested in it
-    # deletes itself on the way to being built — which is what the first
-    # run of this did, reporting a missing image rather than the cause.
     root = out.with_name(out.name + "-with-projects")
     if root.exists():
         shutil.rmtree(root)
@@ -282,7 +310,7 @@ def build_with_projects(out: Path) -> Path:
     shutil.copy2(ROOT / "config.toml", root / "config.toml")
 
     page = root / "content" / "_index.md"
-    text = page.read_text(encoding="utf-8")
+    text = strip_portfolio(page.read_text(encoding="utf-8"))
     mark = "# ---- 04 original concepts"
     text = (text.replace(mark, WITH_PROJECTS + "\n" + mark, 1)
             if mark in text else text.replace("+++", WITH_PROJECTS + "\n+++", 1))
