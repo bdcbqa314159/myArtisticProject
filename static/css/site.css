@@ -813,26 +813,48 @@ html.scrolling .case .image img { will-change: transform; }
   text-indent: 0.24em;
 }
 
-.dots { display: flex; gap: 0.45rem; }
-
-.dots i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--faint);
-  animation: dot 1.1s ease-in-out infinite;
+/* ---- how far along ------------------------------------------------------
+ * A rule the width of the wordmark, filling left to right as the images
+ * the cover is waiting for arrive.
+ *
+ * DETERMINATE, on purpose. Three looping dots look the same whether the
+ * wait is 200ms or six seconds, so they are right for neither. This is
+ * the same answer at any duration, and the faint track behind it means
+ * nothing ever looks stalled at zero.
+ */
+.load-line {
+  display: block;
+  width: 7.5rem;
+  height: 1px;
+  background: color-mix(in oklch, var(--faint) 35%, transparent);
+  overflow: hidden;
 }
 
-.dots i:nth-child(2) { animation-delay: -0.77s; }
-.dots i:nth-child(3) { animation-delay: -0.45s; }
+.load-line i {
+  display: block;
+  height: 100%;
+  background: var(--faint);
+  transform: scaleX(var(--done, 0));
+  transform-origin: left center;
+  transition: transform 320ms cubic-bezier(.3, .8, .4, 1);
+}
 
-@keyframes dot {
-  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
-  30%           { opacity: 1;    transform: translateY(-3px); }
+/* Nothing measurable — no images to wait for, or a browser that will
+   not say — so it sweeps instead of sitting at nothing. */
+.load-line.unknown i {
+  transform: none;
+  width: 40%;
+  animation: sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes sweep {
+  0%   { transform: translateX(-110%); }
+  100% { transform: translateX(260%); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dots i { animation: none; opacity: 0.6; }
+  .load-line i { transition: none; }
+  .load-line.unknown i { animation: none; transform: none; width: 100%; opacity: 0.5; }
 }
 
 /* ============================================================================
@@ -1486,12 +1508,60 @@ html.js [data-copy] { display: inline-flex; }
   top: 10px;
   right: 10px;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
   padding: 0.3rem 0.55rem;
   font-size: 0.66rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--bg);
   background: color-mix(in oklch, var(--ink) 80%, transparent);
+}
+
+/* ---- the light that says there is more ----------------------------------
+ * An aperture: a ring with something lit inside it, opening and closing
+ * very slowly. Not a button — the whole card already opens — just the
+ * one thing on a still photograph that moves, which is where the eye
+ * goes and the hand follows.
+ *
+ * Drawn rather than drawn FOR us: two circles and a keyframe, so there
+ * is no icon to license, no file to fetch, and it takes the palette
+ * with it.
+ */
+.look {
+  position: relative;
+  width: 9px;
+  height: 9px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.75;
+  flex: 0 0 auto;
+}
+
+.look::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: look 3.2s ease-in-out infinite;
+}
+
+@keyframes look {
+  0%, 100% { transform: scale(0.45); opacity: 0.55; }
+  45%      { transform: scale(1);    opacity: 1; }
+}
+
+@media (hover: hover) {
+  /* Opens the rest of the way under a pointer, which is the small
+     reward for having noticed it. */
+  .group summary:hover .look { opacity: 1; }
+  .group summary:hover .look::after { animation-duration: 1.4s; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .look::after { animation: none; transform: scale(0.75); opacity: 0.8; }
 }
 
 /* A hand near them settles them a little straighter. Not level — level

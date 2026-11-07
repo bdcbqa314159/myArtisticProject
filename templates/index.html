@@ -51,7 +51,12 @@
    See site.css. #}
 <div class="loader" aria-hidden="true">
   <span class="loader-name">{{ id.name }}</span>
-  <span class="dots"><i></i><i></i><i></i></span>
+  {# A hairline that fills as the photographs arrive, rather than three
+     dots looping. A loop looks identical at 200ms and at six seconds, so
+     it cannot be right for both; this is the honest answer and it makes
+     a slow phone legible instead of anxious. Script sets `--done`; with
+     no script there is no cover at all. #}
+  <span class="load-line"><i></i></span>
 </div>
 
 {# ---- the bar -------------------------------------------------------
@@ -197,7 +202,11 @@
               {%- if k == 5 %}<li class="slot-5">{% set im = resize_image(path="@/" ~ cov, width=480, height=320, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="480" height="320" alt="{{ cova }}" loading="lazy" decoding="async"></li>{% endif %}
                 {%- endif %}{% endfor %}
               </ol>
-              <figcaption class="patch-count">{{ pcount }} projects</figcaption>
+              {# A light on, rather than a button to find.
+                 The whole card already opens; this is only there to say
+                 that it does — something small and alive in the corner
+                 that the eye goes to and the hand follows. #}
+              <figcaption class="patch-count"><i class="look" aria-hidden="true"></i>{{ pcount }} projects</figcaption>
             </figure>
           </summary>
 

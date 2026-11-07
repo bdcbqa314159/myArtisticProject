@@ -918,6 +918,46 @@ function copyButtons() {
         });
     }
 }
+/* ---- how far along -----------------------------------------------------
+ * The cover waits for every image that is not lazy. This counts them
+ * and says so, instead of looping an animation that would look the same
+ * whatever the wait turned out to be.
+ *
+ * It runs while the cover is still up, which is the only time it is
+ * worth anything. It never reveals the page — there is exactly one
+ * place that does, and a second would be how "page, loader, page"
+ * happened before.
+ */
+function countTheWait() {
+    const line = document.querySelector(".load-line");
+    if (!line)
+        return;
+    const waited = [...document.querySelectorAll("img")]
+        .filter((img) => img.loading !== "lazy");
+    if (waited.length === 0) {
+        // Nothing to measure. A bar sitting at nothing reads as stuck, so
+        // it sweeps instead and says only "still working".
+        line.classList.add("unknown");
+        return;
+    }
+    let done = 0;
+    const mark = () => {
+        line.style.setProperty("--done", String(done / waited.length));
+    };
+    for (const img of waited) {
+        if (img.complete) {
+            done += 1;
+            continue;
+        }
+        // `error` as well as `load`: a photograph that fails is still a
+        // photograph the page has stopped waiting for, and a bar that
+        // stalls at four fifths because one 404'd is worse than no bar.
+        const arrived = () => { done += 1; mark(); };
+        img.addEventListener("load", arrived, { once: true });
+        img.addEventListener("error", arrived, { once: true });
+    }
+    mark();
+}
 /* ---- showing the page -------------------------------------------------
  * myBureau's sequence, which is the one that works:
  *
@@ -978,6 +1018,7 @@ markCurrentSection();
 closeMenuOnNavigate();
 copyButtons();
 paletteControl();
+countTheWait();
 softWhileMoving();
 exchangePhrases();
 closeTheCarousel();
@@ -997,10 +1038,26 @@ showTheRelease();
  * wait for the photographs. With no lazy attribute on them they are all
  * in flight from the start, so this is the moment it is genuinely whole.
  * The 6s failsafe in the head covers anything that goes wrong here. */
+/* A FLOOR, so the cover is never a flicker.
+ *
+ * On a fast connection or a cached reload the page was ready before
+ * anyone had seen the cover, and `reveal()` began fading it the instant
+ * it appeared — which reads as a flash of something, not as a page
+ * arriving. Below this, the cover waits; above it, nothing is added.
+ *
+ * `performance.now()` is milliseconds since the navigation began, which
+ * is as long as the cover can possibly have been up. Comfortably under
+ * the 6s failsafe in the head, which must stay the last word. */
+const COVER_FLOOR_MS = 450;
 function show() {
-    reveal();
-    if (!reduced)
-        startMotion();
+    // STILL THE ONLY PLACE THE PAGE IS SHOWN. The wait is in front of the
+    // one reveal, not a second way of reaching it.
+    const owed = Math.max(0, COVER_FLOOR_MS - performance.now());
+    window.setTimeout(() => {
+        reveal();
+        if (!reduced)
+            startMotion();
+    }, owed);
 }
 if (document.readyState === "complete")
     show();
