@@ -289,6 +289,70 @@ def check_gallery(html: str) -> "list[str]":
     return bad
 
 
+# Closing a group must put its projects back.
+#
+# <details> remembers. Open a project's carousel, close the group around
+# it, and the project stays open — so the next visit to that reference
+# lands straight in the carousel, past the patchwork the reader was
+# going back for.
+#
+# This one IS drivable here: it needs no clicks and no animation frames,
+# only `details.open`. The waits are because `toggle` is fired
+# asynchronously — reading straight after setting it reports the state
+# before the handler has run, which is how this check first told me the
+# fix had not worked.
+REOPEN_PROBE = """
+<script>
+addEventListener("load", () => setTimeout(() => {
+  const out = document.getElementById("verdict");
+  const group = document.querySelector(".group");
+  const shots = group && group.querySelector(".shots");
+  if (!group || !shots) { out.textContent = "RESULT no-gallery"; return; }
+  group.open = true;
+  shots.open = true;
+  const both = group.open && shots.open;
+  group.open = false;
+  setTimeout(() => {
+    const left = shots.open;
+    group.open = true;
+    setTimeout(() => {
+      out.textContent = "RESULT both=" + both + " left=" + left
+        + " reopened=" + shots.open;
+    }, 20);
+  }, 20);
+}, 0));
+</script>"""
+
+
+def check_reopen(chrome: str, out: Path, url: str) -> "list[str]":
+    page = (out / "index.html").read_text(encoding="utf-8")
+    css = re.search(r'<link[^>]*site\.css[^>]*>', page)
+    js = re.search(r'<script[^>]*landing\.js[^>]*></script>', page)
+    sec = re.search(r'<section id="?work"?.*?</section>', page, re.S)
+    if not (css and js and sec):
+        return ["reopen: could not assemble the probe page"]
+    (out / "_reopen.html").write_text(
+        '<!doctype html><html lang=en class=js><meta charset=utf-8>'
+        + css.group(0) + '<body><p id=verdict>no verdict</p><main>'
+        + sec.group(0) + '</main>' + js.group(0) + REOPEN_PROBE + '</html>',
+        encoding="utf-8")
+    said = dom(chrome, url + "/_reopen.html", 500, 900)
+    found = re.search(r"RESULT ([^<]*)", said)
+    if not found:
+        return ["reopen: the probe returned no verdict"]
+    verdict = found.group(1).strip()
+    bad = []
+    if "both=true" not in verdict:
+        bad.append(f"reopen: the two levels did not both open ({verdict})")
+    if "left=false" not in verdict:
+        bad.append("reopen: closing a group leaves its project open, so going "
+                   "back in lands straight in the carousel")
+    if "reopened=false" not in verdict:
+        bad.append("reopen: a reference reopens into the carousel rather than "
+                   "its patchwork")
+    return bad
+
+
 def build_with_projects(out: Path) -> Path:
     """A whole site, copied, with one reference's fridge filled in.
 
@@ -440,6 +504,7 @@ def main() -> int:
                 # And with no script at all: <details> and scroll-snap are
                 # the whole mechanism, so the gallery must not need one.
                 problems += check_gallery(dom(chrome, url, 500, 1400, None, no_js=True))
+                problems += check_reopen(chrome, out, url)
 
             live_cfg = build_live_config(out)
             built = subprocess.run(

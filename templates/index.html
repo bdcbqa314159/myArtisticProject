@@ -201,13 +201,19 @@
             </figure>
           </summary>
 
+          {# THE SAME IMAGES AS THE CARD, deliberately.
+             Rendered at their own larger sizes these were 27 more files,
+             every one lazy inside a <details> nobody had opened yet — so
+             opening the group showed empty prints while they were
+             fetched, which on a phone is exactly as broken as it sounds.
+             Reusing the card's means they are already in hand. #}
           <div class="group-front">
             <div class="fridge front" data-set="{{ ref }}">
               {% set_global k = 0 %}
               {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{% set_global k = k + 1 %}{%- set_global cov = "" %}{% set_global cova = "" %}{%- for ph in e.photo | default(value=[]) %}{%- if ph.project == pr.id and cov == "" %}{%- set_global cov = ph.file %}{% set_global cova = ph.alt %}{%- endif %}{% endfor %}
               {%- if k == 1 %}
               <details class="shots slot-1" name="shots-{{ ref }}">
-                <summary>{% set im = resize_image(path="@/" ~ cov, width=1200, op="fit_width", format="webp", quality=72) %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ cova }}" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
+                <summary>{% set im = resize_image(path="@/" ~ cov, width=900, op="fit_width", format="webp", quality=72) %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ cova }}" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
                 <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
                   {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                   {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
@@ -218,7 +224,7 @@
               </details>{% endif %}
               {%- if k == 2 %}
               <details class="shots slot-2" name="shots-{{ ref }}">
-                <summary>{% set im = resize_image(path="@/" ~ cov, width=540, height=720, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="540" height="720" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
+                <summary>{% set im = resize_image(path="@/" ~ cov, width=360, height=480, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="360" height="480" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
                 <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
                   {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                   {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
@@ -229,7 +235,7 @@
               </details>{% endif %}
               {%- if k == 3 %}
               <details class="shots slot-3" name="shots-{{ ref }}">
-                <summary>{% set im = resize_image(path="@/" ~ cov, width=720, height=540, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="720" height="540" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
+                <summary>{% set im = resize_image(path="@/" ~ cov, width=480, height=360, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="480" height="360" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
                 <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
                   {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                   {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
@@ -240,7 +246,7 @@
               </details>{% endif %}
               {%- if k == 4 %}
               <details class="shots slot-4" name="shots-{{ ref }}">
-                <summary>{% set im = resize_image(path="@/" ~ cov, width=620, height=620, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="620" height="620" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
+                <summary>{% set im = resize_image(path="@/" ~ cov, width=400, height=400, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="400" height="400" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
                 <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
                   {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                   {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
@@ -251,7 +257,7 @@
               </details>{% endif %}
               {%- if k == 5 %}
               <details class="shots slot-5" name="shots-{{ ref }}">
-                <summary>{% set im = resize_image(path="@/" ~ cov, width=720, height=480, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="720" height="480" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
+                <summary>{% set im = resize_image(path="@/" ~ cov, width=480, height=320, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="480" height="320" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
                 <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
                   {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                   {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
