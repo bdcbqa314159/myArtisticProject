@@ -208,7 +208,7 @@ REEL = re.compile(r'\bdata-reel=')
 # The TILES, not the list that holds them. Counting the <ol> passed
 # with every tile missing — it renders empty just as happily.
 TILES = re.compile(r'<li><img')
-BIG = re.compile(r'\bclass=["\']?patch-big')
+BIG = re.compile(r'<img[^>]*patch-big[^>]*>')
 LAZY = re.compile(r'\bloading=["\']?lazy')
 
 
@@ -222,6 +222,19 @@ def check_gallery(html: str) -> "list[str]":
     if not (reels == big == 6):
         bad.append(f"gallery: 6 references, but {big} large photograph(s) "
                    f"and {reels} carousel(s)")
+    # THE BIG ONE IS NOT LAZY, and the carousel is.
+    #
+    # Six photographs — one per reference, what the page carried before
+    # the gallery — so the cover waits for them exactly as it used to.
+    # Made lazy with the other ninety-eight, four of the six had not
+    # arrived by the time a phone reached them, and a reference was a
+    # dark panel with prints floating on nothing.
+    for tag in BIG.findall(html):
+        if LAZY.search(tag):
+            bad.append("gallery: a reference's photograph is lazy, so the "
+                       "card can be reached before it arrives")
+            break
+
     if tiles != 24:
         bad.append(f"gallery: 4 tiles over each of 6 photographs is 24, "
                    f"{tiles} rendered")
