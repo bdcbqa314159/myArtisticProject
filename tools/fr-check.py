@@ -59,6 +59,10 @@ COPIED = {
     "verified", "verified_on", "evidence",
     "template", "draft",
     "href",          # a fragment link. Translated, it points nowhere.
+    # The portfolio's plumbing. `id` and `project` are how a photograph
+    # finds the project it belongs to, and `file` names a file on disk —
+    # translate any of them and the French page is a gallery of nothing.
+    "id", "project", "reference", "file",
 }
 
 # The brand is a trademark, not a word. It is the same in every language

@@ -195,7 +195,11 @@ alt = "Probe photograph three"
 # written against the template's spelling matched nothing once already,
 # in csp-check.py, and reported the opposite of the truth.
 DETAILS = re.compile(r'<details[^>]*\bclass=["\']?project[\s"\'>]')
-REEL = re.compile(r'\bclass=["\']?reel[\s"\'>]')
+# ITS OWN probes, not every project on the page. Counting all of them
+# asserted an empty page, and the moment the page gained a stand-in
+# portfolio this reported seventeen where two were configured — right
+# about the number, wrong about the question.
+PROBE_REEL = re.compile(r'\bdata-reel=["\']?probe-')
 LAZY = re.compile(r'\bloading=["\']?lazy')
 
 
@@ -204,9 +208,11 @@ def check_gallery(html: str) -> "list[str]":
     bad = []
     # NOT every <details> — the mobile menu is one too, which is how
     # this first reported three projects where two were configured.
-    projects = len(DETAILS.findall(html))
-    if projects != 2:
-        bad.append(f"gallery: 2 projects configured, {projects} rendered")
+    mine = len(PROBE_REEL.findall(html))
+    if mine != 2:
+        bad.append(f"gallery: 2 projects injected, {mine} of them rendered")
+    if not DETAILS.search(html):
+        bad.append("gallery: nothing opens — no project is a <details>")
     if "Probe A" not in html or "Probe B" not in html:
         bad.append("gallery: a project's name is missing")
     for shot in ("Probe photograph one", "Probe photograph two",
@@ -222,9 +228,7 @@ def check_gallery(html: str) -> "list[str]":
             bad.append(f"gallery: {shot!r} is eager, so the cover waits for it")
     # The thumbnail is the first photograph, not a separate field, so a
     # project that lost its cover silently would show a bare name.
-    reels = len(REEL.findall(html))
-    if reels != 2:
-        bad.append(f"gallery: 2 reels expected to swipe, {reels} rendered")
+
 
     return bad
 

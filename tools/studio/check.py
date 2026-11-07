@@ -219,12 +219,23 @@ def main() -> int:
            "two references ended up pointing at the same photograph")
 
         # --- projects and their photographs ------------------------------
+        # DELTAS, not totals. These asserted an empty page — two
+        # projects, two photographs — and the moment the page gained a
+        # stand-in portfolio they were measuring the content rather than
+        # the change, and failed for being right about the wrong thing.
         edit.CONTENT.write_text(original, encoding="utf-8")
+        before_p = {p["id"] for p in objects.blocks(objects.front_matter(), "extra.project")}
+        before_s = len(objects.blocks(objects.front_matter(), "extra.photo"))
+
         edit.add_project(1)
         edit.add_project(1)
         made = objects.blocks(objects.front_matter(), "extra.project")
-        ok([p["id"] for p in made] == ["r1-a", "r1-b"],
-           f"a second project did not get its own id: {[p['id'] for p in made]}")
+        fresh = [p["id"] for p in made if p["id"] not in before_p]
+        ok(len(fresh) == 2, f"two adds produced {len(fresh)} project(s)")
+        ok(len(set(fresh)) == 2,
+           f"a second project did not get its own id: {fresh}")
+        ok(all(i.startswith("r1-") for i in fresh),
+           f"a project added to reference 1 landed elsewhere: {fresh}")
 
         # `saying`, not `refuses`: the checker refuses these too, so
         # deleting the early guard left every assertion passing and the
@@ -237,14 +248,16 @@ def main() -> int:
                "a project on reference 99 is refused, but not for a reason "
                "anyone can act on")
 
-        edit.attach_photo("r1-a", "une.jpg", jpeg, "Une description.")
-        edit.attach_photo("r1-a", "deux.jpg", jpeg + b"x", "Une autre.")
+        mine = fresh[0] if fresh else "r1-a"
+        edit.attach_photo(mine, "une.jpg", jpeg, "Une description.")
+        edit.attach_photo(mine, "deux.jpg", jpeg + b"x", "Une autre.")
         shots = objects.blocks(objects.front_matter(), "extra.photo")
-        ok(len(shots) == 2, f"a reel did not grow: {len(shots)} photographs")
-        ok(len({s["file"] for s in shots}) == 2,
+        ok(len(shots) == before_s + 2,
+           f"a reel did not grow: {len(shots) - before_s} photograph(s) added")
+        ok(len({s["file"] for s in shots}) == len(shots),
            "two photographs ended up as the same file")
 
-        saying(lambda: edit.attach_photo("r1-a", "x.jpg", jpeg, ""),
+        saying(lambda: edit.attach_photo(mine, "x.jpg", jpeg, ""),
                "description",
                "a photograph into a reel with no description is refused, but "
                "not for a reason anyone can act on")
@@ -252,18 +265,18 @@ def main() -> int:
                "no project has the id",
                "a photograph into a project that does not exist is refused, "
                "but not for a reason anyone can act on")
-        refuses(lambda: edit.attach_photo("r1-a", "x.jpg", b"nope" * 3000, "Une description."),
+        refuses(lambda: edit.attach_photo(mine, "x.jpg", b"nope" * 3000, "Une description."),
                 "a file that is not an image was added to a reel")
 
         # BOTH OR NEITHER. Removing a project alone leaves its
         # photographs naming something gone — which the checker refuses,
         # so the edit is undone and the button looks broken rather than
         # forbidden.
-        edit.remove_project("r1-a")
+        edit.remove_project(mine)
         after = objects.front_matter()
-        ok(not any(p["id"] == "r1-a" for p in objects.blocks(after, "extra.project")),
+        ok(not any(p["id"] == mine for p in objects.blocks(after, "extra.project")),
            "the project was not removed")
-        ok(not objects.blocks(after, "extra.photo"),
+        ok(not any(s["project"] == mine for s in objects.blocks(after, "extra.photo")),
            "a removed project left its photographs behind, naming nothing")
         refuses(lambda: edit.remove_project("ghost"),
                 "removing a project that does not exist was accepted")

@@ -32,10 +32,61 @@ WANTED = [
     ("fragment-04.jpg", "10m-rehearsal", 1067, 1600),
 ]
 
+# The portfolio inside each reference: how many projects, and how many
+# photographs in each. Smaller than the drop-in fixture on purpose —
+# these are COMMITTED, so every one of them is weight in the repository
+# for as long as the demo stands. Enough to show what the gallery does,
+# not a stress test; the stress test lives in `_dropin/`, which nobody
+# clones.
+#
+# 1200px wide because the template resizes to 1100: larger is bytes
+# nobody is served.
+PROJECTS = [3, 2, 3, 2, 3, 2]
+PER_PROJECT = 4
+LETTERS = "abcdef"
+
+
+def portfolio() -> "list[tuple[str, str, int, int]]":
+    out = []
+    for ref, many in enumerate(PROJECTS, 1):
+        for slot in range(many):
+            pid = f"r{ref}-{LETTERS[slot]}"
+            for n in range(1, PER_PROJECT + 1):
+                tall = (n % 4 == 0)
+                w, h = (800, 1067) if tall else (1200, 800)
+                # The seed names nothing and nobody — an earlier set of
+                # these carried the client's own mark, in a public
+                # repository. See the tripwire in content-check.py.
+                out.append((f"work-{pid}-{n:02d}.jpg", f"folio-{ref}{slot}{n}", w, h))
+    return out
+
+
+def blocks() -> str:
+    """The TOML for what `portfolio()` fetches, to paste into the page.
+
+    Printed rather than written: this tool fetches files, and what the
+    page says is a decision a person makes. The two must match, which is
+    why they are generated from the same list.
+    """
+    out = []
+    for ref, many in enumerate(PROJECTS, 1):
+        for slot in range(many):
+            pid = f"r{ref}-{LETTERS[slot]}"
+            out += ["[[extra.project]]", f'id = "{pid}"',
+                    f"reference = {ref}",
+                    f'name = "Projet {ref}-{LETTERS[slot].upper()}"', ""]
+    for name, _seed, _w, _h in portfolio():
+        pid = name[len("work-"):].rsplit("-", 1)[0]
+        n = name[-6:-4]
+        out += ["[[extra.photo]]", f'project = "{pid}"', f'file = "{name}"',
+                f'alt = "Photographie {n} — image de remplacement, '
+                f'pas le travail du client"', ""]
+    return "\n".join(out)
+
 
 def fetch() -> int:
     written = []
-    for name, seed, w, h in WANTED:
+    for name, seed, w, h in WANTED + portfolio():
         dest = ROOT / "content" / name
         url = f"https://picsum.photos/seed/{seed}/{w}/{h}"
         print(f"  {name} <- {url}")
@@ -83,4 +134,8 @@ def purge() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(purge() if "--purge" in sys.argv[1:] else fetch())
+    args = sys.argv[1:]
+    if "--blocks" in args:
+        print(blocks())
+        sys.exit(0)
+    sys.exit(purge() if "--purge" in args else fetch())
