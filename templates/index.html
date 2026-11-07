@@ -174,56 +174,66 @@
       {% for w in e.work %}
       <li class="card case">
         {% set ref = loop.index %}
-        {% set_global has_projects = false %}
-        {% for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{% set_global has_projects = true %}{% endif %}{% endfor %}
+        {# How many photographs this reference has, and which project the
+           first of them belongs to — a dropped photograph lands there.
+           Counters rather than a filter, because Zola's Tera has none. #}
+        {% set_global total = 0 %}
+        {% set_global reel_id = "" %}
+        {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
+          {%- if reel_id == "" %}{% set_global reel_id = pr.id %}{% endif %}
+          {%- set_global total = total + 1 %}
+        {%- endif %}{% endfor %}{% endif %}{% endfor %}
 
-        {% if has_projects %}
-        {# A reference with projects shows them instead of one photograph:
-           the thumbnails ARE the portfolio. Opening one is <details>, so
-           it works with no script at all, arrives with keyboard and
-           screen-reader behaviour already correct, and closes its
-           siblings because they share a `name`. #}
-        <ol class="projects" data-reference="{{ ref }}">
-          {% for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}
-          {% set_global cover = "" %}
-          {% set_global cover_alt = "" %}
-          {% for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id and cover == "" %}
-            {% set_global cover = ph.file %}{% set_global cover_alt = ph.alt %}
-          {% endif %}{% endfor %}
-          <li>
-            <details class="project" name="work-{{ ref }}">
-              <summary>
-                {% if cover %}
-                {% set thumb = resize_image(path="@/" ~ cover, width=520, op="fit_width", format="webp", quality=70) %}
-                {# lazy, and that is a change: these used to be eager so the
-                   cover would wait for them. Ninety-eight photographs
-                   cannot be waited for, so only the first screen is. #}
-                <img src="{{ thumb.url }}" width="{{ thumb.width }}" height="{{ thumb.height }}"
-                     alt="{{ cover_alt }}" loading="lazy" decoding="async">
-                {% else %}
-                {# A project with no photographs yet. The same shape as the
-                   one that has them, so a half-filled gallery reads as
-                   unfinished rather than broken. #}
-                <span class="shot-empty">No photograph yet</span>
-                {% endif %}
-                <span class="project-name" data-edit="project.{{ loop.index }}.name">{{ pr.name }}</span>
-              </summary>
-              {# `data-reel` is what the studio drops a photograph onto.
-                 A reference's single image is REPLACED by a drop; a reel
-                 GROWS by one, because a photograph here is an object of
-                 its own rather than a field on something. #}
-              <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}"
-                   data-reel="{{ pr.id }}">
-                {% for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
-                {% set shot = resize_image(path="@/" ~ ph.file, width=1100, op="fit_width", format="webp", quality=74) %}
-                <img src="{{ shot.url }}" width="{{ shot.width }}" height="{{ shot.height }}"
+        {% if total > 0 %}
+        {# THE PATCHWORK — one per reference.
+             One photograph large, four laid over it, and the whole group
+             a tap away. The big one is the reference's first photograph
+             and the carousel opens on it, so what you were looking at is
+             what you get. #}
+        <details class="project" name="work-{{ ref }}">
+          <summary>
+            <figure class="patch">
+              {% set_global n = 0 %}
+              {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
+                {%- set_global n = n + 1 %}
+                {%- if n == 1 %}
+                {% set big = resize_image(path="@/" ~ ph.file, width=900, op="fit_width", format="webp", quality=72) %}
+                <img class="patch-big" src="{{ big.url }}" width="{{ big.width }}" height="{{ big.height }}"
                      alt="{{ ph.alt }}" loading="lazy" decoding="async">
-                {% endif %}{% endfor %}
-              </div>
-            </details>
-          </li>
-          {% endif %}{% endfor %}
-        </ol>
+                {% endif %}
+              {%- endif %}{% endfor %}{% endif %}{% endfor %}
+
+              <ol class="patch-tiles">
+                {% set_global n = 0 %}
+                {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
+                  {%- set_global n = n + 1 %}
+                  {%- if n > 1 and n < 6 %}
+                  {# Square, and cropped to get there. A tile is an index
+                     to the work rather than the work, and the whole of it
+                     is one tap away, uncropped. #}
+                  {% set tile = resize_image(path="@/" ~ ph.file, width=320, height=320, op="fill", format="webp", quality=70) %}
+                  <li><img src="{{ tile.url }}" width="320" height="320"
+                           alt="{{ ph.alt }}" loading="lazy" decoding="async"></li>
+                  {% endif %}
+                {%- endif %}{% endfor %}{% endif %}{% endfor %}
+              </ol>
+
+              {% if total > 5 %}<figcaption class="patch-count">{{ total }} photographs</figcaption>{% endif %}
+            </figure>
+            {# Only read once the carousel is open, where the card's own
+               heading is no longer on screen to say whose work this is. #}
+            <span class="project-name">{{ w.name }}</span>
+          </summary>
+
+          <div class="reel" tabindex="0" role="group"
+               aria-label="{{ w.name }}" data-reel="{{ reel_id }}">
+            {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
+            {% set shot = resize_image(path="@/" ~ ph.file, width=1400, op="fit_width", format="webp", quality=74) %}
+            <img src="{{ shot.url }}" width="{{ shot.width }}" height="{{ shot.height }}"
+                 alt="{{ ph.alt }}" loading="lazy" decoding="async">
+            {%- endif %}{% endfor %}{% endif %}{% endfor %}
+          </div>
+        </details>
         {% else %}
         {# The photograph is edited where it is seen: the panel turns this
            into a drop target. `data-alt` carries the description it

@@ -199,7 +199,16 @@ DETAILS = re.compile(r'<details[^>]*\bclass=["\']?project[\s"\'>]')
 # asserted an empty page, and the moment the page gained a stand-in
 # portfolio this reported seventeen where two were configured — right
 # about the number, wrong about the question.
-PROBE_REEL = re.compile(r'\bdata-reel=["\']?probe-')
+# ONE PATCHWORK PER REFERENCE, whatever the projects do. The probes are
+# two extra projects on reference 1; they add photographs to its group
+# and must not add a second group. An earlier version of this looked for
+# `data-reel=probe-`, which a reference's reel never carries — it names
+# the FIRST project, and the probes are appended after the real ones.
+REEL = re.compile(r'\bdata-reel=')
+# The TILES, not the list that holds them. Counting the <ol> passed
+# with every tile missing — it renders empty just as happily.
+TILES = re.compile(r'<li><img')
+BIG = re.compile(r'\bclass=["\']?patch-big')
 LAZY = re.compile(r'\bloading=["\']?lazy')
 
 
@@ -208,13 +217,17 @@ def check_gallery(html: str) -> "list[str]":
     bad = []
     # NOT every <details> — the mobile menu is one too, which is how
     # this first reported three projects where two were configured.
-    mine = len(PROBE_REEL.findall(html))
-    if mine != 2:
-        bad.append(f"gallery: 2 projects injected, {mine} of them rendered")
+    reels, tiles, big = (len(REEL.findall(html)), len(TILES.findall(html)),
+                         len(BIG.findall(html)))
+    if not (reels == big == 6):
+        bad.append(f"gallery: 6 references, but {big} large photograph(s) "
+                   f"and {reels} carousel(s)")
+    if tiles != 24:
+        bad.append(f"gallery: 4 tiles over each of 6 photographs is 24, "
+                   f"{tiles} rendered")
     if not DETAILS.search(html):
         bad.append("gallery: nothing opens — no project is a <details>")
-    if "Probe A" not in html or "Probe B" not in html:
-        bad.append("gallery: a project's name is missing")
+
     for shot in ("Probe photograph one", "Probe photograph two",
                  "Probe photograph three"):
         tag = re.search(r"<img[^>]*" + re.escape(shot) + r"[^>]*>", html)
