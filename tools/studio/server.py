@@ -228,14 +228,15 @@ document.getElementById("form").href = location.pathname + "/form";
    server — so the page inside it can simply be reached into. No second
    renderer, no copy of the markup here that could disagree with it. */
 const view = document.getElementById("view");
-let saving = false;
+let busy = false;
 
 function arm() {
   let doc;
   try { doc = view.contentDocument; } catch (e) { return; }
-  if (!doc || !doc.body) return;
+  if (!doc || !doc.body || doc.getElementById("studio-marks")) return;
 
   const style = doc.createElement("style");
+  style.id = "studio-marks";          /* once per document, not per load */
   style.textContent = `
     [data-edit]{outline:0;transition:background 120ms,box-shadow 120ms;border-radius:3px}
     [data-edit]:hover{background:color-mix(in oklch,currentColor 8%,transparent);
@@ -244,41 +245,72 @@ function arm() {
       box-shadow:0 0 0 4px color-mix(in oklch,currentColor 12%,transparent)}`;
   doc.head.appendChild(style);
 
-  for (const el of doc.querySelectorAll("[data-edit]")) {
-    el.addEventListener("click", (ev) => {
-      if (el.isContentEditable) return;
-      /* A button and a link are editable text here; following them
-         while someone is trying to rewrite them helps nobody. */
-      ev.preventDefault(); ev.stopPropagation();
-      const was = el.textContent;
-      el.contentEditable = "true";
-      el.focus();
-      doc.getSelection().selectAllChildren(el);
-      say("Enter to keep it, Escape to leave it alone.");
+  /* ON THE DOCUMENT, IN THE CAPTURE PHASE.
+     Bound to each element instead, this ran AFTER the site's own
+     handlers: landing.js binds every `a[href^="#"]` at load, so
+     clicking "Explore selected work" to rename it also scrolled the
+     frame to Selected Work. Listeners on one element fire in the order
+     they were added, and ours is always added second. Capture happens
+     before any of them. */
+  doc.addEventListener("click", (ev) => {
+    const el = ev.target.closest("[data-edit]");
+    if (!el || el.isContentEditable) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (busy) { say("Still saving the last one.", true); return; }
+    edit(doc, el);
+  }, true);
+}
 
-      const stop = (keep) => {
-        el.contentEditable = "false";
-        /* innerText, never innerHTML. Anything pasted in arrives as
-           markup otherwise, and the value is a line of TOML. */
-        const now = el.innerText.replace(/\s+/g, " ").trim();
-        if (!keep || now === was.trim() || !now) { el.textContent = was; say("Nothing changed."); return; }
-        save(el.dataset.edit, now, was, el);
-      };
-      el.addEventListener("keydown", (k) => {
-        if (k.key === "Enter") { k.preventDefault(); stop(true); }
-        if (k.key === "Escape") { k.preventDefault(); stop(false); }
-      });
-      el.addEventListener("blur", () => { if (el.isContentEditable) stop(true); }, {once:true});
-    });
+function edit(doc, el) {
+  const was = el.textContent;
+
+  /* Headings arrive split into one span per word, for the reveal.
+     contenteditable over that is unusable — typing lands inside a
+     clipping box and the caret disappears. Flatten first; the split
+     comes back on the next load, which is a reload away. */
+  if (el.classList.contains("split") || el.querySelector(".w")) {
+    el.textContent = was;
+    el.classList.remove("split");
   }
+
+  const session = new AbortController();
+  const opts = {signal: session.signal};
+
+  el.contentEditable = "true";
+  el.focus();
+  doc.getSelection().selectAllChildren(el);
+  say("Enter to keep it, Escape to leave it alone.");
+
+  let over = false;
+  const stop = (keep) => {
+    if (over) return;             /* Enter then blur would run this twice */
+    over = true;
+    session.abort();              /* and nothing is left listening */
+    el.contentEditable = "false";
+    /* innerText, never innerHTML: anything pasted in arrives as markup
+       otherwise, and the value is going into a line of TOML. */
+    const now = el.innerText.replace(/\s+/g, " ").trim();
+    if (!keep || !now || now === was.trim()) {
+      el.textContent = was;
+      say("Nothing changed.");
+      return;
+    }
+    save(el.dataset.edit, now, was, el);
+  };
+
+  el.addEventListener("keydown", (k) => {
+    if (k.key === "Enter") { k.preventDefault(); stop(true); }
+    if (k.key === "Escape") { k.preventDefault(); stop(false); }
+  }, opts);
+  el.addEventListener("blur", () => stop(true), opts);
 }
 
 /* `kind.index.field` is an object; anything else is one of the page's
    own sentences. The key says which verb it needs, so the markup does
    not have to carry a second attribute saying the same thing. */
 function save(key, value, was, el) {
-  if (saving) return;
-  saving = true;
+  busy = true;
   const bits = key.split(".");
   const object = bits.length === 3;
   const where = location.pathname + (object ? "/edit" : "/text");
@@ -291,16 +323,33 @@ function save(key, value, was, el) {
                 body: JSON.stringify(body)})
     .then(r => r.json())
     .then(r => {
-      saving = false;
-      if (!r.ok) { el.textContent = was; say(r.message || "Refused.", true); return; }
+      if (!r.ok) { busy = false; el.textContent = was; say(r.message || "Refused.", true); return; }
       say(r.message || "Saved.");
-      /* Reload rather than trust what is on screen: the site is built
-         from the file, and the file is what just changed. Zola needs a
-         moment to notice — its own live-reload cannot reach us through
-         the proxy, so this is the one mechanism. */
-      setTimeout(() => view.contentWindow.location.reload(), 700);
+      return settled(value);
     })
-    .catch(e => { saving = false; el.textContent = was; say(String(e), true); });
+    .catch(e => { busy = false; el.textContent = was; say(String(e), true); });
+}
+
+/* WAIT FOR THE REBUILD, DO NOT GUESS AT IT.
+   This was a 700ms timer, which is a bet on how long Zola takes. Lose
+   the bet and the frame reloads the OLD page, so a saved edit looks
+   lost until you reload by hand. Ask the site instead: fetch it until
+   the new words are in it, then show it. */
+function settled(value, tries = 0) {
+  return fetch("/site/", {cache: "no-store"})
+    .then(r => r.text())
+    .then(html => {
+      const there = html.includes(value
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+      if (there || tries > 25) {
+        busy = false;
+        view.contentWindow.location.reload();
+        if (!there) say("Saved — the page is still rebuilding.", true);
+        return;
+      }
+      return new Promise(go => setTimeout(go, 120)).then(() => settled(value, tries + 1));
+    })
+    .catch(() => { busy = false; view.contentWindow.location.reload(); });
 }
 
 view.addEventListener("load", arm);

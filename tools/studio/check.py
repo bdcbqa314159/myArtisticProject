@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+"""What the studio panel must never do.
+
+    python3 tools/studio/check.py
+
+The panel writes to the files the site is built from, and it is the one
+tool here with a graphical surface — so the things it must refuse are
+exactly the things nobody will think to try by hand.
+
+Every case below is a bug that existed. The control-character one wrote
+a file that `objects.check()` approved and `zola build` then refused,
+which is the shape of failure that matters most: a panel that can break
+the site from a text box is not an editor, it is a hazard.
+
+Runs against a COPY. The real content file is never touched.
+"""
+
+import importlib.util
+import re
+import shutil
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(ROOT / "tools"))
+sys.path.insert(0, str(ROOT / "tools" / "studio"))
+
+import contextlib                                           # noqa: E402
+import io                                                   # noqa: E402
+
+import edit                                                 # noqa: E402
+import objects                                              # noqa: E402
+
+SERVER = (ROOT / "tools" / "studio" / "server.py").read_text(encoding="utf-8")
+
+
+def main() -> int:
+    bad: "list[str]" = []
+
+    def ok(condition: bool, what: str) -> None:
+        if not condition:
+            bad.append(what)
+
+    def refuses(call, what: str) -> None:
+        try:
+            call()
+        except edit.Refused:
+            return
+        except Exception as problem:                        # noqa: BLE001
+            bad.append(f"{what} — raised {problem!r} instead of refusing")
+            return
+        bad.append(what)
+
+    # The writers report what they did, which is right for a person and
+    # noise for a test.
+    with tempfile.TemporaryDirectory() as raw, contextlib.redirect_stdout(io.StringIO()):
+        tmp = Path(raw)
+        shutil.copytree(ROOT / "content", tmp / "content")
+        edit.CONTENT = tmp / "content" / "_index.md"
+        # `_commit` re-checks with objects.check(), which reads its OWN
+        # path — so without this the panel's safety net was validating
+        # the real file while the test edited a copy, and every refusal
+        # it is supposed to make looked like an acceptance.
+        objects.CONTENT = edit.CONTENT
+        edit.CONFIG = tmp / "config.toml"
+        shutil.copy2(ROOT / "config.toml", edit.CONFIG)
+        original = edit.CONTENT.read_text(encoding="utf-8")
+
+        # --- the characters that cannot be written ----------------------
+        # A TOML basic string is ended by a quote and escaped by a
+        # backslash — both handled — and is INVALID if it carries a raw
+        # control character. That is the whole set, which is why input
+        # validation is enough here and no build is needed to prove it.
+        for code in (0x00, 0x07, 0x0b, 0x0c, 0x1f, 0x7f):
+            refuses(lambda c=code: edit.set_text("about_title", f"a{chr(c)}b"),
+                    f"a control character ({code}) was accepted into the page")
+        for code in (0x0a, 0x0d):
+            refuses(lambda c=code: edit.set_text("about_title", f"a{chr(c)}b"),
+                    f"a newline ({code}) was accepted into the page")
+
+        # EVERY writer, not just the one. There are three ways into these
+        # files — a page sentence, an object field, a config value — and
+        # mutation testing found this: deleting the guard from `write`
+        # changed nothing here, because only `set_text` was being tried.
+        # A check that covers one of three doors is a check that will be
+        # believed about all three.
+        refuses(lambda: edit.write("reference", 1, "name", "a\x07b"),
+                "a control character was accepted into an object field")
+        refuses(lambda: edit.set_config("extra.contact", "vcard_role", "a\x07b"),
+                "a control character was accepted into the configuration")
+        refuses(lambda: edit.attach("reference", 1, "x.jpg", b"\xff\xd8\xff" + b"0" * 20000,
+                                    "a\x07b"),
+                "a control character was accepted as a photograph's description")
+
+        # ...and the ordinary ones still are. A refusal that is too broad
+        # is its own bug: this is a French site, and the client's own
+        # words carry accents, apostrophes and dashes.
+        for text in ("Créer, c'est décider", "Déjà — vu", 'He said "oui"',
+                     "a\\b", "Ænigma · 100 %"):
+            try:
+                edit.set_text("about_title", text)
+            except edit.Refused as problem:
+                bad.append(f"ordinary text was refused: {text!r} ({problem})")
+
+        # ...and what was written survives the round trip intact.
+        edit.set_text("about_title", 'He said "oui" — déjà')
+        line = re.search(r'^about_title = (.*)$',
+                         edit.CONTENT.read_text(encoding="utf-8"), re.M)
+        ok(line is not None and line.group(1) == r'"He said \"oui\" — déjà"',
+           "a quote in a value was not escaped on the way into the file")
+
+        # --- the allowlist ----------------------------------------------
+        # The [extra] block also holds the film, the poster and the
+        # navigation. A panel that could reach those could point the page
+        # at a film that is not there, or empty the menu.
+        for key in ("video", "poster", "nav", "ecosystem_fields",
+                    "ecosystem_title", "title", "template"):
+            refuses(lambda k=key: edit.set_text(k, "x"),
+                    f"{key} is writable from the panel and must not be")
+
+        refuses(lambda: edit.set_text("about_title", ""),
+                "an empty value was accepted")
+        refuses(lambda: edit.set_text("about_title", "x" * (edit.MAX_LEN + 1)),
+                "an over-long value was accepted")
+
+        # --- only above the first object --------------------------------
+        # `name` and `text` appear inside every reference too. Writing a
+        # heading into a reference would be a quiet disaster to find.
+        before = edit.CONTENT.read_text(encoding="utf-8")
+        cut = before.index("\n[[")
+        edit.set_text("work_note", "Changed by the check.")
+        after = edit.CONTENT.read_text(encoding="utf-8")
+        ok(after[after.index("\n[["):] == before[cut:],
+           "writing a page field changed something inside the objects")
+
+        # --- the record is not editable ---------------------------------
+        # A verified role is verified by checking it against something.
+        # A box a browser could tick would make the gate meaningless.
+        for field in ("verified", "verified_on", "evidence", "image"):
+            refuses(lambda f=field: edit.write("reference", 1, f, "x"),
+                    f"{field} is writable from the panel and must not be")
+
+        # --- a bad edit is undone, not reported ------------------------
+        edit.CONTENT.write_text(original, encoding="utf-8")
+        refuses(lambda: edit.write("reference", 1, "name", ""),
+                "an empty required field was accepted")
+        ok(edit.CONTENT.read_text(encoding="utf-8") == original,
+           "a refused edit left the file changed")
+
+        refuses(lambda: edit.write("reference", 99, "name", "x"),
+                "an index past the end was accepted")
+        refuses(lambda: edit.write("nonesuch", 1, "name", "x"),
+                "an unknown object kind was accepted")
+
+    # --- the panel's own page ------------------------------------------
+    # Structural, because the browser half cannot be driven here: the
+    # headless browser runs no animation frames and cannot click. These
+    # guard the two fixes most likely to be undone by someone tidying.
+    ok('doc.addEventListener("click"' in SERVER and "}, true);" in SERVER,
+       "the frame's clicks are no longer caught in the capture phase — "
+       "bound to elements instead, the site's own handlers run first and "
+       "clicking a button to rename it scrolls the page")
+    ok("new AbortController()" in SERVER,
+       "an edit no longer cleans up its listeners, so a second edit of the "
+       "same element saves twice")
+    ok("innerText" in SERVER and ".innerHTML" not in SERVER,
+       "the panel reads innerHTML somewhere — pasted markup would reach a "
+       "line of TOML")
+    ok("cache: \"no-store\"" in SERVER,
+       "the rebuild poll can be served from cache, which would make it "
+       "see the old page for ever")
+
+    if bad:
+        print("\n  THE STUDIO PANEL\n")
+        for b in bad:
+            print(f"    - {b}")
+        print()
+        return 1
+
+    print("\n  studio: the panel refuses what it must, at 32 points\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
