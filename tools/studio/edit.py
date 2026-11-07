@@ -507,6 +507,17 @@ def add_project(reference: int) -> str:
     if not 1 <= reference <= len(blocks(fm, "extra.work")):
         raise Refused(f"there is no reference {reference}")
 
+    # FIVE, and say so. The checker refuses a sixth too, but by then
+    # the message is "the result would not pass tools/objects.py" —
+    # which tells someone who pressed a button in a browser nothing at
+    # all about what they did or what to do instead.
+    here = [p for p in _projects(fm) if p.get("reference", "") == str(reference)]
+    if len(here) >= 5:
+        raise Refused(
+            f"reference {reference} already has five projects, which is what "
+            "a patchwork shows — remove one before adding another"
+        )
+
     taken = {p.get("id", "") for p in _projects(fm)}
     letters = "abcdefghijklmnop"
     new_id = next((f"r{reference}-{c}" for c in letters

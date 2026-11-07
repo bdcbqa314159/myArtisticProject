@@ -174,80 +174,94 @@
       {% for w in e.work %}
       <li class="card case">
         {% set ref = loop.index %}
-        {# How many photographs this reference has, and which project the
-           first of them belongs to — a dropped photograph lands there.
-           Counters rather than a filter, because Zola's Tera has none. #}
-        {% set_global total = 0 %}
-        {% set_global reel_id = "" %}
-        {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
-          {%- if reel_id == "" %}{% set_global reel_id = pr.id %}{% endif %}
-          {%- set_global total = total + 1 %}
-        {%- endif %}{% endfor %}{% endif %}{% endfor %}
+        {% set_global pcount = 0 %}
+        {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{% set_global pcount = pcount + 1 %}{%- endif %}{% endfor %}
 
-        {% if total > 0 %}
-        {# THE PATCHWORK — one per reference.
-             One photograph large, four laid over it, and the whole group
-             a tap away. The big one is the reference's first photograph
-             and the carousel opens on it, so what you were looking at is
-             what you get. #}
-        <details class="project" name="work-{{ ref }}">
+        {% if pcount > 0 %}
+        {# THREE LEVELS.
+             1. the card: a fridge, one project per print
+             2. a tap: the same group at the front, larger
+             3. a tap on one of those: that project's carousel
+           Each level is a <details>, so all of it works with no script
+           and arrives with a keyboard already understood. #}
+        <details class="group" name="work-{{ ref }}">
           <summary>
             <figure class="patch">
-              {% set_global n = 0 %}
-              {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
-                {%- set_global n = n + 1 %}
-                {%- if n == 1 %}
-                {# NOT LAZY, and that is the whole point of it.
-                   There are six of these — one per reference, exactly
-                   what the page carried before the gallery existed, and
-                   they were eager then so the cover would wait for them
-                   and nothing would trickle in. Made lazy with
-                   everything else, four of the six had not arrived by
-                   the time a phone reached them: a dark panel with
-                   prints floating on nothing, which is what "a broken
-                   ref" looks like.
-                   The tiles and the carousel stay lazy. Those are the
-                   ninety-eight nobody can wait for. #}
-                {% set big = resize_image(path="@/" ~ ph.file, width=900, op="fit_width", format="webp", quality=72) %}
-                <img class="patch-big" src="{{ big.url }}" width="{{ big.width }}" height="{{ big.height }}"
-                     alt="{{ ph.alt }}" decoding="async">
-                {% endif %}
-              {%- endif %}{% endfor %}{% endif %}{% endfor %}
-
-              <ol class="patch-tiles" data-set="{{ ref }}">
-                {% set_global n = 0 %}
-                {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
-                  {%- set_global n = n + 1 %}
-                  {%- if n > 1 and n < 6 %}
-                  {# Four prints, and no two the same shape — a fridge is
-                     not a grid. Cropped to get there: a tile is an index
-                     to the work rather than the work, and the whole of
-                     it is one tap away, uncropped. #}
-                  {% set_global tw = 400 %}{% set_global th = 400 %}
-                  {%- if n == 2 %}{% set_global tw = 360 %}{% set_global th = 480 %}{% endif %}
-                  {%- if n == 3 %}{% set_global tw = 480 %}{% set_global th = 360 %}{% endif %}
-                  {%- if n == 5 %}{% set_global tw = 480 %}{% set_global th = 320 %}{% endif %}
-                  {% set tile = resize_image(path="@/" ~ ph.file, width=tw, height=th, op="fill", format="webp", quality=70) %}
-                  <li><img src="{{ tile.url }}" width="{{ tw }}" height="{{ th }}"
-                           alt="{{ ph.alt }}" loading="lazy" decoding="async"></li>
-                  {% endif %}
-                {%- endif %}{% endfor %}{% endif %}{% endfor %}
+              <ol class="fridge" data-set="{{ ref }}">
+                {% set_global k = 0 %}
+                {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{% set_global k = k + 1 %}{%- set_global cov = "" %}{% set_global cova = "" %}{%- for ph in e.photo | default(value=[]) %}{%- if ph.project == pr.id and cov == "" %}{%- set_global cov = ph.file %}{% set_global cova = ph.alt %}{%- endif %}{% endfor %}
+              {%- if k == 1 %}<li class="slot-1">{% set im = resize_image(path="@/" ~ cov, width=900, op="fit_width", format="webp", quality=72) %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ cova }}" decoding="async"></li>{% endif %}
+              {%- if k == 2 %}<li class="slot-2">{% set im = resize_image(path="@/" ~ cov, width=360, height=480, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="360" height="480" alt="{{ cova }}" loading="lazy" decoding="async"></li>{% endif %}
+              {%- if k == 3 %}<li class="slot-3">{% set im = resize_image(path="@/" ~ cov, width=480, height=360, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="480" height="360" alt="{{ cova }}" loading="lazy" decoding="async"></li>{% endif %}
+              {%- if k == 4 %}<li class="slot-4">{% set im = resize_image(path="@/" ~ cov, width=400, height=400, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="400" height="400" alt="{{ cova }}" loading="lazy" decoding="async"></li>{% endif %}
+              {%- if k == 5 %}<li class="slot-5">{% set im = resize_image(path="@/" ~ cov, width=480, height=320, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="480" height="320" alt="{{ cova }}" loading="lazy" decoding="async"></li>{% endif %}
+                {%- endif %}{% endfor %}
               </ol>
-
-              {% if total > 5 %}<figcaption class="patch-count">{{ total }} photographs</figcaption>{% endif %}
+              <figcaption class="patch-count">{{ pcount }} projects</figcaption>
             </figure>
-            {# Only read once the carousel is open, where the card's own
-               heading is no longer on screen to say whose work this is. #}
-            <span class="project-name">{{ w.name }}</span>
           </summary>
 
-          <div class="reel" tabindex="0" role="group"
-               aria-label="{{ w.name }}" data-reel="{{ reel_id }}">
-            {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
-            {% set shot = resize_image(path="@/" ~ ph.file, width=1400, op="fit_width", format="webp", quality=74) %}
-            <img src="{{ shot.url }}" width="{{ shot.width }}" height="{{ shot.height }}"
-                 alt="{{ ph.alt }}" loading="lazy" decoding="async">
-            {%- endif %}{% endfor %}{% endif %}{% endfor %}
+          <div class="group-front">
+            <div class="fridge front" data-set="{{ ref }}">
+              {% set_global k = 0 %}
+              {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{% set_global k = k + 1 %}{%- set_global cov = "" %}{% set_global cova = "" %}{%- for ph in e.photo | default(value=[]) %}{%- if ph.project == pr.id and cov == "" %}{%- set_global cov = ph.file %}{% set_global cova = ph.alt %}{%- endif %}{% endfor %}
+              {%- if k == 1 %}
+              <details class="shots slot-1" name="shots-{{ ref }}">
+                <summary>{% set im = resize_image(path="@/" ~ cov, width=1200, op="fit_width", format="webp", quality=72) %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ cova }}" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
+                <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
+                  {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
+                  {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
+                  <img src="{{ shot.url }}" width="{{ shot.width }}" height="{{ shot.height }}"
+                       alt="{{ ph.alt }}" loading="lazy" decoding="async">
+                  {%- endif %}{% endfor %}
+                </div>
+              </details>{% endif %}
+              {%- if k == 2 %}
+              <details class="shots slot-2" name="shots-{{ ref }}">
+                <summary>{% set im = resize_image(path="@/" ~ cov, width=540, height=720, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="540" height="720" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
+                <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
+                  {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
+                  {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
+                  <img src="{{ shot.url }}" width="{{ shot.width }}" height="{{ shot.height }}"
+                       alt="{{ ph.alt }}" loading="lazy" decoding="async">
+                  {%- endif %}{% endfor %}
+                </div>
+              </details>{% endif %}
+              {%- if k == 3 %}
+              <details class="shots slot-3" name="shots-{{ ref }}">
+                <summary>{% set im = resize_image(path="@/" ~ cov, width=720, height=540, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="720" height="540" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
+                <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
+                  {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
+                  {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
+                  <img src="{{ shot.url }}" width="{{ shot.width }}" height="{{ shot.height }}"
+                       alt="{{ ph.alt }}" loading="lazy" decoding="async">
+                  {%- endif %}{% endfor %}
+                </div>
+              </details>{% endif %}
+              {%- if k == 4 %}
+              <details class="shots slot-4" name="shots-{{ ref }}">
+                <summary>{% set im = resize_image(path="@/" ~ cov, width=620, height=620, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="620" height="620" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
+                <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
+                  {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
+                  {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
+                  <img src="{{ shot.url }}" width="{{ shot.width }}" height="{{ shot.height }}"
+                       alt="{{ ph.alt }}" loading="lazy" decoding="async">
+                  {%- endif %}{% endfor %}
+                </div>
+              </details>{% endif %}
+              {%- if k == 5 %}
+              <details class="shots slot-5" name="shots-{{ ref }}">
+                <summary>{% set im = resize_image(path="@/" ~ cov, width=720, height=480, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="720" height="480" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
+                <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
+                  {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
+                  {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
+                  <img src="{{ shot.url }}" width="{{ shot.width }}" height="{{ shot.height }}"
+                       alt="{{ ph.alt }}" loading="lazy" decoding="async">
+                  {%- endif %}{% endfor %}
+                </div>
+              </details>{% endif %}
+              {%- endif %}{% endfor %}
+            </div>
           </div>
         </details>
         {% else %}

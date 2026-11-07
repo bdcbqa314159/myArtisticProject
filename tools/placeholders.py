@@ -41,8 +41,12 @@ WANTED = [
 #
 # 1200px wide because the template resizes to 1100: larger is bytes
 # nobody is served.
-PROJECTS = [3, 2, 3, 2, 3, 2]
-PER_PROJECT = 4
+# Up to five projects on a reference's fridge — one large and four laid
+# over it — and up to five photographs in each. Fewer is allowed and
+# shown; more is refused by tools/objects.py, because a sixth would be
+# on no page at all.
+PROJECTS = [5, 4, 5, 4, 5, 4]
+PER_PROJECT = [4, 3, 5, 4, 3]
 LETTERS = "abcdef"
 
 
@@ -51,9 +55,12 @@ def portfolio() -> "list[tuple[str, str, int, int]]":
     for ref, many in enumerate(PROJECTS, 1):
         for slot in range(many):
             pid = f"r{ref}-{LETTERS[slot]}"
-            for n in range(1, PER_PROJECT + 1):
+            for n in range(1, PER_PROJECT[slot] + 1):
                 tall = (n % 4 == 0)
-                w, h = (800, 1067) if tall else (1200, 800)
+                # 1000px wide: the carousel resizes to 1000 and the
+                # background to 900, so anything larger is bytes nobody
+                # is served — and there are a hundred of them.
+                w, h = (750, 1000) if tall else (1000, 667)
                 # The seed names nothing and nobody — an earlier set of
                 # these carried the client's own mark, in a public
                 # repository. See the tripwire in content-check.py.

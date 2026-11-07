@@ -248,6 +248,16 @@ reference = 1
 name = "Projet 1-C"
 
 [[extra.project]]
+id = "r1-d"
+reference = 1
+name = "Projet 1-D"
+
+[[extra.project]]
+id = "r1-e"
+reference = 1
+name = "Projet 1-E"
+
+[[extra.project]]
 id = "r2-a"
 reference = 2
 name = "Projet 2-A"
@@ -256,6 +266,16 @@ name = "Projet 2-A"
 id = "r2-b"
 reference = 2
 name = "Projet 2-B"
+
+[[extra.project]]
+id = "r2-c"
+reference = 2
+name = "Projet 2-C"
+
+[[extra.project]]
+id = "r2-d"
+reference = 2
+name = "Projet 2-D"
 
 [[extra.project]]
 id = "r3-a"
@@ -273,6 +293,16 @@ reference = 3
 name = "Projet 3-C"
 
 [[extra.project]]
+id = "r3-d"
+reference = 3
+name = "Projet 3-D"
+
+[[extra.project]]
+id = "r3-e"
+reference = 3
+name = "Projet 3-E"
+
+[[extra.project]]
 id = "r4-a"
 reference = 4
 name = "Projet 4-A"
@@ -281,6 +311,16 @@ name = "Projet 4-A"
 id = "r4-b"
 reference = 4
 name = "Projet 4-B"
+
+[[extra.project]]
+id = "r4-c"
+reference = 4
+name = "Projet 4-C"
+
+[[extra.project]]
+id = "r4-d"
+reference = 4
+name = "Projet 4-D"
 
 [[extra.project]]
 id = "r5-a"
@@ -298,6 +338,16 @@ reference = 5
 name = "Projet 5-C"
 
 [[extra.project]]
+id = "r5-d"
+reference = 5
+name = "Projet 5-D"
+
+[[extra.project]]
+id = "r5-e"
+reference = 5
+name = "Projet 5-E"
+
+[[extra.project]]
 id = "r6-a"
 reference = 6
 name = "Projet 6-A"
@@ -306,6 +356,16 @@ name = "Projet 6-A"
 id = "r6-b"
 reference = 6
 name = "Projet 6-B"
+
+[[extra.project]]
+id = "r6-c"
+reference = 6
+name = "Projet 6-C"
+
+[[extra.project]]
+id = "r6-d"
+reference = 6
+name = "Projet 6-D"
 
 [[extra.photo]]
 project = "r1-a"
@@ -343,11 +403,6 @@ file = "work-r1-b-03.jpg"
 alt = "Photographie 03 — image de remplacement, pas le travail du client"
 
 [[extra.photo]]
-project = "r1-b"
-file = "work-r1-b-04.jpg"
-alt = "Photographie 04 — image de remplacement, pas le travail du client"
-
-[[extra.photo]]
 project = "r1-c"
 file = "work-r1-c-01.jpg"
 alt = "Photographie 01 — image de remplacement, pas le travail du client"
@@ -366,6 +421,46 @@ alt = "Photographie 03 — image de remplacement, pas le travail du client"
 project = "r1-c"
 file = "work-r1-c-04.jpg"
 alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-c"
+file = "work-r1-c-05.jpg"
+alt = "Photographie 05 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-d"
+file = "work-r1-d-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-d"
+file = "work-r1-d-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-d"
+file = "work-r1-d-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-d"
+file = "work-r1-d-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-e"
+file = "work-r1-e-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-e"
+file = "work-r1-e-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-e"
+file = "work-r1-e-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
 
 [[extra.photo]]
 project = "r2-a"
@@ -403,8 +498,48 @@ file = "work-r2-b-03.jpg"
 alt = "Photographie 03 — image de remplacement, pas le travail du client"
 
 [[extra.photo]]
-project = "r2-b"
-file = "work-r2-b-04.jpg"
+project = "r2-c"
+file = "work-r2-c-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r2-c"
+file = "work-r2-c-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r2-c"
+file = "work-r2-c-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r2-c"
+file = "work-r2-c-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r2-c"
+file = "work-r2-c-05.jpg"
+alt = "Photographie 05 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r2-d"
+file = "work-r2-d-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r2-d"
+file = "work-r2-d-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r2-d"
+file = "work-r2-d-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r2-d"
+file = "work-r2-d-04.jpg"
 alt = "Photographie 04 — image de remplacement, pas le travail du client"
 
 [[extra.photo]]
@@ -443,11 +578,6 @@ file = "work-r3-b-03.jpg"
 alt = "Photographie 03 — image de remplacement, pas le travail du client"
 
 [[extra.photo]]
-project = "r3-b"
-file = "work-r3-b-04.jpg"
-alt = "Photographie 04 — image de remplacement, pas le travail du client"
-
-[[extra.photo]]
 project = "r3-c"
 file = "work-r3-c-01.jpg"
 alt = "Photographie 01 — image de remplacement, pas le travail du client"
@@ -466,6 +596,46 @@ alt = "Photographie 03 — image de remplacement, pas le travail du client"
 project = "r3-c"
 file = "work-r3-c-04.jpg"
 alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-c"
+file = "work-r3-c-05.jpg"
+alt = "Photographie 05 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-d"
+file = "work-r3-d-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-d"
+file = "work-r3-d-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-d"
+file = "work-r3-d-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-d"
+file = "work-r3-d-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-e"
+file = "work-r3-e-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-e"
+file = "work-r3-e-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-e"
+file = "work-r3-e-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
 
 [[extra.photo]]
 project = "r4-a"
@@ -503,8 +673,48 @@ file = "work-r4-b-03.jpg"
 alt = "Photographie 03 — image de remplacement, pas le travail du client"
 
 [[extra.photo]]
-project = "r4-b"
-file = "work-r4-b-04.jpg"
+project = "r4-c"
+file = "work-r4-c-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r4-c"
+file = "work-r4-c-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r4-c"
+file = "work-r4-c-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r4-c"
+file = "work-r4-c-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r4-c"
+file = "work-r4-c-05.jpg"
+alt = "Photographie 05 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r4-d"
+file = "work-r4-d-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r4-d"
+file = "work-r4-d-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r4-d"
+file = "work-r4-d-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r4-d"
+file = "work-r4-d-04.jpg"
 alt = "Photographie 04 — image de remplacement, pas le travail du client"
 
 [[extra.photo]]
@@ -543,11 +753,6 @@ file = "work-r5-b-03.jpg"
 alt = "Photographie 03 — image de remplacement, pas le travail du client"
 
 [[extra.photo]]
-project = "r5-b"
-file = "work-r5-b-04.jpg"
-alt = "Photographie 04 — image de remplacement, pas le travail du client"
-
-[[extra.photo]]
 project = "r5-c"
 file = "work-r5-c-01.jpg"
 alt = "Photographie 01 — image de remplacement, pas le travail du client"
@@ -566,6 +771,46 @@ alt = "Photographie 03 — image de remplacement, pas le travail du client"
 project = "r5-c"
 file = "work-r5-c-04.jpg"
 alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-c"
+file = "work-r5-c-05.jpg"
+alt = "Photographie 05 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-d"
+file = "work-r5-d-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-d"
+file = "work-r5-d-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-d"
+file = "work-r5-d-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-d"
+file = "work-r5-d-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-e"
+file = "work-r5-e-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-e"
+file = "work-r5-e-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-e"
+file = "work-r5-e-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
 
 [[extra.photo]]
 project = "r6-a"
@@ -603,8 +848,48 @@ file = "work-r6-b-03.jpg"
 alt = "Photographie 03 — image de remplacement, pas le travail du client"
 
 [[extra.photo]]
-project = "r6-b"
-file = "work-r6-b-04.jpg"
+project = "r6-c"
+file = "work-r6-c-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r6-c"
+file = "work-r6-c-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r6-c"
+file = "work-r6-c-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r6-c"
+file = "work-r6-c-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r6-c"
+file = "work-r6-c-05.jpg"
+alt = "Photographie 05 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r6-d"
+file = "work-r6-d-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r6-d"
+file = "work-r6-d-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r6-d"
+file = "work-r6-d-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r6-d"
+file = "work-r6-d-04.jpg"
 alt = "Photographie 04 — image de remplacement, pas le travail du client"
 
 

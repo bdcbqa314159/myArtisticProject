@@ -1016,7 +1016,7 @@ section:not(.hero) > .wrap > .eyebrow::after {
    happens at the two ends, when nothing is moving. */
 
 .case .image img,
-.project summary img,
+.fridge img,
 .placeholder:not(:has(video)) {
   transition: filter 400ms cubic-bezier(.2, 0, .2, 1);
 }
@@ -1028,7 +1028,7 @@ section:not(.hero) > .wrap > .eyebrow::after {
    happening on most of the page and no check noticed. The thumbnails
    ARE the photographs now. */
 html.scrolling .case .image img,
-html.scrolling .project summary img,
+html.scrolling .fridge img,
 html.scrolling .placeholder:not(:has(video)) {
   filter: blur(3px);
 }
@@ -1071,9 +1071,9 @@ html.scrolling .case .image img.smear { filter: blur(3px) url(#smear); }
 @media (prefers-reduced-motion: reduce) {
   /* Belt as well as braces — the script does not add the class under
      reduced motion either. */
-  .case .image img, .project summary img, .placeholder { transition: none; }
+  .case .image img, .fridge img, .placeholder { transition: none; }
   html.scrolling .case .image img,
-  html.scrolling .project summary img,
+  html.scrolling .fridge img,
   html.scrolling .placeholder { filter: none; }
 }
 
@@ -1431,58 +1431,31 @@ html.js [data-copy] { display: inline-flex; }
  * with a thumb gesture, a keyboard and a screen reader already working,
  * which is the whole argument for using them instead of writing them.
  */
-/* ---- the patchwork -------------------------------------------------------
- * "the man is the background and then we see 4 small over it, and when
- *  we click over it we see the whole group in carrousel starting by the
- *  man in costume."
+/* ---- the fridge, at two sizes --------------------------------------------
+ * Three levels, each one a <details>:
+ *   the card      a fridge, one print per project
+ *   a tap         the same group at the front, larger
+ *   a tap on one  that project's photographs, as a carousel
  *
- * One photograph holds the card, four sit on it like contact prints
- * laid on a print, and a tap opens all of them. The grid of equal
- * thumbnails that stood here said every photograph weighed the same;
- * this says one of them is the picture and the others are what else
- * there is.
+ * The arrangement is written ONCE, at the bottom of this block, in
+ * percentages — so the fridge on the card and the fridge at the front
+ * are the same composition at two sizes rather than two compositions
+ * that have to be kept in step.
  */
-.patch {
-  position: relative;
-  margin: 0 0 1.1rem;
-  /* Nothing escapes the photograph. A print whose corner runs past the
-     edge is tucked under it, which is what a print on a fridge does —
-     one that ran onto the paragraph below would just be broken. */
-  overflow: clip;
-}
+.patch { position: relative; margin: 0 0 1.1rem; }
 
-.patch-big {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 3 / 2;
-  object-fit: cover;
-  background: var(--panel);
-}
-
-/* ---- held by not quite enough magnets -----------------------------------
- * "like we would like to make hold the pictures but we do not have
- *  enough magnets so they hold."
- *
- * The prints are not laid out, they are STUCK ON — four shapes, four
- * sizes, four angles, pinned near one corner each so the tilt reads as
- * a single magnet doing the work rather than as a style applied to a
- * row.
- *
- * SIX FIXED ARRANGEMENTS, one per reference, written out below. Fixed,
- * not random: a page that rearranges itself between builds is a page
- * nobody can review, and the same reference looking the same tomorrow
- * is worth more than novelty. Everything is a percentage of the card,
- * so they hold their arrangement at every width.
- */
-.patch-tiles {
+.fridge {
   list-style: none;
   margin: 0;
   padding: 0;
-  position: absolute;
-  inset: 0;
+  position: relative;
+  aspect-ratio: 3 / 2;
+  /* Nothing escapes the photograph. A print whose corner runs past the
+     edge is tucked under it, which is what a print on a fridge does. */
+  overflow: clip;
 }
 
-.patch-tiles li {
+.fridge > * {
   position: absolute;
   /* Near a corner, not the middle: that is where the magnet is. */
   transform-origin: 22% 8%;
@@ -1490,68 +1463,29 @@ html.js [data-copy] { display: inline-flex; }
   transition: transform 420ms cubic-bezier(.2, .9, .3, 1);
 }
 
-.patch-tiles img {
+.fridge img {
   display: block;
   width: 100%;
   height: auto;
-  /* Lifted off the photograph underneath by the page's own ground
-     rather than by a shadow — there are no shadows anywhere else here. */
+}
+
+/* The one underneath is the ground, not a print: square to the frame,
+   filling it, and no white edge. */
+.fridge > .slot-1 { height: 100%; }
+.fridge > .slot-1 img { height: 100%; object-fit: cover; background: var(--panel); }
+
+/* The four on top are prints, lifted off by the page's own ground
+   rather than by a shadow — there are no shadows anywhere else here. */
+.fridge > :not(.slot-1) img {
   outline: 3px solid var(--bg);
   outline-offset: -1px;
 }
-
-/* A hand near them settles them a little straighter. Not level — level
-   would be a grid again, and the whole point is that they are not. */
-@media (hover: hover) {
-  .project summary:hover .patch-tiles li {
-    transform: rotate(calc(var(--tilt, 0deg) * 0.45));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .patch-tiles li { transition: none; }
-}
-
-/* 1 */
-.patch-tiles[data-set="1"] li:nth-child(1) { width: 26%; left: 5%; top: 38%; --tilt: -6deg; }
-.patch-tiles[data-set="1"] li:nth-child(2) { width: 30%; left: 33%; top: 50%; --tilt: 3deg; }
-.patch-tiles[data-set="1"] li:nth-child(3) { width: 22%; left: 66%; top: 42%; --tilt: -4deg; }
-.patch-tiles[data-set="1"] li:nth-child(4) { width: 24%; left: 70%; top: 60%; --tilt: 8deg; }
-
-/* 2 */
-.patch-tiles[data-set="2"] li:nth-child(1) { width: 24%; left: 8%; top: 20%; --tilt: 5deg; }
-.patch-tiles[data-set="2"] li:nth-child(2) { width: 28%; left: 30%; top: 48%; --tilt: -5deg; }
-.patch-tiles[data-set="2"] li:nth-child(3) { width: 20%; left: 58%; top: 26%; --tilt: 7deg; }
-.patch-tiles[data-set="2"] li:nth-child(4) { width: 26%; left: 64%; top: 58%; --tilt: -3deg; }
-
-/* 3 */
-.patch-tiles[data-set="3"] li:nth-child(1) { width: 22%; left: 6%; top: 44%; --tilt: -7deg; }
-.patch-tiles[data-set="3"] li:nth-child(2) { width: 26%; left: 27%; top: 60%; --tilt: 2deg; }
-.patch-tiles[data-set="3"] li:nth-child(3) { width: 24%; left: 52%; top: 52%; --tilt: 6deg; }
-.patch-tiles[data-set="3"] li:nth-child(4) { width: 20%; left: 75%; top: 62%; --tilt: -4deg; }
-
-/* 4 */
-.patch-tiles[data-set="4"] li:nth-child(1) { width: 20%; left: 10%; top: 16%; --tilt: -5deg; }
-.patch-tiles[data-set="4"] li:nth-child(2) { width: 24%; left: 68%; top: 14%; --tilt: 4deg; }
-.patch-tiles[data-set="4"] li:nth-child(3) { width: 28%; left: 16%; top: 46%; --tilt: 6deg; }
-.patch-tiles[data-set="4"] li:nth-child(4) { width: 22%; left: 60%; top: 60%; --tilt: -6deg; }
-
-/* 5 */
-.patch-tiles[data-set="5"] li:nth-child(1) { width: 28%; left: 50%; top: 20%; --tilt: -4deg; }
-.patch-tiles[data-set="5"] li:nth-child(2) { width: 22%; left: 70%; top: 48%; --tilt: 7deg; }
-.patch-tiles[data-set="5"] li:nth-child(3) { width: 24%; left: 10%; top: 46%; --tilt: 5deg; }
-.patch-tiles[data-set="5"] li:nth-child(4) { width: 20%; left: 34%; top: 58%; --tilt: -7deg; }
-
-/* 6 */
-.patch-tiles[data-set="6"] li:nth-child(1) { width: 24%; left: 4%; top: 30%; --tilt: 6deg; }
-.patch-tiles[data-set="6"] li:nth-child(2) { width: 20%; left: 32%; top: 18%; --tilt: -6deg; }
-.patch-tiles[data-set="6"] li:nth-child(3) { width: 26%; left: 46%; top: 50%; --tilt: 4deg; }
-.patch-tiles[data-set="6"] li:nth-child(4) { width: 22%; left: 74%; top: 34%; --tilt: -5deg; }
 
 .patch-count {
   position: absolute;
   top: 10px;
   right: 10px;
+  z-index: 2;
   padding: 0.3rem 0.55rem;
   font-size: 0.66rem;
   letter-spacing: 0.1em;
@@ -1560,41 +1494,175 @@ html.js [data-copy] { display: inline-flex; }
   background: color-mix(in oklch, var(--ink) 80%, transparent);
 }
 
-.project summary {
-  list-style: none;
-  cursor: pointer;
-  position: relative;
-  display: block;
-  -webkit-tap-highlight-color: transparent;
+/* A hand near them settles them a little straighter. Not level — level
+   would be a grid again, and the whole point is that they are not. */
+@media (hover: hover) {
+  .group summary:hover .fridge > :not(.slot-1) {
+    transform: rotate(calc(var(--tilt, 0deg) * 0.45));
+  }
 }
 
-.project summary::-webkit-details-marker { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .fridge > * { transition: none; }
+}
 
-/* The shape is the patchwork's business now — the big one is 3:2, a
-   tile is square. Forced to 4:3 here, every tile was crushed. */
-.project summary img { transition: filter 300ms cubic-bezier(.2, 0, .2, 1); }
+.group summary { list-style: none; cursor: pointer; display: block;
+                 -webkit-tap-highlight-color: transparent; }
+.group summary::-webkit-details-marker { display: none; }
 
-.project-name {
-  display: none;
-  margin-top: 0.4rem;
+/* ---- level two: the same group, at the front -----------------------------
+ * The same arrangement, as large as the screen allows. The card's own
+ * fridge is hidden while this is up — two of them on screen at once is
+ * the page telling you it has lost track of where you are.
+ */
+html.js .group[open] > .group-front {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--gutter);
+  background: var(--bg);
+}
+
+html.js .group[open] > .group-front .fridge {
+  width: min(96vw, 1100px);
+  max-height: 84vh;
+}
+
+html.js .group[open] > summary .patch { display: none; }
+
+/* The way out of each level, above the sheet it opened. */
+html.js .group[open] > summary,
+html.js .shots[open] > summary {
+  position: fixed;
+  z-index: 60;
+  inset: 0 0 auto auto;
+  padding: calc(var(--gutter) / 1.6);
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+html.js .shots[open] > summary { z-index: 80; }
+
+html.js .group[open] > summary::after,
+html.js .shots[open] > summary::after {
+  content: "Close";
   font-size: 0.72rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
-  transition: color 160ms ease;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 2px;
 }
 
 @media (hover: hover) {
-  .project summary:hover .project-name { color: var(--ink); }
-  .project summary:hover .patch-big { filter: brightness(1.08); }
+  html.js .group[open] > summary:hover::after,
+  html.js .shots[open] > summary:hover::after { color: var(--ink); }
 }
 
-/* The open project says so, since the thumbnail stays on screen. */
-html.js .project[open] > summary .project-name { display: block; color: var(--ink); }
-.project[open] summary img,
-.project[open] summary .patch-count { display: none; }
+/* ---- level three: one project's photographs ------------------------------
+ * THE OPEN PRINT STOPS BEING A PRINT.
+ *
+ * `transform` makes an element the containing block for every
+ * `position: fixed` descendant — so a carousel inside a print rotated
+ * 6deg resolved `inset: 0` against the print, not the screen, and came
+ * up as a small panel pinned to a tilted photograph. This page has met
+ * that rule once before, when `backdrop-filter` on the header did the
+ * same thing to the menu sheet.
+ *
+ * The fix is to stop transforming it. Nothing is lost: what the print
+ * looked like stopped mattering the moment its photographs covered the
+ * screen.
+ */
+html.js .shots[open] {
+  position: static;
+  transform: none;
+}
 
-/* ---- the carousel -------------------------------------------------------
+/* ---- level three: one project's photographs ------------------------------ */
+.shots summary { list-style: none; cursor: pointer; display: block; }
+.shots summary::-webkit-details-marker { display: none; }
+
+.shots-name {
+  display: none;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+html.js .shots[open] > summary .shots-name { display: block; }
+html.js .shots[open] > summary img { display: none; }
+
+html.js .shots[open] > .reel {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  margin: 0;
+  padding: 0 var(--gutter);
+  align-items: center;
+  background: var(--bg);
+  scroll-padding-inline: var(--gutter);
+}
+
+/* As large as fits, and no larger: full screen there is one photograph
+   and a lot of ground, so nothing is being lined up against anything. */
+html.js .shots[open] > .reel img {
+  height: auto;
+  width: auto;
+  max-height: 80vh;
+  max-width: calc(100vw - var(--gutter) * 2);
+  background: none;
+}
+
+/* The page does not move underneath any of it. */
+html.js:has(.group[open]) { overflow: hidden; }
+
+/* 1 */
+.fridge[data-set="1"] > .slot-1 { inset: 0; width: auto; }
+.fridge[data-set="1"] > .slot-2 { width: 26%; left: 5%; top: 38%; --tilt: -6deg; }
+.fridge[data-set="1"] > .slot-3 { width: 30%; left: 33%; top: 50%; --tilt: 3deg; }
+.fridge[data-set="1"] > .slot-4 { width: 22%; left: 66%; top: 42%; --tilt: -4deg; }
+.fridge[data-set="1"] > .slot-5 { width: 24%; left: 70%; top: 60%; --tilt: 8deg; }
+
+/* 2 */
+.fridge[data-set="2"] > .slot-1 { inset: 0; width: auto; }
+.fridge[data-set="2"] > .slot-2 { width: 24%; left: 8%; top: 20%; --tilt: 5deg; }
+.fridge[data-set="2"] > .slot-3 { width: 28%; left: 30%; top: 48%; --tilt: -5deg; }
+.fridge[data-set="2"] > .slot-4 { width: 20%; left: 58%; top: 26%; --tilt: 7deg; }
+.fridge[data-set="2"] > .slot-5 { width: 26%; left: 64%; top: 58%; --tilt: -3deg; }
+
+/* 3 */
+.fridge[data-set="3"] > .slot-1 { inset: 0; width: auto; }
+.fridge[data-set="3"] > .slot-2 { width: 22%; left: 6%; top: 44%; --tilt: -7deg; }
+.fridge[data-set="3"] > .slot-3 { width: 26%; left: 27%; top: 60%; --tilt: 2deg; }
+.fridge[data-set="3"] > .slot-4 { width: 24%; left: 52%; top: 52%; --tilt: 6deg; }
+.fridge[data-set="3"] > .slot-5 { width: 20%; left: 75%; top: 62%; --tilt: -4deg; }
+
+/* 4 */
+.fridge[data-set="4"] > .slot-1 { inset: 0; width: auto; }
+.fridge[data-set="4"] > .slot-2 { width: 20%; left: 10%; top: 16%; --tilt: -5deg; }
+.fridge[data-set="4"] > .slot-3 { width: 24%; left: 68%; top: 14%; --tilt: 4deg; }
+.fridge[data-set="4"] > .slot-4 { width: 28%; left: 16%; top: 46%; --tilt: 6deg; }
+.fridge[data-set="4"] > .slot-5 { width: 22%; left: 60%; top: 60%; --tilt: -6deg; }
+
+/* 5 */
+.fridge[data-set="5"] > .slot-1 { inset: 0; width: auto; }
+.fridge[data-set="5"] > .slot-2 { width: 28%; left: 50%; top: 20%; --tilt: -4deg; }
+.fridge[data-set="5"] > .slot-3 { width: 22%; left: 70%; top: 48%; --tilt: 7deg; }
+.fridge[data-set="5"] > .slot-4 { width: 24%; left: 10%; top: 46%; --tilt: 5deg; }
+.fridge[data-set="5"] > .slot-5 { width: 20%; left: 34%; top: 58%; --tilt: -7deg; }
+
+/* 6 */
+.fridge[data-set="6"] > .slot-1 { inset: 0; width: auto; }
+.fridge[data-set="6"] > .slot-2 { width: 24%; left: 4%; top: 30%; --tilt: 6deg; }
+.fridge[data-set="6"] > .slot-3 { width: 20%; left: 32%; top: 18%; --tilt: -6deg; }
+.fridge[data-set="6"] > .slot-4 { width: 26%; left: 46%; top: 50%; --tilt: 4deg; }
+.fridge[data-set="6"] > .slot-5 { width: 22%; left: 74%; top: 34%; --tilt: -5deg; }
+
+/* ---- the carousel, inline (no script) -------------------------------------------------------
  * One line, snapped. `mandatory` rather than `proximity` because a
  * photograph half out of frame reads as a mistake rather than as a hint
  * that there is more; the overshoot is what tells you to keep going.
@@ -1658,33 +1726,7 @@ html.js .project[open] > summary .project-name { display: block; color: var(--in
   .project summary img, .project-name { transition: none; }
 }
 
-/* ---- the carousel comes to the front ------------------------------------
- * "the click on a photo should pop up the carrousel on front not inside."
- *
- * Opened inline the reel was a carousel through a letterbox — half a
- * card wide, under the next reference, competing with the page around
- * it. Full screen it is the only thing there, which is what looking at
- * someone's work asks for.
- *
- * THE SAME ARRANGEMENT THE MENU ALREADY USES: a fixed sheet at z-index
- * 50, its `summary` above it at 60 so the way out is always reachable,
- * and the page behind it locked. Not a second overlay mechanism with
- * its own opinions — there is one on this page already and it works.
- *
- * Still <details>, so with no script the project opens inline exactly
- * as it did and nothing is unreachable. `html.js` is set before first
- * paint, so the two never flicker between each other.
- */
-html.js .project[open] > .reel {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  margin: 0;
-  padding: 0 var(--gutter);
-  align-items: center;
-  background: var(--bg);
-  scroll-padding-inline: var(--gutter);
-}
+
 
 /* AS LARGE AS FITS, and no larger.
    A fixed height here did what it does in the inline reel: a landscape
