@@ -52,6 +52,26 @@ and the value is simply gone.
 | `name` | yes | the format's name |
 | `text` | yes | one sentence on what it is |
 
+## project
+
+`[[extra.project]]` — One body of work inside a reference — the client's "tiny portfolio". A reference shows several of these as thumbnails; opening one gives its photographs.
+
+| field | required | |
+|---|---|---|
+| `id` | yes | unique, and what a photograph points at — e.g. "r1-a" |
+| `reference` | yes | which of the six references this belongs to, 1-6 |
+| `name` | yes | the project, as it is shown under its thumbnail |
+
+## photo
+
+`[[extra.photo]]` — One photograph inside a project. The FIRST of a project is also its thumbnail — there is no separate cover field, because a cover is a second thing to keep in step with the first and the first to go stale.
+
+| field | required | |
+|---|---|---|
+| `project` | yes | the id of the project it belongs to |
+| `file` | yes | a file in content/, e.g. r1-a-01.jpg |
+| `alt` | yes | what it shows, for someone who cannot see it |
+
 ## pillar
 
 `[[extra.about_pillars]]` — One strand of the practice, in About.
