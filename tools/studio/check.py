@@ -218,6 +218,57 @@ def main() -> int:
         ok(len(set(both)) == len(both),
            "two references ended up pointing at the same photograph")
 
+        # --- projects and their photographs ------------------------------
+        edit.CONTENT.write_text(original, encoding="utf-8")
+        edit.add_project(1)
+        edit.add_project(1)
+        made = objects.blocks(objects.front_matter(), "extra.project")
+        ok([p["id"] for p in made] == ["r1-a", "r1-b"],
+           f"a second project did not get its own id: {[p['id'] for p in made]}")
+
+        # `saying`, not `refuses`: the checker refuses these too, so
+        # deleting the early guard left every assertion passing and the
+        # message useless. Third time this pattern has appeared — the
+        # guard that is doubled is the guard that needs its words tested.
+        saying(lambda: edit.add_project(0), "no reference 0",
+               "a project on reference 0 is refused, but not for a reason "
+               "anyone can act on")
+        saying(lambda: edit.add_project(99), "no reference 99",
+               "a project on reference 99 is refused, but not for a reason "
+               "anyone can act on")
+
+        edit.attach_photo("r1-a", "une.jpg", jpeg, "Une description.")
+        edit.attach_photo("r1-a", "deux.jpg", jpeg + b"x", "Une autre.")
+        shots = objects.blocks(objects.front_matter(), "extra.photo")
+        ok(len(shots) == 2, f"a reel did not grow: {len(shots)} photographs")
+        ok(len({s["file"] for s in shots}) == 2,
+           "two photographs ended up as the same file")
+
+        saying(lambda: edit.attach_photo("r1-a", "x.jpg", jpeg, ""),
+               "description",
+               "a photograph into a reel with no description is refused, but "
+               "not for a reason anyone can act on")
+        saying(lambda: edit.attach_photo("ghost", "x.jpg", jpeg, "Une description."),
+               "no project has the id",
+               "a photograph into a project that does not exist is refused, "
+               "but not for a reason anyone can act on")
+        refuses(lambda: edit.attach_photo("r1-a", "x.jpg", b"nope" * 3000, "Une description."),
+                "a file that is not an image was added to a reel")
+
+        # BOTH OR NEITHER. Removing a project alone leaves its
+        # photographs naming something gone — which the checker refuses,
+        # so the edit is undone and the button looks broken rather than
+        # forbidden.
+        edit.remove_project("r1-a")
+        after = objects.front_matter()
+        ok(not any(p["id"] == "r1-a" for p in objects.blocks(after, "extra.project")),
+           "the project was not removed")
+        ok(not objects.blocks(after, "extra.photo"),
+           "a removed project left its photographs behind, naming nothing")
+        refuses(lambda: edit.remove_project("ghost"),
+                "removing a project that does not exist was accepted")
+
+        edit.CONTENT.write_text(original, encoding="utf-8")
         refuses(lambda: edit.write("reference", 99, "name", "x"),
                 "an index past the end was accepted")
         refuses(lambda: edit.write("nonesuch", 1, "name", "x"),
@@ -237,6 +288,10 @@ def main() -> int:
     ok("innerText" in SERVER and ".innerHTML" not in SERVER,
        "the panel reads innerHTML somewhere — pasted markup would reach a "
        "line of TOML")
+    ok("data-reel" in SERVER and '"/photo"' in SERVER,
+       "a photograph can no longer be dropped onto a project's reel")
+    ok('"/project-add"' in SERVER and '"/project-remove"' in SERVER,
+       "the panel can no longer add or remove a project")
     ok("data-photo" in SERVER and 'ev.dataTransfer' in SERVER,
        "the panel no longer accepts a photograph dropped on the page")
     ok(SERVER.count('doc.addEventListener("dragover"') >= 1
@@ -274,7 +329,7 @@ def main() -> int:
         print()
         return 1
 
-    print("\n  studio: the panel refuses what it must, at 42 points, and the guide still quotes it correctly\n")
+    print("\n  studio: the panel refuses what it must, at 56 points, and the guide still quotes it correctly\n")
     return 0
 
 

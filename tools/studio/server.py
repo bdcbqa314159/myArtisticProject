@@ -36,8 +36,9 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 from objects import LOCKED, SCHEMA, blocks, front_matter  # noqa: E402
-from edit import (CONFIG, CONFIG_FIELDS, MAX_IMAGE, Refused, add, attach,  # noqa: E402
-                  remove, set_config, set_text, write)
+from edit import (CONFIG, CONFIG_FIELDS, MAX_IMAGE, Refused, add,  # noqa: E402
+                  add_project, attach, attach_photo, remove, remove_photo,
+                  remove_project, set_config, set_text, write)
 
 # A token in the path, as myBureau does. The panel binds to loopback, so
 # this is not about the network — it is about the other pages open in the
@@ -273,7 +274,22 @@ function arm() {
       background:color-mix(in oklch,currentColor 85%,transparent);
       color:canvas;opacity:0;transition:opacity 140ms;pointer-events:none}
     [data-photo]:hover::after,[data-photo].over::after{opacity:1}
-    [data-photo].over{outline:2px dashed currentColor;outline-offset:3px}`;
+    [data-photo].over{outline:2px dashed currentColor;outline-offset:3px}
+    [data-reel]{position:relative}
+    [data-reel]::after{content:attr(data-hint);position:absolute;inset:auto 0 0 0;
+      padding:.4rem .6rem;font:500 11px/1.3 system-ui;letter-spacing:.06em;
+      text-transform:uppercase;text-align:center;
+      background:color-mix(in oklch,currentColor 85%,transparent);
+      color:canvas;opacity:0;transition:opacity 140ms;pointer-events:none}
+    [data-reel]:hover::after,[data-reel].over::after{opacity:1}
+    [data-reel].over{outline:2px dashed currentColor;outline-offset:3px}
+    .studio-add button,.studio-drop{font:500 11px/1 system-ui;letter-spacing:.08em;
+      text-transform:uppercase;color:inherit;background:none;cursor:pointer;
+      border:1px dashed color-mix(in oklch,currentColor 40%,transparent);
+      border-radius:999px;padding:.5rem .8rem}
+    .studio-add{display:grid;place-items:center;min-height:60px}
+    .studio-drop{position:absolute;top:6px;right:6px;z-index:2;
+      background:color-mix(in oklch,canvas 75%,transparent);border-style:solid}`;
   doc.head.appendChild(style);
 
   /* ON THE DOCUMENT, IN THE CAPTURE PHASE.
@@ -284,7 +300,7 @@ function arm() {
      they were added, and ours is always added second. Capture happens
      before any of them. */
   doc.addEventListener("click", (ev) => {
-    const photo = ev.target.closest("[data-photo]");
+    const photo = ev.target.closest("[data-photo],[data-reel]");
     if (photo) {
       ev.preventDefault(); ev.stopPropagation();
       if (busy) { say("Still saving the last one.", true); return; }
@@ -302,6 +318,47 @@ function arm() {
     fig.dataset.hint = fig.classList.contains("empty")
       ? "Drop a photograph here, or click" : "Drop a new one, or click to replace";
   }
+  for (const reel of doc.querySelectorAll("[data-reel]")) {
+    reel.dataset.hint = "Drop a photograph to add it to this project";
+  }
+
+  /* The add and remove controls are the PANEL's, not the page's. They
+     are injected here rather than rendered by the template, because a
+     published portfolio should not carry buttons only an editor can
+     use — the `data-` marks it does carry are inert; a button is not. */
+  for (const list of doc.querySelectorAll(".projects[data-reference]")) {
+    if (list.querySelector(".studio-add")) continue;
+    const slot = doc.createElement("li");
+    slot.className = "studio-add";
+    const button = doc.createElement("button");
+    button.type = "button";
+    button.textContent = "+ project";
+    button.addEventListener("click", (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      if (busy) { say("Still saving the last one.", true); return; }
+      post("/project-add", {reference: Number(list.dataset.reference)});
+    });
+    slot.appendChild(button);
+    list.appendChild(slot);
+  }
+
+  for (const reel of doc.querySelectorAll("[data-reel]")) {
+    const box = reel.closest("details");
+    const summary = box && box.querySelector("summary");
+    if (!summary || summary.querySelector(".studio-drop")) continue;
+    const kill = doc.createElement("button");
+    kill.type = "button";
+    kill.className = "studio-drop";
+    kill.textContent = "remove project";
+    kill.addEventListener("click", (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      if (busy) { say("Still saving the last one.", true); return; }
+      const name = summary.querySelector(".project-name");
+      if (!confirm(`Remove ${name ? name.textContent : "this project"} and all its photographs?`)) return;
+      post("/project-remove", {project: reel.dataset.reel});
+    });
+    summary.appendChild(kill);
+  }
 
   /* A drop anywhere else in the frame must do NOTHING. Without this the
      browser's default takes over and navigates away from the site to
@@ -310,7 +367,7 @@ function arm() {
   doc.addEventListener("dragover", (ev) => ev.preventDefault());
   doc.addEventListener("drop", (ev) => ev.preventDefault());
 
-  for (const fig of doc.querySelectorAll("[data-photo]")) {
+  for (const fig of doc.querySelectorAll("[data-photo],[data-reel]")) {
     fig.addEventListener("dragover", (ev) => {
       ev.preventDefault(); ev.stopPropagation(); fig.classList.add("over");
     });
@@ -379,6 +436,25 @@ document.getElementById("photo").addEventListener("submit", (ev) => {
   const alt = palt.value.replace(/\s+/g, " ").trim();
   if (!alt) { perr.textContent = "A photograph needs a description."; palt.focus(); return; }
 
+  /* A reel takes a NEW photograph; a reference's figure REPLACES its
+     one. Same gesture, different verb, and the element says which. */
+  const reel = pending.fig.dataset.reel;
+  if (reel) {
+    if (!pending.file) { perr.textContent = "Choose a photograph to add."; return; }
+    /* Taken before anything clears `pending` — the handler fires later,
+       and reading it from there is how a save loses its own file. */
+    const file = pending.file;
+    const read = new FileReader();
+    read.onload = () => {
+      sheet.hidden = true;
+      pending = null;
+      post("/photo", {project: reel, filename: file.name,
+                      data: String(read.result).split(",")[1], alt});
+    };
+    read.onerror = () => { perr.textContent = "That file could not be read."; };
+    return read.readAsDataURL(file);
+  }
+
   const [kind, index] = pending.fig.dataset.photo.split(".");
   const done = (body, where) => {
     busy = true;
@@ -415,6 +491,23 @@ document.getElementById("photo").addEventListener("submit", (ev) => {
   read.onerror = () => { perr.textContent = "That file could not be read."; };
   read.readAsDataURL(pending.file);
 });
+
+/* Every verb that is not a text edit goes through here, so "busy",
+   the message line and waiting for the rebuild are written once rather
+   than once per button. */
+function post(where, body) {
+  busy = true;
+  say("Saving…");
+  return fetch(location.pathname + where, {method: "POST",
+      headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)})
+    .then(r => r.json())
+    .then(r => {
+      busy = false;
+      say(r.message || (r.ok ? "Saved." : "Refused."), !r.ok);
+      if (r.ok) view.contentWindow.location.reload();
+    })
+    .catch(e => { busy = false; say(String(e), true); });
+}
 
 function edit(doc, el) {
   const was = el.textContent;
@@ -777,14 +870,15 @@ class Panel(http.server.BaseHTTPRequestHandler):
             self.send_error(404)
             return
         route = self.path.rsplit("/", 1)[-1]
-        if route not in {"edit", "add", "remove", "attach", "config", "text"}:
+        if route not in {"edit", "add", "remove", "attach", "config", "text",
+                         "photo", "project-add", "project-remove", "photo-remove"}:
             self.send_error(404)
             return
 
         length = int(self.headers.get("Content-Length", "0"))
         # base64 is a third larger than the bytes it carries, and a
         # photograph is allowed to be 12MB.
-        cap = int(MAX_IMAGE * 1.4) if route == "attach" else 8192
+        cap = int(MAX_IMAGE * 1.4) if route in ("attach", "photo") else 8192
         if length > cap:
             self.reply({"ok": False, "message": "that is more than this accepts"})
             return
@@ -793,7 +887,20 @@ class Panel(http.server.BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(length) or b"{}")
             kind = str(body.get("kind", ""))
 
-            if route == "text":
+            if route == "photo":
+                message = attach_photo(
+                    str(body.get("project", "")),
+                    str(body.get("filename", "")),
+                    base64.b64decode(str(body.get("data", "")), validate=True),
+                    str(body.get("alt", "")),
+                )
+            elif route == "project-add":
+                message = add_project(int(body.get("reference", 0)))
+            elif route == "project-remove":
+                message = remove_project(str(body.get("project", "")))
+            elif route == "photo-remove":
+                message = remove_photo(str(body.get("file", "")))
+            elif route == "text":
                 message = set_text(str(body.get("key", "")),
                                    str(body.get("value", "")))
             elif route == "config":

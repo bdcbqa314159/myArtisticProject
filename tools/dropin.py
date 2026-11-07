@@ -304,14 +304,41 @@ only be in the way.
 """
 
 
-def serve() -> int:
+def serve(port: int = 1111) -> int:
+    """The site, and a studio pointed at the same copy.
+
+    The panel resolves its root from its own location, so running
+    `_local/tools/studio/server.py` edits `_local` — which is the whole
+    point. Started from `preview.sh` instead it edits the TRACKED page,
+    and that page has no projects at all, so none of the gallery is
+    reachable from it. Two sites, two panels, and each edits the one it
+    is showing.
+    """
     if not shutil.which("zola"):
         print("\n  Zola is not installed. ./preview.sh installs it.\n")
         return 1
-    print("\n  Serving the real content. Ctrl-C to stop.\n")
-    return subprocess.call(
-        ["zola", "--root", str(LOCAL), "serve", "--interface", "127.0.0.1"]
-    )
+
+    panel = LOCAL / "tools" / "studio" / "server.py"
+    studio = None
+    if panel.exists():
+        studio = subprocess.Popen(
+            [sys.executable, str(panel), str(port + 100),
+             f"http://127.0.0.1:{port}"],
+            stdout=subprocess.PIPE, text=True, cwd=LOCAL)
+        where = (studio.stdout.readline() or "").strip() if studio.stdout else ""
+        if where:
+            print(f"\n  the studio, editing the real content:\n\n    {where}\n",
+                  flush=True)
+
+    print("  Serving the real content. Ctrl-C to stop.\n", flush=True)
+    try:
+        return subprocess.call(
+            ["zola", "--root", str(LOCAL), "serve",
+             "--interface", "127.0.0.1", "--port", str(port)]
+        )
+    finally:
+        if studio:
+            studio.terminate()
 
 
 def main(argv: list[str]) -> int:

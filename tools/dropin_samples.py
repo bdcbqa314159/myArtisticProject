@@ -34,10 +34,12 @@ mistaken for the client's would be one careless copy away from the
 thing the rule exists to prevent. Nothing here reads as a credential.
 """
 
+import concurrent.futures
 import re
 import shutil
 import struct
 import subprocess
+import urllib.request
 import zlib
 from pathlib import Path
 
@@ -208,12 +210,56 @@ def png(w: int, h: int, hue: int) -> bytes:
             + chunk(b"IEND", b""))
 
 
-def projects(content: Path) -> "tuple[list[str], list[dict], list[dict]]":
+def fetch(url: str) -> "bytes | None":
+    try:
+        with urllib.request.urlopen(url, timeout=20) as answer:
+            data = answer.read()
+        # A truncated download that still "succeeds" is a broken image
+        # nobody notices until it is on a phone in front of a client.
+        return data if len(data) > 10_000 else None
+    except Exception:                                       # noqa: BLE001
+        return None
+
+
+def photographs(wanted: "list[tuple[Path, int, int, str]]") -> "set[Path]":
+    """Real photographs for the fixture, from Lorem Picsum.
+
+    The same source `tools/placeholders.py` already uses, for the same
+    reason: Unsplash photography under the Unsplash License — free use,
+    no permission, no attribution required. Generated panels prove the
+    layout works; actual photographs are the only way to see whether it
+    LOOKS like a portfolio, which is what the client asked for.
+
+    SEEDED, not random. The same request returns the same photograph, so
+    a layout reviewed yesterday is the layout reviewed today.
+
+    Offline it quietly falls back to the drawn panels — a fixture that
+    needs the internet is a fixture that fails on a train.
+    """
+    got: "set[Path]" = set()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+        jobs = {
+            pool.submit(fetch, f"https://picsum.photos/seed/{seed}/{w}/{h}"): dest
+            for dest, w, h, seed in wanted
+        }
+        for job in concurrent.futures.as_completed(jobs):
+            dest = jobs[job]
+            data = job.result()
+            if data:
+                dest.write_bytes(data)
+                got.add(dest)
+    return got
+
+
+def projects(content: Path, real: bool = True) -> "tuple[list[str], list[dict], list[dict]]":
     """Several projects per reference, several photographs per project."""
     made: "list[str]" = []
     rows: "list[dict]" = []
     shots: "list[dict]" = []
     letters = "abcdefghij"
+
+    wanted: "list[tuple[Path, int, int, str]]" = []
+    plan: "list[tuple[Path, int, int, int, str, str]]" = []
 
     for ref, counts in enumerate(SHAPE, 1):
         for slot, how_many in enumerate(counts):
@@ -221,16 +267,29 @@ def projects(content: Path) -> "tuple[list[str], list[dict], list[dict]]":
             rows.append({"id": pid, "reference": ref,
                          "name": f"Projet {ref}-{letters[slot].upper()}"})
             for n in range(1, how_many + 1):
-                name = f"{pid}-{n:02d}.png"
+                name = f"{pid}-{n:02d}.jpg"
                 # Upright now and then, as a real set is.
                 tall = (n % 4 == 0)
-                size = (900, 1200) if tall else (1400, 933)
-                (content / name).write_bytes(png(*size, hue=(ref * 37 + slot * 13 + n * 7) % 120))
-                made.append(name)
-                shots.append({"project": pid, "file": name,
-                              "alt": f"Image {n:02d} du projet {ref}-"
-                                     f"{letters[slot].upper()} — un panneau généré, "
-                                     "pas une photographie"})
+                w, h = (900, 1200) if tall else (1400, 933)
+                dest = content / name
+                # The seed names nothing and nobody. An earlier set used
+                # the client's own mark in its seeds, in a public
+                # repository — see the brand tripwire in content-check.
+                seed = f"folio-{ref}{slot}{n}"
+                hue = (ref * 37 + slot * 13 + n * 7) % 120
+                plan.append((dest, w, h, hue, name, f"{ref}-{letters[slot].upper()}"))
+                wanted.append((dest, w, h, seed))
+
+    got = photographs(wanted) if real else set()
+
+    for dest, w, h, hue, name, label in plan:
+        if dest not in got:
+            dest.write_bytes(png(w, h, hue))
+        made.append(name)
+        shots.append({"project": name.rsplit("-", 1)[0], "file": name,
+                      "alt": (f"Photographie {name[-6:-4]} du projet {label} — "
+                              "une image de remplacement, pas le travail du client")})
+
     return made, rows, shots
 
 
