@@ -790,15 +790,30 @@ function closeTheCarousel() {
             }
         });
     }
-    /* A photograph does not fill the sheet, so there is always ground
-     * around it, and clicking the ground means "I am done". Only the
-     * ground: a click that lands on a photograph is someone looking at
-     * it, not someone leaving. */
+    /* THE GROUND IS THE WAY OUT, at both levels.
+     *
+     * There is no close button any more. A photograph never fills the
+     * sheet, so there is always ground around it, and clicking the
+     * ground means "I am done" — one level at a time, so a carousel
+     * closes back to the group it came from rather than all the way out.
+     *
+     * ONLY the ground: a click that lands on a photograph is someone
+     * looking at it, and a click on one of the prints in the group is
+     * someone opening it, which <details> handles by itself. */
     for (const reel of document.querySelectorAll(".reel")) {
         reel.addEventListener("click", (ev) => {
             if (ev.target !== reel)
                 return;
             shut(reel.closest("details"));
+        });
+    }
+    for (const front of document.querySelectorAll(".group-front")) {
+        front.addEventListener("click", (ev) => {
+            // The group's own box and nothing inside it. `.fridge` holds the
+            // prints, and each print is a summary that opens its carousel.
+            if (ev.target !== front)
+                return;
+            shut(front.closest("details"));
         });
     }
 }
