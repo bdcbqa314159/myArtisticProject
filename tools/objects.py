@@ -63,6 +63,29 @@ SCHEMA = {
             "text":   (True, "one sentence on what it is"),
         },
     ),
+    "project": (
+        "extra.project",
+        "One body of work inside a reference — the client's \"tiny "
+        "portfolio\". A reference shows several of these as thumbnails; "
+        "opening one gives its photographs.",
+        {
+            "id":        (True, 'unique, and what a photograph points at — e.g. "r1-a"'),
+            "reference": (True, "which of the six references this belongs to, 1-6"),
+            "name":      (True, "the project, as it is shown under its thumbnail"),
+        },
+    ),
+    "photo": (
+        "extra.photo",
+        "One photograph inside a project. The FIRST of a project is also "
+        "its thumbnail — there is no separate cover field, because a cover "
+        "is a second thing to keep in step with the first and the first to "
+        "go stale.",
+        {
+            "project": (True, "the id of the project it belongs to"),
+            "file":    (True, "a file in content/, e.g. r1-a-01.jpg"),
+            "alt":     (True, "what it shows, for someone who cannot see it"),
+        },
+    ),
     "pillar": (
         "extra.about_pillars",
         "One strand of the practice, in About.",
@@ -86,6 +109,17 @@ SCHEMA = {
 # with a file and an `alt`, and adding one without the other is the gap
 # the alt field was introduced to close.
 LOCKED = {"verified", "verified_on", "evidence", "image"}
+
+# Kinds that are allowed to have none.
+#
+# Every other class is required to exist: stripping the page to its front
+# matter once produced "0 reference, 0 capability — all well formed",
+# which is a check reporting success at the moment the page emptied.
+#
+# Projects and photographs are different. They are additive, the tracked
+# page carries no real ones, and a site with six references and no
+# projects yet is a site mid-handover rather than a broken one.
+MAY_BE_EMPTY = {"project", "photo"}
 
 
 def front_matter() -> str:
@@ -112,7 +146,11 @@ def check() -> int:
 
     for kind, (array, _doc, fields) in SCHEMA.items():
         for i, obj in enumerate(blocks(fm, array), 1):
-            where = f"{kind} {i} ({obj.get('name', '?')})"
+            # Whatever this kind calls itself. A photograph has no
+            # `name`, so the label was "photo 1 (?)" — a message that
+            # tells you something is wrong and not which thing.
+            label = obj.get("name") or obj.get("file") or obj.get("id") or "?"
+            where = f"{kind} {i} ({label})"
 
             for field, (required, _) in fields.items():
                 if required and not obj.get(field, "").strip():
@@ -143,8 +181,48 @@ def check() -> int:
     # capability, 0 concept, 0 pillar — all well formed", which is a
     # check reporting success at the moment the page became empty.
     for kind, (array, _doc, _fields) in SCHEMA.items():
+        if kind in MAY_BE_EMPTY:
+            continue
         if not blocks(fm, array):
             problems.append(f"no {kind} objects at all — [[{array}]] is empty")
+
+    # --- what one object says about another ------------------------------
+    # The flat model relates projects to references and photographs to
+    # projects BY NAME. That is what keeps the checker and the studio
+    # panel working on three levels without either learning to nest — and
+    # the price of naming things is that a name can be wrong. These are
+    # that price, paid here rather than by a reader finding an empty
+    # gallery.
+    projects = blocks(fm, "extra.project")
+    references = blocks(fm, "extra.work")
+
+    seen = {}
+    for i, project in enumerate(projects, 1):
+        name = project.get("id", "").strip()
+        if name and name in seen:
+            problems.append(
+                f"project {i} ({name}): two projects share the id {name!r} — "
+                f"the other is project {seen[name]}. Every photograph naming "
+                "it would land in both"
+            )
+        elif name:
+            seen[name] = i
+
+        where = project.get("reference", "").strip()
+        if where:
+            if not where.isdigit() or not 1 <= int(where) <= len(references):
+                problems.append(
+                    f"project {i} ({name or '?'}): reference {where!r} is not "
+                    f"one of the {len(references)} there are"
+                )
+
+    for i, photo in enumerate(blocks(fm, "extra.photo"), 1):
+        owner = photo.get("project", "").strip()
+        if owner and owner not in seen:
+            problems.append(
+                f"photo {i} ({photo.get('file', '?')}): no project has the id "
+                f"{owner!r}, so this photograph is on no page"
+            )
 
     if problems:
         print("\n  CONTENT OBJECTS\n")

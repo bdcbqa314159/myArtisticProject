@@ -161,9 +161,13 @@ def init(bare: bool = False) -> int:
     else:
         scratch = DROPIN / ".scratch"
         scratch.mkdir(exist_ok=True)
+        rows: "list[dict]" = []
+        shots: "list[dict]" = []
         try:
             made += samples.images(content, scratch)
             made += samples.showreel(video, scratch)
+            photos, rows, shots = samples.projects(content)
+            made += photos
         finally:
             shutil.rmtree(scratch, ignore_errors=True)
 
@@ -171,7 +175,8 @@ def init(bare: bool = False) -> int:
         have_video = "showreel.mp4" in made and "poster.jpg" in made
 
         (content / "_index.md").write_text(
-            samples.fill_content(source_content, have_images, have_video),
+            samples.fill_content(source_content, have_images, have_video,
+                                 rows, shots),
             encoding="utf-8")
         (DROPIN / "config.toml").write_text(
             samples.fill_config(source_config), encoding="utf-8")
@@ -190,8 +195,13 @@ def init(bare: bool = False) -> int:
         print("    static/video/       the showreel and its poster\n")
     else:
         print(f"    a full set of stand-in content — {len(made)} file(s) generated")
-        for name in made:
+        for name in made[:10]:
             print(f"      {name}")
+        if len(made) > 10:
+            print(f"      … and {len(made) - 10} more")
+        if rows:
+            print(f"      {len(rows)} projects across the six references, "
+                  f"{len(shots)} photographs")
         missing = []
         if not any(m.startswith("work-") for m in made):
             missing.append("images (needs Chrome and sips)")
