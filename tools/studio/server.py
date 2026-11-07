@@ -20,6 +20,9 @@ what generates OBJECTS.md. One definition, three consumers.
 
 import base64
 import html
+import urllib.error
+import urllib.parse
+import urllib.request
 import re
 import subprocess
 import http.server
@@ -34,12 +37,17 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from objects import LOCKED, SCHEMA, blocks, front_matter  # noqa: E402
 from edit import (CONFIG, CONFIG_FIELDS, MAX_IMAGE, Refused, add, attach,  # noqa: E402
-                  remove, set_config, write)
+                  remove, set_config, set_text, write)
 
 # A token in the path, as myBureau does. The panel binds to loopback, so
 # this is not about the network — it is about the other pages open in the
 # same browser, which cannot read this URL and so cannot reach the panel.
 TOKEN = secrets.token_urlsafe(16)
+
+# Where `zola serve` is. preview.sh knows, because it chose the port, and
+# tells us — guessing 1111 is how "see the site" opens a dead tab on the
+# second run of the day.
+SITE = {"url": ""}
 
 
 def field_row(value: str, required: bool, what: str, name: str,
@@ -163,6 +171,143 @@ def page() -> str:
         )
 
     return TEMPLATE.replace("<!--CONTENT-->", "".join(sections) + launch_section())
+
+
+def shell() -> str:
+    """The panel: the real site, and a way into it.
+
+    What was here before was a form — every field of every object in a
+    table, nowhere near the page it belonged to. Correct and unpleasant:
+    to change a heading you had to know which of eighty rows was that
+    heading.
+
+    This frames the site instead, through the panel's own address so the
+    frame is same-origin and can be reached into. Click a sentence on
+    the page and edit THAT sentence. The form is still here, a keystroke
+    away, because a list is the better tool for adding and removing
+    things and for the fields that are not words on a page.
+    """
+    return SHELL
+
+
+SHELL = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Studio</title>
+<style>
+:root{color-scheme:light dark;--ink:#14171c;--muted:#5e6672;--line:#d7dbe2;--bg:#f4f5f7;--accent:#2563eb;--warn:#9a3412}
+@media(prefers-color-scheme:dark){:root{--ink:#eef1f5;--muted:#9aa3b0;--line:#272c34;--bg:#101317;--accent:#7aa2f7;--warn:#f0a070}}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif;
+     display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:1rem;padding:.7rem 1.1rem;border-bottom:1px solid var(--line)}
+h1{font-size:.72rem;letter-spacing:.24em;text-transform:uppercase;font-weight:500;color:var(--muted);margin:0}
+.grow{flex:1}
+a.b,button.b{font:inherit;font-size:.82rem;color:var(--ink);background:none;border:1px solid var(--line);
+   border-radius:999px;padding:.3rem .85rem;cursor:pointer;text-decoration:none}
+a.b:hover,button.b:hover{border-color:var(--muted)}
+#say{font-size:.82rem;color:var(--muted);min-height:1.2em}
+#say.bad{color:var(--warn)}
+iframe{flex:1;width:100%;border:0;background:var(--bg)}
+</style></head><body>
+<header>
+  <h1>Studio</h1>
+  <span id="say">Click any text on the page to change it.</span>
+  <span class="grow"></span>
+  <a class="b" id="form" href="">Everything as a list</a>
+  <a class="b" id="open" href="/site/" target="_blank">Open the site</a>
+</header>
+<iframe id="view" src="/site/"></iframe>
+<script>
+const say = (m, bad) => { const s = document.getElementById("say");
+  s.textContent = m; s.classList.toggle("bad", !!bad); };
+document.getElementById("form").href = location.pathname + "/form";
+
+/* The frame is same-origin — it is the real site, fetched through this
+   server — so the page inside it can simply be reached into. No second
+   renderer, no copy of the markup here that could disagree with it. */
+const view = document.getElementById("view");
+let saving = false;
+
+function arm() {
+  let doc;
+  try { doc = view.contentDocument; } catch (e) { return; }
+  if (!doc || !doc.body) return;
+
+  const style = doc.createElement("style");
+  style.textContent = `
+    [data-edit]{outline:0;transition:background 120ms,box-shadow 120ms;border-radius:3px}
+    [data-edit]:hover{background:color-mix(in oklch,currentColor 8%,transparent);
+      box-shadow:0 0 0 4px color-mix(in oklch,currentColor 8%,transparent);cursor:text}
+    [data-edit][contenteditable="true"]{background:color-mix(in oklch,currentColor 12%,transparent);
+      box-shadow:0 0 0 4px color-mix(in oklch,currentColor 12%,transparent)}`;
+  doc.head.appendChild(style);
+
+  for (const el of doc.querySelectorAll("[data-edit]")) {
+    el.addEventListener("click", (ev) => {
+      if (el.isContentEditable) return;
+      /* A button and a link are editable text here; following them
+         while someone is trying to rewrite them helps nobody. */
+      ev.preventDefault(); ev.stopPropagation();
+      const was = el.textContent;
+      el.contentEditable = "true";
+      el.focus();
+      doc.getSelection().selectAllChildren(el);
+      say("Enter to keep it, Escape to leave it alone.");
+
+      const stop = (keep) => {
+        el.contentEditable = "false";
+        /* innerText, never innerHTML. Anything pasted in arrives as
+           markup otherwise, and the value is a line of TOML. */
+        const now = el.innerText.replace(/\s+/g, " ").trim();
+        if (!keep || now === was.trim() || !now) { el.textContent = was; say("Nothing changed."); return; }
+        save(el.dataset.edit, now, was, el);
+      };
+      el.addEventListener("keydown", (k) => {
+        if (k.key === "Enter") { k.preventDefault(); stop(true); }
+        if (k.key === "Escape") { k.preventDefault(); stop(false); }
+      });
+      el.addEventListener("blur", () => { if (el.isContentEditable) stop(true); }, {once:true});
+    });
+  }
+}
+
+/* `kind.index.field` is an object; anything else is one of the page's
+   own sentences. The key says which verb it needs, so the markup does
+   not have to carry a second attribute saying the same thing. */
+function save(key, value, was, el) {
+  if (saving) return;
+  saving = true;
+  const bits = key.split(".");
+  const object = bits.length === 3;
+  const where = location.pathname + (object ? "/edit" : "/text");
+  const body = object
+    ? {kind: bits[0], index: Number(bits[1]), field: bits[2], value}
+    : {key, value};
+
+  say("Saving…");
+  fetch(where, {method:"POST", headers:{"Content-Type":"application/json"},
+                body: JSON.stringify(body)})
+    .then(r => r.json())
+    .then(r => {
+      saving = false;
+      if (!r.ok) { el.textContent = was; say(r.message || "Refused.", true); return; }
+      say(r.message || "Saved.");
+      /* Reload rather than trust what is on screen: the site is built
+         from the file, and the file is what just changed. Zola needs a
+         moment to notice — its own live-reload cannot reach us through
+         the proxy, so this is the one mechanism. */
+      setTimeout(() => view.contentWindow.location.reload(), 700);
+    })
+    .catch(e => { saving = false; el.textContent = was; say(String(e), true); });
+}
+
+view.addEventListener("load", arm);
+if (view.contentDocument && view.contentDocument.readyState === "complete") arm();
+</script>
+</body></html>
+"""
 
 
 TEMPLATE = """<!doctype html>
@@ -328,16 +473,90 @@ class Panel(http.server.BaseHTTPRequestHandler):
         host = (self.headers.get("Host") or "").rsplit(":", 1)[0]
         return host in {"127.0.0.1", "localhost", "[::1]", "::1"}
 
+    def proxy(self, rest: str) -> None:
+        """The real site, served from the panel's own address.
+
+        Not a screenshot and not a second renderer: this IS the page Zola
+        built, fetched and handed on. Which matters because it makes the
+        frame SAME-ORIGIN, and a same-origin frame is one the panel can
+        reach into — so a click on the page itself can become an edit.
+        There is one renderer in this project and it stays that way.
+
+        EVERY absolute url is rewritten, not just the links. The page
+        carries `default-src 'self'`, and once the document sits on this
+        address `self` means THIS address — so a stylesheet still
+        pointing at Zola's port would be refused by the site's own
+        policy. Rewriting all of it keeps the page whole and its policy
+        honest.
+
+        The cost is Zola's live-reload, whose socket no longer finds its
+        way home. The panel reloads the frame itself after an edit, which
+        is one mechanism instead of two.
+        """
+        site = SITE["url"].rstrip("/")
+        try:
+            if not site:
+                raise OSError("nobody told the panel where the site is")
+            with urllib.request.urlopen(site + rest, timeout=20) as answer:
+                kind = answer.headers.get("Content-Type", "application/octet-stream")
+                body = answer.read()
+        except urllib.error.HTTPError as problem:
+            self.send_response(problem.code)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+        except Exception:                                   # noqa: BLE001
+            # This lands INSIDE the frame, where the reader is looking. A
+            # stack trace tells them nothing they can act on; a sentence
+            # does. Editing still works meanwhile — only the view is gone.
+            page = (
+                "<!doctype html><meta charset=utf-8>"
+                "<style>body{font:14px/1.6 system-ui;margin:3rem;color:#555}"
+                "b{color:#111}</style>"
+                "<p><b>The site is not answering.</b></p>"
+                "<p>It is being rebuilt, or the window running it was closed. "
+                "Carry on editing — everything is saved. The view comes back "
+                "by itself.</p>"
+            ).encode("utf-8")
+            self.send_response(502)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(page)))
+            self.end_headers()
+            self.wfile.write(page)
+            return
+
+        if kind.split(";")[0] in ("text/html", "text/css", "application/javascript",
+                                  "text/javascript", "application/json"):
+            body = body.decode("utf-8", "replace").replace(site, "/site").encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", kind)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self) -> None:
         if not self.from_this_machine():
             self.send_error(404)
             return
+
+        # The framed site carries NO token, and cannot: the frame's src is
+        # written in the markup and every link inside the page is a plain
+        # href. That is not a hole being opened — `zola serve` is already
+        # serving these exact bytes, with no token at all, on the same
+        # loopback address. This is a second door to a room that was never
+        # locked, not a door to a new room. Everything that reads or
+        # writes the content still needs the token.
+        if self.path == "/site" or self.path.startswith("/site/"):
+            return self.proxy(self.path[len("/site"):] or "/")
+
         if not self.path.startswith(f"/{TOKEN}"):
             # Not a 403: an unauthorised reader should not learn that the
             # path exists and is merely guarded.
             self.send_error(404)
             return
-        body = page().encode("utf-8")
+        wants_form = self.path.rstrip("/").endswith("/form")
+        body = (page() if wants_form else shell()).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -355,7 +574,7 @@ class Panel(http.server.BaseHTTPRequestHandler):
             self.send_error(404)
             return
         route = self.path.rsplit("/", 1)[-1]
-        if route not in {"edit", "add", "remove", "attach", "config"}:
+        if route not in {"edit", "add", "remove", "attach", "config", "text"}:
             self.send_error(404)
             return
 
@@ -371,7 +590,10 @@ class Panel(http.server.BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(length) or b"{}")
             kind = str(body.get("kind", ""))
 
-            if route == "config":
+            if route == "text":
+                message = set_text(str(body.get("key", "")),
+                                   str(body.get("value", "")))
+            elif route == "config":
                 message = set_config(
                     str(body.get("section", "")),
                     str(body.get("key", "")),
@@ -417,6 +639,7 @@ class Panel(http.server.BaseHTTPRequestHandler):
 
 def main() -> int:
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 1212
+    SITE["url"] = sys.argv[2] if len(sys.argv) > 2 else ""
     url = f"http://127.0.0.1:{port}/{TOKEN}"
     print(url, flush=True)
     server = http.server.HTTPServer(("127.0.0.1", port), Panel)
