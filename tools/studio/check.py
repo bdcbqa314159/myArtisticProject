@@ -42,6 +42,27 @@ def main() -> int:
         if not condition:
             bad.append(what)
 
+    def saying(call, fragment: str, what: str) -> None:
+        """Refused, AND for the stated reason.
+
+        Several of these guards are doubled: remove the early, friendly
+        one and `objects.check()` still refuses inside `_commit`. Good
+        for safety and useless for testing — mutation showed the early
+        guard could be deleted with every assertion still passing. So
+        where the MESSAGE is the thing a person acts on, the message is
+        what gets asserted.
+        """
+        try:
+            call()
+        except edit.Refused as problem:
+            if fragment.lower() not in str(problem).lower():
+                bad.append(f"{what} — refused, but said {str(problem)!r}")
+            return
+        except Exception as problem:                        # noqa: BLE001
+            bad.append(f"{what} — raised {problem!r} instead of refusing")
+            return
+        bad.append(what)
+
     def refuses(call, what: str) -> None:
         try:
             call()
@@ -57,6 +78,12 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as raw, contextlib.redirect_stdout(io.StringIO()):
         tmp = Path(raw)
         shutil.copytree(ROOT / "content", tmp / "content")
+        # ROOT as well as CONTENT. `attach` writes the photograph to
+        # `ROOT/content/<name>`, so patching only the front-matter path
+        # left this check dropping real image files into the repository —
+        # found by `git status`, not by the check, which is the wrong way
+        # round and the reason it is written down here.
+        edit.ROOT = tmp
         edit.CONTENT = tmp / "content" / "_index.md"
         # `_commit` re-checks with objects.check(), which reads its OWN
         # path — so without this the panel's safety net was validating
@@ -148,6 +175,49 @@ def main() -> int:
         ok(edit.CONTENT.read_text(encoding="utf-8") == original,
            "a refused edit left the file changed")
 
+        # --- photographs -------------------------------------------------
+        # The panel can now drop a file onto the page, which makes these
+        # the checks standing between a portfolio and a broken image.
+        jpeg = b"\xff\xd8\xff" + b"0" * 30000
+        png = bytes.fromhex("89504e470d0a1a0a") + b"0" * 30000
+
+        saying(lambda: edit.attach("reference", 1, "x.jpg", jpeg, ""),
+               "description",
+               "a photograph with no description is refused, but not for a "
+               "reason anyone can act on")
+        refuses(lambda: edit.attach("reference", 1, "x.jpg", b"not an image" * 3000,
+                                    "a description"),
+                "a file that is not an image was accepted")
+        refuses(lambda: edit.attach("reference", 1, "x.jpg", b"", "a description"),
+                "an empty file was accepted")
+        refuses(lambda: edit.attach("reference", 1, "x.jpg",
+                                    b"\xff\xd8\xff" + b"0" * (edit.MAX_IMAGE + 1),
+                                    "a description"),
+                "a photograph past the size limit was accepted")
+        saying(lambda: edit.attach("capability", 1, "x.jpg", jpeg, "a description"),
+               "photograph",
+               "attaching a photograph to something that has none is refused, "
+               "but not for a reason anyone can act on")
+        refuses(lambda: edit.attach("reference", 1, "x.jpg", jpeg, edit.UNWRITTEN),
+                "the placeholder was accepted as a description")
+
+        # The extension comes from the CONTENT. A PNG called .jpg is a
+        # thing people really do send, and a name that lies about what a
+        # file is misleads every tool that touches it afterwards.
+        edit.attach("reference", 1, "misnamed.jpg", png, "A PNG, misnamed.")
+        named = re.search(r'^image = "(.*)"$',
+                          edit.CONTENT.read_text(encoding="utf-8"), re.M)
+        ok(named is not None and named.group(1).endswith(".png"),
+           "a PNG sent as .jpg was stored under the name it lied about")
+
+        # Never overwrite: another object may point at the file that is
+        # already there, and replacing it would change that one silently.
+        edit.attach("reference", 2, "misnamed.png", png[:-1] + b"1", "A different one.")
+        both = re.findall(r'^image = "(.*)"$',
+                          edit.CONTENT.read_text(encoding="utf-8"), re.M)
+        ok(len(set(both)) == len(both),
+           "two references ended up pointing at the same photograph")
+
         refuses(lambda: edit.write("reference", 99, "name", "x"),
                 "an index past the end was accepted")
         refuses(lambda: edit.write("nonesuch", 1, "name", "x"),
@@ -167,6 +237,13 @@ def main() -> int:
     ok("innerText" in SERVER and ".innerHTML" not in SERVER,
        "the panel reads innerHTML somewhere — pasted markup would reach a "
        "line of TOML")
+    ok("data-photo" in SERVER and 'ev.dataTransfer' in SERVER,
+       "the panel no longer accepts a photograph dropped on the page")
+    ok(SERVER.count('doc.addEventListener("dragover"') >= 1
+       and SERVER.count('doc.addEventListener("drop"') >= 1,
+       "a file dropped OUTSIDE a photograph is no longer swallowed — the "
+       "browser's default navigates the frame away to the bare file, and "
+       "there is no obvious way back")
     ok("cache: \"no-store\"" in SERVER,
        "the rebuild poll can be served from cache, which would make it "
        "see the old page for ever")
@@ -178,7 +255,7 @@ def main() -> int:
         print()
         return 1
 
-    print("\n  studio: the panel refuses what it must, at 32 points\n")
+    print("\n  studio: the panel refuses what it must, at 42 points\n")
     return 0
 
 
