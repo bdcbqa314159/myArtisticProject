@@ -207,14 +207,6 @@
                  that it does — something small and alive in the corner
                  that the eye goes to and the hand follows. #}
               <figcaption class="patch-count">{{ pcount }} projects</figcaption>
-              {# OUT OF THE CHIP. The chip says how much is inside; this
-                 says go in. Two jobs, and inside the chip at 9px this one
-                 read as punctuation — it had to be pointed out, which is
-                 the opposite of what it is for.
-                 On the photograph's bottom edge: always clear of the
-                 prints, wherever a given arrangement puts them, and where
-                 the thumb already is. #}
-              <i class="look" aria-hidden="true"></i>
             </figure>
           </summary>
 
@@ -230,7 +222,11 @@
               {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{% set_global k = k + 1 %}{%- set_global cov = "" %}{% set_global cova = "" %}{%- for ph in e.photo | default(value=[]) %}{%- if ph.project == pr.id and cov == "" %}{%- set_global cov = ph.file %}{% set_global cova = ph.alt %}{%- endif %}{% endfor %}
               {%- if k == 1 %}
               <details class="shots slot-1" name="shots-{{ ref }}">
-                <summary>{% set im = resize_image(path="@/" ~ cov, width=900, op="fit_width", format="webp", quality=72) %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ cova }}" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
+                <summary>{% set im = resize_image(path="@/" ~ cov, width=900, op="fit_width", format="webp", quality=72) %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ cova }}" decoding="async"><span class="shots-name">{{ pr.name }}</span>{# A light on EVERY print once the group is at the front. This is
+                     where the next move has to be offered: the reader is
+                     looking at five photographs and nothing has told them
+                     that each one opens. One on the card said "come in";
+                     five here say "and again". #}<i class="look" aria-hidden="true"></i></summary>
                 <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
                   {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                   {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
@@ -241,7 +237,11 @@
               </details>{% endif %}
               {%- if k == 2 %}
               <details class="shots slot-2" name="shots-{{ ref }}">
-                <summary>{% set im = resize_image(path="@/" ~ cov, width=360, height=480, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="360" height="480" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
+                <summary>{% set im = resize_image(path="@/" ~ cov, width=360, height=480, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="360" height="480" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span>{# A light on EVERY print once the group is at the front. This is
+                     where the next move has to be offered: the reader is
+                     looking at five photographs and nothing has told them
+                     that each one opens. One on the card said "come in";
+                     five here say "and again". #}<i class="look" aria-hidden="true"></i></summary>
                 <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
                   {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                   {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
@@ -252,7 +252,11 @@
               </details>{% endif %}
               {%- if k == 3 %}
               <details class="shots slot-3" name="shots-{{ ref }}">
-                <summary>{% set im = resize_image(path="@/" ~ cov, width=480, height=360, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="480" height="360" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
+                <summary>{% set im = resize_image(path="@/" ~ cov, width=480, height=360, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="480" height="360" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span>{# A light on EVERY print once the group is at the front. This is
+                     where the next move has to be offered: the reader is
+                     looking at five photographs and nothing has told them
+                     that each one opens. One on the card said "come in";
+                     five here say "and again". #}<i class="look" aria-hidden="true"></i></summary>
                 <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
                   {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                   {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
@@ -263,7 +267,11 @@
               </details>{% endif %}
               {%- if k == 4 %}
               <details class="shots slot-4" name="shots-{{ ref }}">
-                <summary>{% set im = resize_image(path="@/" ~ cov, width=400, height=400, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="400" height="400" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
+                <summary>{% set im = resize_image(path="@/" ~ cov, width=400, height=400, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="400" height="400" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span>{# A light on EVERY print once the group is at the front. This is
+                     where the next move has to be offered: the reader is
+                     looking at five photographs and nothing has told them
+                     that each one opens. One on the card said "come in";
+                     five here say "and again". #}<i class="look" aria-hidden="true"></i></summary>
                 <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
                   {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                   {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
@@ -274,7 +282,11 @@
               </details>{% endif %}
               {%- if k == 5 %}
               <details class="shots slot-5" name="shots-{{ ref }}">
-                <summary>{% set im = resize_image(path="@/" ~ cov, width=480, height=320, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="480" height="320" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span></summary>
+                <summary>{% set im = resize_image(path="@/" ~ cov, width=480, height=320, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="480" height="320" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span>{# A light on EVERY print once the group is at the front. This is
+                     where the next move has to be offered: the reader is
+                     looking at five photographs and nothing has told them
+                     that each one opens. One on the card said "come in";
+                     five here say "and again". #}<i class="look" aria-hidden="true"></i></summary>
                 <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
                   {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                   {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
