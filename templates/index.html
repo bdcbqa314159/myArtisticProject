@@ -200,6 +200,11 @@
                    cannot be waited for, so only the first screen is. #}
                 <img src="{{ thumb.url }}" width="{{ thumb.width }}" height="{{ thumb.height }}"
                      alt="{{ cover_alt }}" loading="lazy" decoding="async">
+                {% else %}
+                {# A project with no photographs yet. The same shape as the
+                   one that has them, so a half-filled gallery reads as
+                   unfinished rather than broken. #}
+                <span class="shot-empty">No photograph yet</span>
                 {% endif %}
                 <span class="project-name" data-edit="project.{{ loop.index }}.name">{{ pr.name }}</span>
               </summary>

@@ -72,6 +72,26 @@ INVARIANTS = [
         "the layout shifts — which is the loop the brief rules out.",
     ),
     (
+        "the miniatures blur with everything else",
+        "static/css/site.css",
+        r"html\.scrolling \.project summary img",
+        2,
+        "A reference with projects shows thumbnails instead of its one "
+        "photograph, and the softening was written against the "
+        "photograph — so the day the gallery arrived, the effect the "
+        "client had approved stopped happening on most of the page and "
+        "no check noticed. Twice: the rule, and the reduced-motion reset.",
+    ),
+    (
+        "an open project does not paint over itself",
+        "static/css/site.css",
+        r"\.project\[open\] summary img,",
+        1,
+        "The thumbnail must be hidden once the carousel is at the front. "
+        "Scoped to the no-script case by mistake, the same photograph "
+        "appeared twice — once full screen and once floating in a corner.",
+    ),
+    (
         "one cover in the markup",
         "templates/index.html",
         r'class="loader"',
