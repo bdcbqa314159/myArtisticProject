@@ -41,6 +41,17 @@ FR = ROOT / "content" / "_index.fr.md"
 
 PLACEHOLDER = "À traduire"
 
+# Fields filled by machine and not yet read by a person. A list, like
+# the stand-in photograph ledger, so that emptying it is a decision
+# rather than a guess — see tools/translate.py.
+LEDGER = ROOT / "content" / "_index.fr.drafts.txt"
+
+
+def ledger_keys() -> "list[str]":
+    if not LEDGER.exists():
+        return []
+    return [k for k in LEDGER.read_text(encoding="utf-8").split() if k]
+
 # Values that are not prose. A filename translated is a filename broken;
 # a verification record translated is a record falsified.
 COPIED = {
@@ -279,7 +290,13 @@ def scaffold() -> int:
     # Zola's own switch, kept honest by this script rather than by
     # anyone remembering. An untranslated page that builds is exactly
     # the failure that made French get switched off in the first place.
-    draft = "\ndraft = true    # géré par tools/fr-check.py\n" if todo else ""
+    #
+    # A MACHINE DRAFT COUNTS AS UNTRANSLATED. Without the ledger here,
+    # running the DeepL drafter over the whole page would leave no
+    # placeholders at all, the draft flag would come off, and a page
+    # nobody had read would be ready to publish — the drafter would have
+    # defeated the gate by doing its job.
+    draft = "\ndraft = true    # géré par tools/fr-check.py\n" if (todo or ledger_keys()) else ""
 
     FR.write_text(f"+++{header}{body}\n{draft}+++\n", encoding="utf-8")
     print(f"\n  wrote {FR.relative_to(ROOT)} — {len(after)} field(s), "
@@ -312,6 +329,8 @@ def main(argv: "list[str]") -> int:
         return 1
 
     todo = [k for k, (_n, v) in fr.items() if v == PLACEHOLDER]
+    machine = ledger_keys()
+    stale = [k for k in machine if k not in fr]
 
     # Still reading as the English does. Legitimate for a proper noun and
     # a mistake everywhere else, so it is reported rather than failed —
@@ -328,9 +347,31 @@ def main(argv: "list[str]") -> int:
             print(f"    {k}\n      en: {en[k][1]}\n")
         return 0
 
+    # The page would publish, and nobody has read it.
+    #
+    # `draft = true` is written by the scaffold and could be taken out
+    # by hand; the ledger is the record of what a machine wrote. The two
+    # disagreeing is the one state that must not survive a build, since
+    # it is the state in which unreviewed French reaches a reader.
+    if machine and "draft = true" not in FR.read_text(encoding="utf-8"):
+        print("\n  THE FRENCH PAGE WOULD PUBLISH UNREAD\n")
+        print(f"    {len(machine)} field(s) were written by DeepL and are "
+              "still in the ledger,")
+        print("    but the page is no longer a draft.\n")
+        print("    python3 tools/translate.py --status\n")
+        return 1
+
+    if stale:
+        print("\n  THE DRAFT LEDGER NAMES FIELDS THE PAGE DOES NOT HAVE\n")
+        for k in stale:
+            print(f"    - {k}")
+        print("\n    python3 tools/fr-check.py --scaffold\n")
+        return 1
+
     note = f", {len(english)} identical to the English" if english else ""
+    machine_note = f", {len(machine)} machine draft(s) awaiting review" if machine else ""
     print(f"\n  french: {len(fr)} field(s), same shape as the English page — "
-          f"{len(todo)} still to translate{note}\n")
+          f"{len(todo)} still to translate{note}{machine_note}\n")
     return 0
 
 
