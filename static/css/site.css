@@ -1016,11 +1016,19 @@ section:not(.hero) > .wrap > .eyebrow::after {
    happens at the two ends, when nothing is moving. */
 
 .case .image img,
+.project summary img,
 .placeholder:not(:has(video)) {
   transition: filter 400ms cubic-bezier(.2, 0, .2, 1);
 }
 
+/* THE MINIATURES BLUR TOO.
+   A reference with projects shows thumbnails instead of its one
+   photograph, and the softening was written against the photograph — so
+   the day the gallery arrived, the effect that had been agreed stopped
+   happening on most of the page and no check noticed. The thumbnails
+   ARE the photographs now. */
 html.scrolling .case .image img,
+html.scrolling .project summary img,
 html.scrolling .placeholder:not(:has(video)) {
   filter: blur(3px);
 }
@@ -1063,8 +1071,9 @@ html.scrolling .case .image img.smear { filter: blur(3px) url(#smear); }
 @media (prefers-reduced-motion: reduce) {
   /* Belt as well as braces — the script does not add the class under
      reduced motion either. */
-  .case .image img, .placeholder { transition: none; }
+  .case .image img, .project summary img, .placeholder { transition: none; }
   html.scrolling .case .image img,
+  html.scrolling .project summary img,
   html.scrolling .placeholder { filter: none; }
 }
 
@@ -1435,7 +1444,9 @@ html.js [data-copy] { display: inline-flex; }
    Left in its column the strip would be half a card wide — a carousel
    through a letterbox. `:has()` lets the LIST react to a state two
    elements down, which is the one thing that used to need script. */
-.projects li:has(details[open]) { grid-column: 1 / -1; }
+/* Inline, the open project took the whole row. With script it comes to
+   the FRONT instead, so only the no-script path still reflows. */
+html:not(.js) .projects li:has(details[open]) { grid-column: 1 / -1; }
 
 .project summary {
   list-style: none;
@@ -1455,6 +1466,21 @@ html.js [data-copy] { display: inline-flex; }
   transition: filter 300ms cubic-bezier(.2, 0, .2, 1);
 }
 
+/* The miniature, with nothing in it yet. Same box as a filled one, so
+   a half-assembled portfolio reads as unfinished rather than broken. */
+.shot-empty {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  background: var(--panel);
+  color: var(--faint);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 0.5rem;
+}
+
 .project-name {
   display: block;
   margin-top: 0.4rem;
@@ -1472,7 +1498,8 @@ html.js [data-copy] { display: inline-flex; }
 
 /* The open project says so, since the thumbnail stays on screen. */
 .project[open] summary .project-name { color: var(--ink); }
-.project[open] summary img { display: none; }
+.project[open] summary img,
+.project[open] summary .shot-empty { display: none; }
 
 /* ---- the carousel -------------------------------------------------------
  * One line, snapped. `mandatory` rather than `proximity` because a
@@ -1538,3 +1565,76 @@ html.js [data-copy] { display: inline-flex; }
 @media (prefers-reduced-motion: reduce) {
   .project summary img, .project-name { transition: none; }
 }
+
+/* ---- the carousel comes to the front ------------------------------------
+ * "the click on a photo should pop up the carrousel on front not inside."
+ *
+ * Opened inline the reel was a carousel through a letterbox — half a
+ * card wide, under the next reference, competing with the page around
+ * it. Full screen it is the only thing there, which is what looking at
+ * someone's work asks for.
+ *
+ * THE SAME ARRANGEMENT THE MENU ALREADY USES: a fixed sheet at z-index
+ * 50, its `summary` above it at 60 so the way out is always reachable,
+ * and the page behind it locked. Not a second overlay mechanism with
+ * its own opinions — there is one on this page already and it works.
+ *
+ * Still <details>, so with no script the project opens inline exactly
+ * as it did and nothing is unreachable. `html.js` is set before first
+ * paint, so the two never flicker between each other.
+ */
+html.js .project[open] > .reel {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  margin: 0;
+  padding: 0 var(--gutter);
+  align-items: center;
+  background: var(--bg);
+  scroll-padding-inline: var(--gutter);
+}
+
+/* AS LARGE AS FITS, and no larger.
+   A fixed height here did what it does in the inline reel: a landscape
+   photograph bound by the width sat in a tall box with panel above and
+   below it. Inline that is a steady horizon worth paying for, because
+   neighbours are visible side by side. Full screen there is one
+   photograph and a lot of ground, so nothing is being lined up against
+   anything — let each take the size its own shape asks for. */
+html.js .project[open] > .reel img {
+  height: auto;
+  width: auto;
+  max-height: 80vh;
+  max-width: calc(100vw - var(--gutter) * 2);
+  background: none;
+}
+
+/* The way out, above the sheet it opened. Clicking it closes the
+   <details>, which is what a summary does — no handler, and no second
+   idea about what "close" means. */
+html.js .project[open] > summary {
+  position: fixed;
+  z-index: 60;
+  inset: 0 0 auto auto;
+  padding: calc(var(--gutter) / 1.6);
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+html.js .project[open] > summary::after {
+  content: "Close";
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 2px;
+}
+
+@media (hover: hover) {
+  html.js .project[open] > summary:hover::after { color: var(--ink); }
+}
+
+/* The page does not move underneath it. */
+html.js:has(.project[open]) { overflow: hidden; }

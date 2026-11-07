@@ -791,6 +791,44 @@ function exchangePhrases(): void {
   seen.observe(heading);
 }
 
+/* ---- the carousel, closed ---------------------------------------------
+ * The carousel opens full screen and `<details>` does all of it: the
+ * summary opens it, the summary closes it, and with no script at all it
+ * opens inline instead. These are the two things a summary cannot know.
+ *
+ * ESCAPE. Anything covering the screen has to answer Escape — a reader
+ * whose way out is a word in a corner has been given a puzzle.
+ *
+ * THE BACKDROP. A photograph does not fill the sheet, so there is
+ * always ground around it, and clicking the ground means "I am done".
+ * Only the ground: a click that lands on a photograph is someone
+ * looking at it, not someone leaving.
+ */
+function closeTheCarousel(): void {
+  const openOne = (): HTMLDetailsElement | null =>
+    document.querySelector<HTMLDetailsElement>(".project[open]");
+
+  addEventListener("keydown", (ev) => {
+    if (ev.key !== "Escape") return;
+    const box = openOne();
+    if (!box) return;
+    box.open = false;
+    // The summary that opened it takes the focus back, or the keyboard
+    // is left standing on an element that is no longer on the screen.
+    box.querySelector("summary")?.focus();
+  });
+
+  for (const reel of document.querySelectorAll<HTMLElement>(".reel")) {
+    reel.addEventListener("click", (ev) => {
+      if (ev.target !== reel) return;
+      const box = reel.closest("details");
+      if (!box || !box.open) return;
+      box.open = false;
+      box.querySelector("summary")?.focus();
+    });
+  }
+}
+
 /* ---- soft while moving ------------------------------------------------
  * "Les images sont légèrement floues pendant qu'on fait défiler la page,
  * puis deviennent nettes quand on s'arrête dessus."
@@ -969,6 +1007,7 @@ copyButtons();
 paletteControl();
 softWhileMoving();
 exchangePhrases();
+closeTheCarousel();
 keepOneAddress();
 photographsDrift();
 showTheRelease();
