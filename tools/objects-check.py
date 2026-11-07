@@ -31,14 +31,19 @@ import objects                                              # noqa: E402
 
 MARK = "# ---- 04 original concepts"
 
+# The ids below are prefixed `check-` so they cannot collide with the
+# page's own. They did: the page gained a stand-in portfolio whose first
+# project is `r1-a`, and this file injected a second one — reporting a
+# duplicate it had created itself.
+
 SOUND = '''
 [[extra.project]]
-id = "r1-a"
+id = "check-a"
 reference = 1
 name = "Projet A"
 
 [[extra.photo]]
-project = "r1-a"
+project = "check-a"
 file = "r1-a-01.png"
 alt = "Une description."
 '''
@@ -46,30 +51,30 @@ alt = "Une description."
 CASES = [
     ("two projects sharing an id", "share the id", '''
 [[extra.project]]
-id = "same"
+id = "check-same"
 reference = 1
 name = "A"
 
 [[extra.project]]
-id = "same"
+id = "check-same"
 reference = 2
 name = "B"
 '''),
     ("a project on a reference that does not exist", "not one of the", '''
 [[extra.project]]
-id = "r9-a"
+id = "check-z"
 reference = 99
 name = "A"
 '''),
     ("a project whose reference is not a number", "not one of the", '''
 [[extra.project]]
-id = "r1-a"
+id = "check-a"
 reference = "premiere"
 name = "A"
 '''),
     ("a photograph on no project", "no project has the id", '''
 [[extra.project]]
-id = "r1-a"
+id = "check-a"
 reference = 1
 name = "A"
 
@@ -80,12 +85,12 @@ alt = "Une description."
 '''),
     ("a photograph with no description", "alt is required", '''
 [[extra.project]]
-id = "r1-a"
+id = "check-a"
 reference = 1
 name = "A"
 
 [[extra.photo]]
-project = "r1-a"
+project = "check-a"
 file = "x.png"
 alt = ""
 '''),
@@ -97,19 +102,19 @@ name = "A"
 '''),
     ("a photograph with no file", "file is required", '''
 [[extra.project]]
-id = "r1-a"
+id = "check-a"
 reference = 1
 name = "A"
 
 [[extra.photo]]
-project = "r1-a"
+project = "check-a"
 file = ""
 alt = "Une description."
 '''),
     ("a misspelt field, which the template would ignore in silence",
      "unknown field", '''
 [[extra.project]]
-id = "r1-a"
+id = "check-a"
 reference = 1
 name = "A"
 titel = "typo"

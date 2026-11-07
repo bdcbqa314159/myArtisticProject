@@ -218,6 +218,396 @@ verified_on = ""
 evidence = ""
 
 
+# ---- the portfolio inside each reference -----------------------------
+# A STAND-IN PORTFOLIO, so the gallery can be seen on the published page
+# rather than only in a local fixture.
+#
+# Every photograph here is listed in content/PLACEHOLDERS.txt and goes
+# with one command — `python3 tools/placeholders.py --purge` — which is
+# the same bargain the four fragment images already make. They leave at
+# handover not because of the licence, which allows this, but because a
+# portfolio built from someone else's photographs misrepresents the
+# artist whose name is on it. See NOTICE.
+#
+# Generated with the files, by tools/placeholders.py --blocks, so the
+# page and the folder cannot disagree about what exists.
+
+[[extra.project]]
+id = "r1-a"
+reference = 1
+name = "Projet 1-A"
+
+[[extra.project]]
+id = "r1-b"
+reference = 1
+name = "Projet 1-B"
+
+[[extra.project]]
+id = "r1-c"
+reference = 1
+name = "Projet 1-C"
+
+[[extra.project]]
+id = "r2-a"
+reference = 2
+name = "Projet 2-A"
+
+[[extra.project]]
+id = "r2-b"
+reference = 2
+name = "Projet 2-B"
+
+[[extra.project]]
+id = "r3-a"
+reference = 3
+name = "Projet 3-A"
+
+[[extra.project]]
+id = "r3-b"
+reference = 3
+name = "Projet 3-B"
+
+[[extra.project]]
+id = "r3-c"
+reference = 3
+name = "Projet 3-C"
+
+[[extra.project]]
+id = "r4-a"
+reference = 4
+name = "Projet 4-A"
+
+[[extra.project]]
+id = "r4-b"
+reference = 4
+name = "Projet 4-B"
+
+[[extra.project]]
+id = "r5-a"
+reference = 5
+name = "Projet 5-A"
+
+[[extra.project]]
+id = "r5-b"
+reference = 5
+name = "Projet 5-B"
+
+[[extra.project]]
+id = "r5-c"
+reference = 5
+name = "Projet 5-C"
+
+[[extra.project]]
+id = "r6-a"
+reference = 6
+name = "Projet 6-A"
+
+[[extra.project]]
+id = "r6-b"
+reference = 6
+name = "Projet 6-B"
+
+[[extra.photo]]
+project = "r1-a"
+file = "work-r1-a-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-a"
+file = "work-r1-a-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-a"
+file = "work-r1-a-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-a"
+file = "work-r1-a-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-b"
+file = "work-r1-b-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-b"
+file = "work-r1-b-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-b"
+file = "work-r1-b-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-b"
+file = "work-r1-b-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-c"
+file = "work-r1-c-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-c"
+file = "work-r1-c-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-c"
+file = "work-r1-c-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r1-c"
+file = "work-r1-c-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r2-a"
+file = "work-r2-a-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r2-a"
+file = "work-r2-a-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r2-a"
+file = "work-r2-a-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r2-a"
+file = "work-r2-a-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r2-b"
+file = "work-r2-b-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r2-b"
+file = "work-r2-b-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r2-b"
+file = "work-r2-b-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r2-b"
+file = "work-r2-b-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-a"
+file = "work-r3-a-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-a"
+file = "work-r3-a-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-a"
+file = "work-r3-a-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-a"
+file = "work-r3-a-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-b"
+file = "work-r3-b-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-b"
+file = "work-r3-b-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-b"
+file = "work-r3-b-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-b"
+file = "work-r3-b-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-c"
+file = "work-r3-c-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-c"
+file = "work-r3-c-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-c"
+file = "work-r3-c-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r3-c"
+file = "work-r3-c-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r4-a"
+file = "work-r4-a-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r4-a"
+file = "work-r4-a-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r4-a"
+file = "work-r4-a-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r4-a"
+file = "work-r4-a-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r4-b"
+file = "work-r4-b-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r4-b"
+file = "work-r4-b-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r4-b"
+file = "work-r4-b-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r4-b"
+file = "work-r4-b-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-a"
+file = "work-r5-a-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-a"
+file = "work-r5-a-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-a"
+file = "work-r5-a-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-a"
+file = "work-r5-a-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-b"
+file = "work-r5-b-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-b"
+file = "work-r5-b-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-b"
+file = "work-r5-b-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-b"
+file = "work-r5-b-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-c"
+file = "work-r5-c-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-c"
+file = "work-r5-c-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-c"
+file = "work-r5-c-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r5-c"
+file = "work-r5-c-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r6-a"
+file = "work-r6-a-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r6-a"
+file = "work-r6-a-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r6-a"
+file = "work-r6-a-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r6-a"
+file = "work-r6-a-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r6-b"
+file = "work-r6-b-01.jpg"
+alt = "Photographie 01 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r6-b"
+file = "work-r6-b-02.jpg"
+alt = "Photographie 02 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r6-b"
+file = "work-r6-b-03.jpg"
+alt = "Photographie 03 — image de remplacement, pas le travail du client"
+
+[[extra.photo]]
+project = "r6-b"
+file = "work-r6-b-04.jpg"
+alt = "Photographie 04 — image de remplacement, pas le travail du client"
+
+
 # ---- 04 original concepts -------------------------------------------
 
 [[extra.concepts]]
