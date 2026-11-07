@@ -173,6 +173,48 @@
     <ol class="grid two">
       {% for w in e.work %}
       <li class="card case">
+        {% set ref = loop.index %}
+        {% set_global has_projects = false %}
+        {% for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{% set_global has_projects = true %}{% endif %}{% endfor %}
+
+        {% if has_projects %}
+        {# A reference with projects shows them instead of one photograph:
+           the thumbnails ARE the portfolio. Opening one is <details>, so
+           it works with no script at all, arrives with keyboard and
+           screen-reader behaviour already correct, and closes its
+           siblings because they share a `name`. #}
+        <ol class="projects">
+          {% for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}
+          {% set_global cover = "" %}
+          {% set_global cover_alt = "" %}
+          {% for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id and cover == "" %}
+            {% set_global cover = ph.file %}{% set_global cover_alt = ph.alt %}
+          {% endif %}{% endfor %}
+          <li>
+            <details class="project" name="work-{{ ref }}">
+              <summary>
+                {% if cover %}
+                {% set thumb = resize_image(path="@/" ~ cover, width=520, op="fit_width", format="webp", quality=70) %}
+                {# lazy, and that is a change: these used to be eager so the
+                   cover would wait for them. Ninety-eight photographs
+                   cannot be waited for, so only the first screen is. #}
+                <img src="{{ thumb.url }}" width="{{ thumb.width }}" height="{{ thumb.height }}"
+                     alt="{{ cover_alt }}" loading="lazy" decoding="async">
+                {% endif %}
+                <span class="project-name">{{ pr.name }}</span>
+              </summary>
+              <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}">
+                {% for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
+                {% set shot = resize_image(path="@/" ~ ph.file, width=1100, op="fit_width", format="webp", quality=74) %}
+                <img src="{{ shot.url }}" width="{{ shot.width }}" height="{{ shot.height }}"
+                     alt="{{ ph.alt }}" loading="lazy" decoding="async">
+                {% endif %}{% endfor %}
+              </div>
+            </details>
+          </li>
+          {% endif %}{% endfor %}
+        </ol>
+        {% else %}
         {# The photograph is edited where it is seen: the panel turns this
            into a drop target. `data-alt` carries the description it
            already has, because changing that is the other half of
@@ -192,6 +234,7 @@
             <figcaption>Image / case study</figcaption>
           {% endif %}
         </figure>
+        {% endif %}
         <p class="tag" data-edit="reference.{{ loop.index }}.domain">{{ w.domain }}</p>
         <h3 data-edit="reference.{{ loop.index }}.name">{{ w.name }}</h3>
         <p class="muted" data-edit="reference.{{ loop.index }}.text">{{ w.text }}</p>

@@ -1411,3 +1411,124 @@ html.js [data-copy] { display: inline-flex; }
      to undo — this is the belt to that braces. */
   .swap.swapping .phrase { transition: none; }
 }
+
+/* ---- a portfolio inside each reference ----------------------------------
+ * "reference1 has 5 projects to show so we show not one but a tiny
+ *  portfolio, then each has its own carrousel to explore with
+ *  horizontal move."
+ *
+ * Two levels, and neither needs JavaScript. Opening a project is
+ * <details>; moving through its photographs is scroll-snap. Both arrive
+ * with a thumb gesture, a keyboard and a screen reader already working,
+ * which is the whole argument for using them instead of writing them.
+ */
+.projects {
+  list-style: none;
+  margin: 0 0 1.1rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+/* The open one takes the whole width.
+   Left in its column the strip would be half a card wide — a carousel
+   through a letterbox. `:has()` lets the LIST react to a state two
+   elements down, which is the one thing that used to need script. */
+.projects li:has(details[open]) { grid-column: 1 / -1; }
+
+.project summary {
+  list-style: none;
+  cursor: pointer;
+  position: relative;
+  display: block;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.project summary::-webkit-details-marker { display: none; }
+
+.project summary img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: var(--panel);
+  transition: filter 300ms cubic-bezier(.2, 0, .2, 1);
+}
+
+.project-name {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  transition: color 160ms ease;
+}
+
+@media (hover: hover) {
+  .project summary:hover .project-name { color: var(--ink); }
+  .project summary:hover img { filter: brightness(1.08); }
+}
+
+/* The open project says so, since the thumbnail stays on screen. */
+.project[open] summary .project-name { color: var(--ink); }
+.project[open] summary img { display: none; }
+
+/* ---- the carousel -------------------------------------------------------
+ * One line, snapped. `mandatory` rather than `proximity` because a
+ * photograph half out of frame reads as a mistake rather than as a hint
+ * that there is more; the overshoot is what tells you to keep going.
+ *
+ * Called `.reel` and not `.strip`: `.strip` is the row of pills in the
+ * ecosystem section, and the duplicate-selector check caught the
+ * collision before it could silently win over one of them.
+ */
+.reel {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;    /* do not drag the page sideways with it */
+  scroll-snap-type: x mandatory;
+  margin-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  /* The reel is focusable so arrows move it; the ring has to be visible
+     or that is a keyboard path nobody can see. */
+  outline-offset: 3px;
+  /* A thin rail rather than a system scrollbar across the work. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+/* A STEADY HEIGHT, not a steady width.
+   Sized by width, an upright photograph stands half as tall again as
+   the one before it and the whole strip jumps as you swipe past —
+   measured on the fixture, which carries both on purpose. A fixed
+   height gives one horizon and lets each photograph take the width its
+   own shape asks for. */
+.reel img {
+  flex: 0 0 auto;
+  height: min(58vh, 420px);
+  width: auto;
+  max-width: 86vw;
+  /* Both dimensions can bind — a wide photograph hits the width before
+     the height — so `contain` is what keeps it from being stretched to
+     fit. CONTAIN and never COVER: cropping the edges of someone's own
+     framing is not a decision a stylesheet gets to make. The same
+     reasoning as the showreel. */
+  object-fit: contain;
+  scroll-snap-align: center;
+  background: var(--panel);
+}
+
+.reel::-webkit-scrollbar { height: 3px; }
+.reel::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
+.reel::-webkit-scrollbar-track { background: transparent; }
+
+@media (min-width: 50rem) {
+  .projects { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .reel img { height: min(54vh, 460px); max-width: 46vw; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project summary img, .project-name { transition: none; }
+}
