@@ -203,16 +203,21 @@
                 {% endif %}
               {%- endif %}{% endfor %}{% endif %}{% endfor %}
 
-              <ol class="patch-tiles">
+              <ol class="patch-tiles" data-set="{{ ref }}">
                 {% set_global n = 0 %}
                 {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                   {%- set_global n = n + 1 %}
                   {%- if n > 1 and n < 6 %}
-                  {# Square, and cropped to get there. A tile is an index
-                     to the work rather than the work, and the whole of it
-                     is one tap away, uncropped. #}
-                  {% set tile = resize_image(path="@/" ~ ph.file, width=320, height=320, op="fill", format="webp", quality=70) %}
-                  <li><img src="{{ tile.url }}" width="320" height="320"
+                  {# Four prints, and no two the same shape — a fridge is
+                     not a grid. Cropped to get there: a tile is an index
+                     to the work rather than the work, and the whole of
+                     it is one tap away, uncropped. #}
+                  {% set_global tw = 400 %}{% set_global th = 400 %}
+                  {%- if n == 2 %}{% set_global tw = 360 %}{% set_global th = 480 %}{% endif %}
+                  {%- if n == 3 %}{% set_global tw = 480 %}{% set_global th = 360 %}{% endif %}
+                  {%- if n == 5 %}{% set_global tw = 480 %}{% set_global th = 320 %}{% endif %}
+                  {% set tile = resize_image(path="@/" ~ ph.file, width=tw, height=th, op="fill", format="webp", quality=70) %}
+                  <li><img src="{{ tile.url }}" width="{{ tw }}" height="{{ th }}"
                            alt="{{ ph.alt }}" loading="lazy" decoding="async"></li>
                   {% endif %}
                 {%- endif %}{% endfor %}{% endif %}{% endfor %}
