@@ -238,6 +238,8 @@ GROUP = re.compile(r'<details[^>]*\bclass=["\']?group[\s"\'>]')
 SHOTS = re.compile(r'\bclass=["\']?shots ')
 SLOT = {k: re.compile(rf'\bslot-{k}[\s"\'>]') for k in range(1, 6)}
 LAZY = re.compile(r'\bloading=["\']?lazy')
+LOOK = re.compile(r'class=["\']?look[\s"\'>]')
+IN_CHIP = re.compile(r'patch-count[^>]*>\s*<i')
 
 
 def check_gallery(html: str) -> "list[str]":
@@ -255,6 +257,17 @@ def check_gallery(html: str) -> "list[str]":
         if many != 2:
             bad.append(f"gallery: slot {k} appears {many} time(s); it belongs "
                        "on the card and again at the front")
+
+    # The light that says there is more inside. One per fridge, and
+    # OUT of the count chip: at 9px inside a label it read as
+    # punctuation and had to be pointed out, which is the opposite of
+    # what it is for.
+    lights = len(LOOK.findall(html))
+    if lights != 1:
+        bad.append(f"gallery: one fridge, {lights} light(s) inviting a tap")
+    if IN_CHIP.search(html):
+        bad.append("gallery: the light is back inside the count chip, where "
+                   "it reads as punctuation rather than as an invitation")
 
     shots = len(SHOTS.findall(html))
     if shots != 5:
