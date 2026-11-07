@@ -72,6 +72,10 @@ SCHEMA = {
             "id":        (True, 'unique, and what a photograph points at — e.g. "r1-a"'),
             "reference": (True, "which of the six references this belongs to, 1-6"),
             "name":      (True, "the project, as it is shown under its thumbnail"),
+            "look":      (False, 'where the light sits on this print, as "x y" '
+                                 'percentages of it — e.g. "50 100" for the '
+                                 'foot. Leave empty for the arrangement\'s own '
+                                 'place, which is already clear of its neighbours'),
         },
     ),
     "photo": (
@@ -171,6 +175,19 @@ def check() -> int:
                     f"{where}: has an image and no alt. A photograph with no "
                     "description is the case the requirement exists for"
                 )
+            # "x y", both 0-100. A light at 300% is a light nobody
+            # will find, and the template would set it without a word.
+            spot = obj.get("look", "").strip()
+            if spot:
+                bits = spot.split()
+                ok = len(bits) == 2 and all(
+                    b.replace(".", "", 1).isdigit() and 0 <= float(b) <= 100
+                    for b in bits)
+                if not ok:
+                    problems.append(
+                        f"{where}: look is {spot!r} — it wants two numbers "
+                        'between 0 and 100, like "50 100"')
+
             if obj.get("verified") == "true":
                 for field in ("verified_on", "evidence"):
                     if not obj.get(field, "").strip():

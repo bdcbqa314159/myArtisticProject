@@ -128,6 +128,19 @@ INVARIANTS = [
         "`transform` on a print. The blur belongs on ::before.",
     ),
     (
+        "every light has somewhere it can be seen",
+        "static/css/site.css",
+        r"\.look \{ --look-",
+        4,
+        "The prints overlap and a later one paints over an earlier one, "
+        "so the foot of a print is under its neighbour in three of the "
+        "thirty places. Those three, and the background's own, are "
+        "named — computed by testing each candidate point against the "
+        "rectangles of the prints that paint after it. Lose them and a "
+        "light goes missing in a way nobody notices until they look for "
+        "it and cannot find it.",
+    ),
+    (
         "one cover in the markup",
         "templates/index.html",
         r'class="loader"',

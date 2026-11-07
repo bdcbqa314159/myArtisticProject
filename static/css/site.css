@@ -1538,12 +1538,19 @@ html.js [data-copy] { display: inline-flex; }
  */
 .look {
   position: absolute;
-  left: 50%;
-  bottom: -9px;
+  /* WHERE IT SHOWS, not where it is tidy.
+     The prints overlap, and a later one paints over an earlier one — so
+     a light fixed at the foot of every print disappears under its
+     neighbour in some arrangements. The point is computed per
+     arrangement below and arrives as two variables; the default is the
+     foot of the print, half over its edge, which is clear in 27 of the
+     30 places and named explicitly in the other three. */
+  left: var(--look-x, 50%);
+  top: var(--look-y, 100%);
+  translate: -50% -50%;
   z-index: 3;
   width: 18px;
   height: 18px;
-  margin-left: -9px;
   border: 1px solid color-mix(in oklch, var(--ink) 55%, transparent);
   border-radius: 50%;
   background: var(--bg);
@@ -1574,7 +1581,15 @@ html.js [data-copy] { display: inline-flex; }
 
 /* The one underneath has no edge to hang off — it IS the frame, and
    the fridge clips at its boundary — so its light sits inside. */
-.slot-1 .look { bottom: 11px; }
+.slot-1 .look { --look-y: 92%; }
+
+/* The three places where the foot of a print is under its neighbour.
+   Computed from the arrangements rather than guessed: every candidate
+   point was tested against the rectangles of the prints that paint
+   after it. */
+.fridge[data-set="1"] > .slot-4 .look { --look-x: 18%; --look-y: 12%; }
+.fridge[data-set="2"] > .slot-4 .look { --look-x: 18%; }
+.fridge[data-set="4"] > .slot-2 .look { --look-x: 18%; }
 
 @keyframes lit {
   0%, 100% { transform: scale(0.55); opacity: 0.5; }
