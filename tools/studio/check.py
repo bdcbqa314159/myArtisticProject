@@ -248,6 +248,25 @@ def main() -> int:
        "the rebuild poll can be served from cache, which would make it "
        "see the old page for ever")
 
+    # --- the guide quotes the panel, so the panel must still say it ----
+    #
+    # GUIDE.fr.md walks a non-technical reader through the panel in
+    # French, quoting its English wording at each step. The moment a
+    # message is reworded the guide describes something that is not on
+    # screen — which is the usual way a handover document turns into a
+    # lie, and the reason OBJECTS.md is generated rather than written.
+    guide = ROOT / "GUIDE.fr.md"
+    if guide.exists():
+        quoted = set(re.findall(r"«\s*(.*?)\s*»", guide.read_text(encoding="utf-8")))
+        for phrase in sorted(quoted):
+            # Typographic quotes are the guide's; the source uses plain
+            # ones, and the ellipsis survives either way.
+            if phrase.replace("\u2019", "'") not in SERVER:
+                bad.append(
+                    f"GUIDE.fr.md quotes the panel saying {phrase!r}, and it "
+                    "does not say that any more"
+                )
+
     if bad:
         print("\n  THE STUDIO PANEL\n")
         for b in bad:
@@ -255,7 +274,7 @@ def main() -> int:
         print()
         return 1
 
-    print("\n  studio: the panel refuses what it must, at 42 points\n")
+    print("\n  studio: the panel refuses what it must, at 42 points, and the guide still quotes it correctly\n")
     return 0
 
 

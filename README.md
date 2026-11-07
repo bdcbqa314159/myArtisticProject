@@ -149,6 +149,18 @@ holds if the output never drifts from `src/`, which is what
 real name, so the placeholder content misrepresents nobody. Flip it when
 the real name and the real assets are both in.
 
+## The guide
+
+`GUIDE.fr.md` takes a non-technical reader from an empty Mac to editing
+the page: Homebrew, GitHub Desktop, double-click `preview.command`,
+click the text, drop the photographs. In French, because the person it
+is for reads French.
+
+It quotes the panel's own wording at each step, and
+`tools/studio/check.py` fails the build if the panel stops saying any of
+it — a handover document that drifts from the thing it describes is
+worse than none.
+
 ## Client material
 
 Anything the client sends goes in `_client_input/` or `_ref/` — both

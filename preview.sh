@@ -35,6 +35,24 @@ if ! command -v zola >/dev/null 2>&1; then
   fi
 fi
 
+# Python runs the studio. macOS ships it, but only once the Command Line
+# Tools are there — and they arrive with Homebrew, which is why this
+# comes after the Zola block rather than before it.
+#
+# Checked rather than assumed: without this the studio simply failed to
+# start, its message went into a temporary file nobody opens, and the
+# page appeared with no panel and no explanation. For the person this is
+# written for, a missing half with no reason given is the worst outcome
+# available.
+if ! command -v python3 >/dev/null 2>&1; then
+  printf '\n  The studio needs Python, which macOS installs with its\n'
+  printf '  developer tools. Paste this line, press Return, accept what\n'
+  printf '  it asks, then run this again:\n\n'
+  printf '    xcode-select --install\n\n'
+  printf '  The page itself will still work without it — only the panel\n'
+  printf '  for editing is missing.\n\n'
+fi
+
 # Build once, so a mistake is reported here rather than in silence.
 if ! zola build >/tmp/landing-build.txt 2>&1; then
   printf '\n  The site did not build. Zola says:\n\n'
@@ -75,7 +93,13 @@ fi
 
 say "Opening http://127.0.0.1:$PORT"
 if [ -n "$PANEL_URL" ]; then
-  step "And the studio, where you can see everything on the site."
+  # Printed, not just opened. The address carries a one-time token, so
+  # it cannot be guessed or remembered — and when the browser does not
+  # open by itself there was previously no way to find it at all.
+  step "And the studio, for changing the page:"
+  printf '\n    %s\n\n' "$PANEL_URL"
+elif command -v python3 >/dev/null 2>&1; then
+  step "The studio did not start. The page below still works."
 fi
 step "The page reloads by itself when you change anything."
 step "Press Ctrl-C here to stop."
