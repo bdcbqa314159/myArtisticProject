@@ -22,7 +22,12 @@
 
 <div class="loader" aria-hidden="true">
   <span class="loader-name">{{ id.name }}</span>
-  <span class="dots"><i></i><i></i><i></i></span>
+  {# A hairline that fills as the photographs arrive, rather than three
+     dots looping. A loop looks identical at 200ms and at six seconds, so
+     it cannot be right for both; this is the honest answer and it makes
+     a slow phone legible instead of anxious. Script sets `--done`; with
+     no script there is no cover at all. #}
+  <span class="load-line"><i></i></span>
 </div>
 
 <header>

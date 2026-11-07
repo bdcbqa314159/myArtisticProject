@@ -374,6 +374,59 @@ def check_reopen(chrome: str, out: Path, url: str) -> "list[str]":
     return bad
 
 
+# The cover is never a flicker.
+#
+# On a fast connection the page was ready before anyone had seen the
+# cover, and the fade began the instant it appeared — which reads as a
+# flash of something rather than as a page arriving. Measured from
+# inside a frame, because the cover's whole life is over before an
+# ordinary screenshot could catch it: 28ms without the floor, 443ms
+# with it.
+COVER_PROBE = """
+<meta charset=utf-8><body><p id=o>?</p><script>
+const f = document.createElement("iframe");
+f.width = 390; f.height = 700; f.style.border = 0; f.src = "/";
+document.body.appendChild(f);
+let seen = null, gone = null;
+const t0 = performance.now();
+const tick = () => {
+  let d = null;
+  try { d = f.contentDocument; } catch (e) {}
+  const booting = d && d.documentElement
+    && d.documentElement.classList.contains("booting");
+  if (booting && seen === null) seen = performance.now();
+  if (seen !== null && !booting && gone === null) gone = performance.now();
+  if (gone !== null || performance.now() - t0 > 8000) {
+    document.getElementById("o").textContent = "COVERED-FOR "
+      + (seen === null ? "never-covered" : gone === null ? "never-uncovered"
+         : Math.round(gone - seen));
+    return;
+  }
+  setTimeout(tick, 5);
+};
+tick();
+</script>"""
+
+
+def check_cover(chrome: str, out: Path, url: str) -> "list[str]":
+    (out / "_cover.html").write_text(COVER_PROBE, encoding="utf-8")
+    said = dom(chrome, url + "/_cover.html", 500, 900)
+    found = re.search(r"COVERED-FOR ([a-z0-9-]+)", said)
+    if not found:
+        return ["cover: the probe returned no verdict"]
+    verdict = found.group(1)
+    if not verdict.isdigit():
+        return [f"cover: {verdict}"]
+    held = int(verdict)
+    if held < 380:
+        return [f"cover: on screen for {held}ms — short enough to read as a "
+                "flicker rather than as a page arriving"]
+    if held > 2000:
+        return [f"cover: on screen for {held}ms with nothing to wait for, "
+                "which is a page being held back for no reason"]
+    return []
+
+
 def build_with_projects(out: Path) -> Path:
     """A whole site, copied, with one reference's fridge filled in.
 
@@ -526,6 +579,7 @@ def main() -> int:
                 # the whole mechanism, so the gallery must not need one.
                 problems += check_gallery(dom(chrome, url, 500, 1400, None, no_js=True))
                 problems += check_reopen(chrome, out, url)
+                problems += check_cover(chrome, out, url)
 
             live_cfg = build_live_config(out)
             built = subprocess.run(
