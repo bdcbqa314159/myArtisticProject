@@ -1520,48 +1520,73 @@ html.js [data-copy] { display: inline-flex; }
 }
 
 /* ---- the light that says there is more ----------------------------------
- * An aperture: a ring with something lit inside it, opening and closing
- * very slowly. Not a button — the whole card already opens — just the
- * one thing on a still photograph that moves, which is where the eye
- * goes and the hand follows.
+ * Not a button — the whole card already opens. The one thing on a still
+ * photograph that moves, which is where the eye goes and the hand
+ * follows.
  *
- * Drawn rather than drawn FOR us: two circles and a keyframe, so there
- * is no icon to license, no file to fetch, and it takes the palette
- * with it.
+ * ON THE EDGE, half on the photograph and half off it. Anywhere inside
+ * and it would collide with the prints, which sit somewhere different
+ * in each of the six arrangements; on the edge it is clear of all of
+ * them and it is where the thumb already is.
+ *
+ * Drawn here: no icon to license, no file to fetch, and it takes the
+ * palette with it.
  */
 .look {
-  position: relative;
-  width: 9px;
-  height: 9px;
-  border: 1px solid currentColor;
+  position: absolute;
+  left: 50%;
+  bottom: -11px;
+  z-index: 3;
+  width: 22px;
+  height: 22px;
+  margin-left: -11px;
+  border: 1px solid color-mix(in oklch, var(--ink) 55%, transparent);
   border-radius: 50%;
-  opacity: 0.75;
-  flex: 0 0 auto;
+  background: var(--bg);
+  pointer-events: none;
 }
 
+/* The lit centre. */
 .look::after {
   content: "";
   position: absolute;
-  inset: 2px;
+  inset: 7px;
   border-radius: 50%;
-  background: currentColor;
-  animation: look 3.2s ease-in-out infinite;
+  background: var(--ink);
+  animation: lit 3.4s ease-in-out infinite;
 }
 
-@keyframes look {
-  0%, 100% { transform: scale(0.45); opacity: 0.55; }
-  45%      { transform: scale(1);    opacity: 1; }
+/* The halo, as a ring that opens and fades rather than a shadow — this
+   page has no shadows anywhere, and a ring reads as light rather than
+   as depth. */
+.look::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  border: 1px solid var(--ink);
+  animation: halo 3.4s ease-out infinite;
+}
+
+@keyframes lit {
+  0%, 100% { transform: scale(0.55); opacity: 0.5; }
+  40%      { transform: scale(1);    opacity: 1; }
+}
+
+@keyframes halo {
+  0%       { transform: scale(1);   opacity: 0.45; }
+  70%, 100% { transform: scale(2.1); opacity: 0; }
 }
 
 @media (hover: hover) {
-  /* Opens the rest of the way under a pointer, which is the small
-     reward for having noticed it. */
-  .group summary:hover .look { opacity: 1; }
-  .group summary:hover .look::after { animation-duration: 1.4s; }
+  /* Quicker under a pointer — the small reward for having noticed it. */
+  .group summary:hover .look::after,
+  .group summary:hover .look::before { animation-duration: 1.5s; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .look::after { animation: none; transform: scale(0.75); opacity: 0.8; }
+  .look::after { animation: none; transform: scale(0.8); opacity: 0.9; }
+  .look::before { animation: none; opacity: 0; }
 }
 
 /* A hand near them settles them a little straighter. Not level — level
