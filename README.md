@@ -83,6 +83,7 @@ python3 tools/dropin.py --serve   # the same site with the REAL content
 npx tsc                     # after editing src/
 npm test                    # tsc + zola build + the drift check
 python3 tools/fr-check.py   # has the French page kept up with the English one?
+python3 tools/translate.py --draft    # a French draft from DeepL, to argue with
 ```
 
 ### Two previews, and why
@@ -113,6 +114,26 @@ to go live, and runs as the launch configuration rather than the demo.
 Replace a piece at a time and watch the real thing arrive. Nothing in it
 is real, nothing came from anyone else's camera, and the generator needs
 no network. `--init --bare` gives empty slots instead.
+
+## The French page
+
+It is not a translation of the English one — it is the second version of
+the same site, for the readers the client actually speaks to, and he
+writes it. `tools/fr-check.py` guarantees the two pages have the same
+**fields**, never the same words, and fails the build if either side
+gains or loses one. That comparison exists because its absence let the
+French file fall thirty-six fields behind without anyone noticing.
+
+`tools/translate.py --draft` fills the untranslated fields from DeepL.
+Not to publish — to argue with: a blank page is harder to answer than a
+wrong one, even in your own language. Everything it writes is listed in
+`content/_index.fr.drafts.txt` and counts as unread; while that file has
+anything in it the page stays a draft and Zola does not build it.
+
+Needs `DEEPL_API_KEY` in `.env`, which git already ignores. The request
+is made in Python, so the key never reaches a browser and the page's
+`connect-src 'none'` stays as it is. The brand, filenames, fragment
+links and verification records are never sent.
 
 ## Why the compiled JS is in the repo
 
