@@ -5,16 +5,21 @@
 # `zola build`; Zola then looks for content/_index.<code>.md.
 default_language = "en"
 
-# FRENCH IS NOT BUILT.
+# FRENCH IS NOT BUILT YET.
 #
-# `content/_index.fr.md` is kept — a French version is wanted eventually
-# — but it is still the stub from before the eight sections existed. With
-# the language configured it published at /fr/: one section out of eight,
-# reachable, linked from nowhere, and indexed the moment `live` is
-# flipped. A page that exists and is wrong is worse than one that does
-# not exist.
+# `content/_index.fr.md` now has exactly the same fields as the English
+# page — `tools/fr-check.py` compares them one by one and fails the
+# build if either side gains or loses one. That comparison is new
+# because its absence is how the file fell thirty-six fields behind
+# before anyone noticed.
 #
-# Restore `[languages.fr]` when the French content has been written.
+# What is missing now is the translation itself, not the structure. The
+# page is held back twice while that is true: `draft = true` in the file
+# (managed by the scaffold) and this block staying commented out. A page
+# that exists and is wrong is worse than one that does not exist.
+#
+# Restore `[languages.fr]` when `tools/fr-check.py` reports nothing left
+# to translate.
 base_url = "https://bdcbqa314159.github.io/myArtisticProject"
 title = "myArtisticProject"
 compile_sass = false
