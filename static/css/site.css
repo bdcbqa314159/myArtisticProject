@@ -394,6 +394,40 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
 
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
 
+/* The two that open the form.
+ *
+ * NOT called `.talk`: that class is already the dialog's, and it
+ * carries `width: 100%; border: 0; background: none` — a button
+ * wearing it went full-width with no outline at all. Measured, after
+ * the first attempt did exactly that.
+ *
+ * They must not read as the same action as "Explore selected work",
+ * which goes somewhere on the page; these begin a conversation. Nothing
+ * about the press changes — that lives on `.btn` above and is inherited
+ * whole — only the outline: one corner pulled in, which is where a
+ * speech bubble's tail sits, and an ellipsis for the sentence that
+ * isn't finished yet.
+ *
+ * No icon, because there is not one on this page and a single glyph
+ * would announce itself as the exception. The ellipsis carries an empty
+ * alternative text so a screen reader reads the label and not three
+ * full stops; browsers without that syntax simply draw it. */
+.btn.bubble {
+  border-radius: 2em 2em 2em 0.35em;
+  gap: 0.45em;
+}
+
+.btn.bubble::after {
+  /* Plain first: a browser without the alternative-text syntax drops
+     that whole declaration, and would otherwise draw nothing. */
+  content: "\2026";
+  content: "\2026" / "";
+  opacity: 0.65;
+  /* Optically the dots sit high in their box; a hair down centres them
+     against the cap height of the label beside them. */
+  transform: translateY(-0.04em);
+}
+
 /* Hover, only where there is a pointer that can hover.
    Unscoped, a tap on a phone leaves the hover state stuck on the button
    until you touch something else — so the one device this page is made

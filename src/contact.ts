@@ -204,6 +204,14 @@ function openTheForm(): void {
   box.addEventListener("click", (ev) => {
     if (ev.target === box) box.close();
   });
+
+  /* Contact in the navigation band ends here too — the page announces
+   * it once its own scroll has settled, so this never has to know how
+   * long that takes. `open` is checked because the band can be used
+   * again while the form is already up. */
+  addEventListener("talk:open", () => {
+    if (!box.open) box.showModal();
+  });
 }
 
 if (typeof document !== "undefined") {

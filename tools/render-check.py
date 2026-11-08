@@ -83,7 +83,7 @@ def find_chrome() -> Optional[str]:
 
 
 def dom(chrome: str, url: str, width: int, height: int, shot: Path = None,
-        no_js: bool = False) -> str:
+        no_js: bool = False, reduced: bool = False) -> str:
     """Render the page and return the DOM. With `shot`, also save a picture.
 
     The picture is the point of running a browser at all: the DOM says
@@ -104,7 +104,12 @@ def dom(chrome: str, url: str, width: int, height: int, shot: Path = None,
             # hero instead of the section asked for — six shots of the
             # same screen. Reduced motion makes the jump instant, and
             # settles the reveals, so each picture is the page at rest.
-            *( ["--force-prefers-reduced-motion"] if shot else [] ),
+            # Also asked for explicitly by probes that drive the page:
+            # the scroll runs on animation frames this browser does
+            # not run, and under reduced motion it is a jump that
+            # reports its end, so a chain hanging off that end
+            # becomes observable.
+            *( ["--force-prefers-reduced-motion"] if shot or reduced else [] ),
             # Let the page's own JavaScript run to completion — the whole
             # point. Three simulated seconds is past `load`, past the
             # cover's fade, and past every failsafe that matters.
@@ -219,6 +224,163 @@ project = "probe-e"
 file = "fragment-04.jpg"
 alt = "Probe cover e"
 """
+
+
+TALK_BTN = re.compile(r'class="btn(?: primary)? bubble"')
+ANY_BTN = re.compile(r'class="?btn[^">]*"?')
+
+
+# Contact in the navigation band ends at the form.
+#
+# Driven rather than argued for. The page's scroll runs on animation
+# frames, which this browser does not run — so the whole chain would
+# hang at the scroll and never reach the form. Under reduced motion the
+# scroll is a jump that reports its end synchronously, and the chain
+# completes, which is the only reason this is observable at all.
+#
+# An iframe because the parent needs to click inside a page it did not
+# render, and read a dialog's `open` afterwards. Same origin, so it can.
+MENU_PROBE = """
+<meta charset=utf-8><body><p id=o>?</p><script>
+const f = document.createElement("iframe");
+f.width = 390; f.height = 700; f.style.border = 0; f.src = "/";
+document.body.appendChild(f);
+const say = (s) => { document.getElementById("o").textContent = "MENU " + s; };
+f.addEventListener("load", () => setTimeout(() => {
+  const d = f.contentDocument;
+  const box = d.querySelector("dialog.talk");
+  if (!box) return say("no-form");
+  if (box.open) return say("form-already-open");
+
+  // Any link into Contact. There is exactly one, and it is the band's.
+  const link = d.querySelector('.links a[href="#contact"], .links a[href$="#contact"]');
+  if (!link) return say("no-contact-link");
+
+  // A control: something else in the band must NOT open it.
+  const other = [...d.querySelectorAll(".links a")]
+    .find((a) => !a.getAttribute("href").endsWith("#contact"));
+  if (!other) return say("no-control-link");
+  other.click();
+
+  /* Read AFTER a turn, not before one. The page defers the whole chain
+   * through a `setTimeout`, so reading `open` on the same tick as the
+   * click says "closed" no matter what the code does — which is how
+   * this control first passed against a page that opened the form for
+   * every link in the band. */
+  setTimeout(() => {
+    const afterOther = box.open;
+    link.click();
+    setTimeout(() => {
+      /* And the two openers are still BUTTONS.
+       *
+       * The shape class was first called `.talk`, which is the dialog's
+       * class — it carries `border: 0; padding: 0; width: 100%`, so both
+       * buttons went full-width with no outline, and every check passed.
+       * A border and a padding of zero cannot be right for a button on
+       * this page whatever its label says, so those are what is read. */
+      const flat = [...d.querySelectorAll("[data-talk]")].filter((b) => {
+        const cs = f.contentWindow.getComputedStyle(b);
+        return parseFloat(cs.borderTopWidth) < 0.5
+            || parseFloat(cs.paddingLeft) < 1;
+      }).length;
+      say("contact=" + box.open + " control=" + afterOther + " flat=" + flat);
+    }, 120);
+  }, 120);
+}, 400));
+</script>"""
+
+
+def check_menu(chrome: str, out: Path, url: str) -> "list[str]":
+    (out / "_menu.html").write_text(MENU_PROBE, encoding="utf-8")
+    said = dom(chrome, url + "/_menu.html", 500, 900, reduced=True)
+    found = re.search(r"MENU ([^<]*)", said)
+    if not found:
+        return ["menu: the probe returned no verdict"]
+    verdict = found.group(1).strip()
+    bad = []
+    if "contact=true" not in verdict:
+        bad.append(f"menu: Contact in the band does not open the form "
+                   f"({verdict})")
+    if "control=false" not in verdict:
+        bad.append(f"menu: a band link that is not Contact opens the form too "
+                   f"({verdict})")
+    if "flat=0" not in verdict:
+        bad.append(f"shape: an opener has lost its border or its padding — it "
+                   f"is no longer drawn as a button ({verdict})")
+    return bad
+
+
+def check_shape(html: str, where: str) -> "list[str]":
+    """The two buttons that open the form look like the form.
+
+    They must not read as the same action as "Explore selected work",
+    which moves down the page. The difference is the outline, so this
+    asserts the class that carries it — on both, and on nothing else.
+
+    A count, not a presence: the fault worth catching is the shape
+    falling off ONE of the two, which a presence check sees as fine."""
+    bad = []
+
+    # Every opener of the form, by the attribute that makes it one.
+    openers = re.findall(r'<a [^>]*data-talk[^>]*>', html)
+
+    # The CLASS attribute, not the tag. `data-talk` contains "talk" too,
+    # so a substring test over the whole tag calls every opener shaped —
+    # it passed a mutation only because the minifier happened to put the
+    # attributes in an order where it still broke.
+    def classes(tag: str) -> "list[str]":
+        found = re.search(r'class="([^"]*)"|class=([^\s>]+)', tag)
+        return (found.group(1) or found.group(2)).split() if found else []
+
+    shaped = [a for a in openers if "bubble" in classes(a)]
+    if len(openers) != 2:
+        bad.append(f"{where}: {len(openers)} buttons open the form, expected 2 "
+                   "(the hero and the foot of Contact)")
+    if len(shaped) != len(openers):
+        bad.append(f"{where}: {len(openers) - len(shaped)} of the form's "
+                   "buttons has lost its shape — the two must match")
+
+    # And the shape is not on anything that is not an opener. A page
+    # where every button is a speech bubble has no distinction left.
+    elsewhere = len(TALK_BTN.findall(html)) - len(shaped)
+    if elsewhere > 0:
+        bad.append(f"{where}: {elsewhere} button(s) wear the form's shape "
+                   "without opening the form")
+
+    return bad
+
+
+def check_shape_css(css: str) -> "list[str]":
+    """The shape is a shape, and the press is untouched.
+
+    `.btn.talk` may change the outline. What it must not do is restate
+    `transform` or `transition`, which is where the press and the
+    release live — the brief was explicit that the press survives and
+    only the shape changes. A `transform` on the rule itself would
+    compete with `:active`; one on `::after` only moves the ellipsis."""
+    bad = []
+
+    rule = re.search(r"\.btn\.bubble\s*\{([^}]*)\}", css)
+    if rule is None:
+        return ["css: `.btn.bubble` is gone — the two buttons have no shape"]
+    body = rule.group(1)
+    if "border-radius" not in body:
+        bad.append("css: `.btn.bubble` no longer changes the outline")
+    for forbidden in ("transform", "transition", "animation"):
+        if forbidden in body:
+            bad.append(f"css: `.btn.bubble` sets `{forbidden}`, which is what "
+                       "the press is made of — the shape may change, the "
+                       "press may not")
+
+    after = re.search(r"\.btn\.bubble::after\s*\{([^}]*)\}", css)
+    if after is None:
+        bad.append("css: the ellipsis is gone")
+    elif after.group(1).count("content") < 2:
+        bad.append("css: the ellipsis has only one `content` declaration. "
+                   "The alternative-text form is dropped whole by browsers "
+                   "that do not know it, so the plain one must come first")
+
+    return bad
 
 
 def strip_portfolio(page: str) -> str:
@@ -637,12 +799,19 @@ def main() -> int:
             # projects, so it would exercise one of the six.
             problems += check_lights(chrome, out, url)
 
+            # Contact in the band ends at the form, and the shape that
+            # says so is on both buttons that open it.
+            problems += check_menu(chrome, out, url)
+            problems += check_shape_css(
+                (Path("static/css/site.css")).read_text(encoding="utf-8"))
+
             for w, h, name, anchor in SIZES:
                 html = dom(chrome, url + anchor, w, h, shots / f"{name}.png")
                 if not html.strip():
                     problems.append(f"{name}: the browser returned nothing")
                     continue
                 problems += check(html, name)
+                problems += check_shape(html, name)
 
                 # The bar, which is different at each size and has been
                 # wrong at both: inline links above 800px, a disclosure
