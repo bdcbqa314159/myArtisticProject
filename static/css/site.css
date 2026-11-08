@@ -1589,7 +1589,12 @@ html.js [data-copy] { display: inline-flex; }
    after it. */
 .fridge[data-set="1"] > .slot-4 .look { --look-x: 18%; --look-y: 12%; }
 .fridge[data-set="2"] > .slot-4 .look { --look-x: 18%; }
-.fridge[data-set="4"] > .slot-2 .look { --look-x: 18%; }
+/* 8%, not 18%. A rect test said 18 was clear; the browser's own hit
+   test said the print beneath was slot 4's — because a 6deg tilt
+   reaches about 4.4% further left than the box it is computed from,
+   and the 2% margin I allowed for rotation was half what it needed.
+   Found by asking the browser instead of doing the arithmetic. */
+.fridge[data-set="4"] > .slot-2 .look { --look-x: 8%; }
 
 @keyframes lit {
   0%, 100% { transform: scale(0.55); opacity: 0.5; }

@@ -447,6 +447,73 @@ def check_cover(chrome: str, out: Path, url: str) -> "list[str]":
     return []
 
 
+# No light is hidden under the print next to it.
+#
+# The prints overlap and a later one paints over an earlier one. I first
+# worked this out from the arrangement rectangles and got it wrong: a
+# rotated print reaches about 4.4% past its box at 6deg and I had
+# allowed 2%, so one light shipped underneath its neighbour.
+#
+# This asks the BROWSER instead — `elementFromPoint` at five places on
+# each light, and a light is hidden only if what comes back belongs to a
+# print painted AFTER it. The ground beneath is fine; the print on top
+# is not. Hit testing accounts for rotation, outlines and stacking
+# without any of it being modelled here.
+LIGHT_PROBE = """
+<script>
+const slotOf = (el) => {
+  const s = el && el.closest(".shots");
+  if (!s) return 0;
+  const m = s.className.match(/slot-(\\d)/);
+  return m ? Number(m[1]) : 0;
+};
+addEventListener("load", () => setTimeout(() => {
+  const hidden = [];
+  let seen = 0;
+  document.querySelectorAll(".group").forEach((g, gi) => {
+    g.open = true;
+    g.querySelectorAll(".look").forEach((look) => {
+      seen++;
+      const mine = slotOf(look);
+      const r = look.getBoundingClientRect();
+      const pts = [[r.left + r.width/2, r.top + r.height/2],
+                   [r.left + 3, r.top + 3], [r.right - 3, r.top + 3],
+                   [r.left + 3, r.bottom - 3], [r.right - 3, r.bottom - 3]];
+      const over = pts.filter(([x, y]) =>
+        slotOf(document.elementFromPoint(x, y)) > mine).length;
+      if (over > 1) hidden.push("set" + (gi+1) + " slot" + mine + " (" + over + "/5)");
+    });
+    g.open = false;
+  });
+  document.getElementById("out").textContent =
+    "LIGHTS seen=" + seen + " hidden=" + (hidden.join(", ") || "none");
+}, 60));
+</script>"""
+
+
+def check_lights(chrome: str, out: Path, url: str) -> "list[str]":
+    page = (out / "index.html").read_text(encoding="utf-8")
+    css = re.search(r'<link[^>]*site\.css[^>]*>', page)
+    sec = re.search(r'<section id="?work"?.*?</section>', page, re.S)
+    if not (css and sec):
+        return ["lights: could not assemble the probe page"]
+    (out / "_lights.html").write_text(
+        '<!doctype html><html lang=en class=js><meta charset=utf-8>'
+        + css.group(0) + '<body><p id=out>?</p><main>' + sec.group(0)
+        + '</main>' + LIGHT_PROBE + '</html>', encoding="utf-8")
+    said = dom(chrome, url + "/_lights.html", 1100, 1000)
+    found = re.search(r"LIGHTS seen=(\d+) hidden=([^<]*)", said)
+    if not found:
+        return ["lights: the probe returned no verdict"]
+    seen, hidden = int(found.group(1)), found.group(2).strip()
+    bad = []
+    if seen == 0:
+        bad.append("lights: none found — the invitation to tap is missing")
+    if hidden != "none":
+        bad.append(f"lights: hidden under the print beside them — {hidden}")
+    return bad
+
+
 def build_with_projects(out: Path) -> Path:
     """A whole site, copied, with one reference's fridge filled in.
 
@@ -565,6 +632,11 @@ def main() -> int:
 
         problems = []
         try:
+            # Every light on the real page, in all six arrangements —
+            # the probe build below has only one reference with
+            # projects, so it would exercise one of the six.
+            problems += check_lights(chrome, out, url)
+
             for w, h, name, anchor in SIZES:
                 html = dom(chrome, url + anchor, w, h, shots / f"{name}.png")
                 if not html.strip():
