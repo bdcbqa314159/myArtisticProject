@@ -865,6 +865,15 @@ text = "À traduire"
 
 # ---- 06 about --------------------------------------------------------
 
+
+# Le document derrière un concept. Le PDF n'est jamais ici : tout ce que
+# contient content/ est copié dans le site publié. `tools/dossier.py` en
+# fabrique les pages et laisse le PDF là où il a été déposé.
+[[extra.dossier]]
+concept = 2
+id = "format-two"
+pages = 3
+alt = "Document de présentation provisoire, trois pages. Ce n'est pas le document du client."
 [[extra.about_pillars]]
 name = "À traduire"
 text = "À traduire"

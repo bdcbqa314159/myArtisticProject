@@ -938,7 +938,12 @@ function closeTheCarousel(): void {
    * keystroke. */
   const innermost = (): HTMLDetailsElement | null =>
     document.querySelector<HTMLDetailsElement>(".shots[open]")
-    ?? document.querySelector<HTMLDetailsElement>(".group[open]");
+    ?? document.querySelector<HTMLDetailsElement>(".group[open]")
+    /* A dossier is a third thing that can be over the page. It is never
+     * open at the same time as the gallery — they are different
+     * sections — so it only has to be in the list, not ordered against
+     * the other two. */
+    ?? document.querySelector<HTMLDetailsElement>(".dossier[open]");
 
   const shut = (box: HTMLDetailsElement | null): void => {
     if (!box) return;
@@ -995,6 +1000,16 @@ function closeTheCarousel(): void {
       // prints, and each print is a summary that opens its carousel.
       if (ev.target !== front) return;
       shut(front.closest("details"));
+    });
+  }
+
+  /* The same way out of a document. The pages are narrower than the
+   * sheet, so there is always margin to click — and a click ON a page
+   * is someone reading it, which must do nothing at all. */
+  for (const leaves of document.querySelectorAll<HTMLElement>(".leaves")) {
+    leaves.addEventListener("click", (ev) => {
+      if (ev.target !== leaves) return;
+      shut(leaves.closest("details"));
     });
   }
 }

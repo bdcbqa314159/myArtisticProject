@@ -362,6 +362,59 @@
         <span class="status" data-edit="concept.{{ loop.index }}.status">{{ c.status }}</span>
         <h3 data-edit="concept.{{ loop.index }}.name">{{ c.name }}</h3>
         <p class="muted" data-edit="concept.{{ loop.index }}.text">{{ c.text }}</p>
+
+        {# ---- the document behind this concept, if there is one --------
+           Found with a loop because this Zola has no `filter` filter —
+           verified, not assumed — and `set_global` is what carries a
+           value out of a loop.
+
+           THERE IS NO PDF ON THIS PAGE. `tools/dossier.py` turned it
+           into these images and left the file where it was dropped, so
+           there is nothing here to link to and nothing to download.
+           That is the only version of "not downloadable" that is
+           actually true: a file the browser renders is a file the
+           reader already has. #}
+        {%- set ci = loop.index %}
+        {%- set_global doc = "" %}
+        {%- set_global doc_pages = 0 %}
+        {%- set_global doc_alt = "" %}
+        {%- for d in e.dossier | default(value=[]) %}{% if d.concept == ci %}
+          {%- set_global doc = d.id %}
+          {%- set_global doc_pages = d.pages %}
+          {%- set_global doc_alt = d.alt %}
+        {%- endif %}{% endfor %}
+
+        {%- if doc != "" and doc_pages > 0 %}
+        <details class="dossier" data-dossier="{{ doc }}">
+          {# The miniature IS the way in — no button beside it. The page
+             is the affordance, the way a print in the gallery is. #}
+          <summary>
+            {% set mini = resize_image(path="@/dossier-" ~ doc ~ "-p01.jpg", width=320, op="fit_width", format="webp", quality=72) %}
+            <img src="{{ mini.url }}" width="{{ mini.width }}" height="{{ mini.height }}"
+                 alt="{{ doc_alt }}" loading="lazy" decoding="async">
+            <span class="dossier-note">{{ doc_pages }} pages · read</span>
+          </summary>
+
+          {# Scroll mode: the pages stacked at a width worth reading. The
+             first is eager because it is already on screen behind the
+             miniature; the rest arrive as they are reached. Every page
+             keeps its box whether or not its image has landed, so an
+             unread page looks like a page rather than a hole — the
+             fault that made the gallery's second level come up empty. #}
+          <div class="leaves" tabindex="0" role="document" aria-label="{{ doc_alt }}">
+            {%- for n in range(end=doc_pages) %}
+            {%- set_global num = n + 1 %}
+            {%- if num < 10 %}{% set_global leafname = "dossier-" ~ doc ~ "-p0" ~ num ~ ".jpg" %}
+            {%- else %}{% set_global leafname = "dossier-" ~ doc ~ "-p" ~ num ~ ".jpg" %}{% endif %}
+            {% set leaf = resize_image(path="@/" ~ leafname, width=1200, op="fit_width", format="webp", quality=80) %}
+            <img class="leaf" src="{{ leaf.url }}"
+                 width="{{ leaf.width }}" height="{{ leaf.height }}"
+                 alt="{{ doc_alt }} — page {{ num }} of {{ doc_pages }}"
+                 {% if num > 1 %}loading="lazy" {% endif %}decoding="async">
+            {%- endfor %}
+          </div>
+        </details>
+        {%- endif %}
       </li>
       {% endfor %}
     </ol>

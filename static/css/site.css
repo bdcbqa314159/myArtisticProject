@@ -717,6 +717,103 @@ html.js.crossing.arrived .veil {
   .veil { display: none; }
 }
 
+/* ============================================================================
+   A DOCUMENT BEHIND A CONCEPT
+   ============================================================================
+
+   A miniature on the card; the pages, stacked and scrollable, when it is
+   opened. `<details>` and not `<dialog>` for the same reason the gallery
+   uses it: with no script a dialog is unreachable, and a disclosure
+   still opens.
+
+   There is no PDF to download because there is no PDF. The pages are
+   images, and images can always be saved — anything on a screen can. The
+   honest claim is narrower and worth keeping precise: the document
+   itself was never published, and what is served is exactly what is
+   shown, at the size it is shown.
+   ============================================================================ */
+
+.dossier { margin-top: 1.25rem; }
+
+.dossier > summary {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: max-content;
+  max-width: 100%;
+  cursor: pointer;
+  list-style: none;
+}
+.dossier > summary::-webkit-details-marker { display: none; }
+
+/* The miniature reads as paper: a pale leaf with an edge, not a photo. */
+.dossier > summary img {
+  display: block;
+  width: 160px;
+  height: auto;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  transition: transform 160ms ease, border-color 160ms ease;
+}
+@media (hover: hover) {
+  .dossier > summary:hover img { border-color: var(--muted); transform: translateY(-2px); }
+}
+.dossier > summary:focus-visible img { border-color: var(--accent); }
+
+.dossier-note {
+  font-size: 0.7rem;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* ---- the pages ---------------------------------------------------------
+   Closed, they are not in the layout at all. Open and with script, the
+   whole thing becomes the reading surface. */
+.dossier:not([open]) .leaves { display: none; }
+
+html.js .dossier[open] > .leaves {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  /* SCROLL MODE. The pages run down, and the surface scrolls — this is
+     the whole of what was asked for. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: clamp(1rem, 5vw, 3rem) var(--gutter);
+  backdrop-filter: blur(16px) saturate(0.85);
+  background: color-mix(in oklch, var(--bg) 72%, transparent);
+}
+
+html.js .dossier[open] > .leaves .leaf {
+  width: min(880px, 100%);
+  height: auto;
+  /* A page keeps its shape before its image lands, so a page not yet
+     read looks like paper rather than a hole in the stack. A4 is 1:1.414
+     and every page of a document is the same shape as the first. */
+  aspect-ratio: 1 / 1.414;
+  object-fit: contain;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+
+/* With no script the pages simply follow the card, in order. */
+html:not(.js) .dossier[open] > .leaves .leaf {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 1rem;
+  border: 1px solid var(--line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dossier > summary img { transition: none; }
+}
+
 /* ---- ecosystem, about, contact -------------------------------------------- */
 
 /* ============================================================================

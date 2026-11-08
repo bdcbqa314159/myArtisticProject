@@ -85,7 +85,7 @@ def find_chrome() -> Optional[str]:
 
 
 def dom(chrome: str, url: str, width: int, height: int, shot: Path = None,
-        no_js: bool = False, reduced: bool = False) -> str:
+        no_js: bool = False, reduced: bool = False, budget: int = 0) -> str:
     """Render the page and return the DOM. With `shot`, also save a picture.
 
     The picture is the point of running a browser at all: the DOM says
@@ -121,7 +121,11 @@ def dom(chrome: str, url: str, width: int, height: int, shot: Path = None,
             # exactly like a page whose images are broken — it has twice
             # nearly had a non-bug reported.
             *off,
-            f"--virtual-time-budget={10000 if shot else 3000}",
+            # A probe that waits for the page to be READY rather than for
+            # a fixed delay needs longer than the default: the cover has
+            # its own floor, and the clock stopping mid-probe looks
+            # exactly like a probe that found nothing.
+            f"--virtual-time-budget={budget or (10000 if shot else 3000)}",
             "--dump-dom",
             url,
         ],
@@ -920,6 +924,172 @@ def check_crossing(chrome: str, out: Path, url: str, still: bool) -> "list[str]"
     return bad
 
 
+# A document is shown and not served.
+DOC_PROBE = """
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+const f = document.createElement("iframe");
+f.width = 390; f.height = 720; f.style.border = 0; f.src = "/";
+document.body.appendChild(f);
+/* WAIT FOR THE COVER TO GO.
+ * Acting on a fixed delay made this measurement flap: sometimes the
+ * page was still behind its loader, the click on the summary landed on
+ * the cover instead of the page, and the document never opened — which
+ * showed up as `pos=static covers=n` on one run and a clean pass on the
+ * next. A reader waits for the page; so does this. */
+function whenReady(d, go, waited) {
+  // `booting` is the class the page itself takes off when the cover has
+  // done its work. Not the element: in a frame that one can outlive the
+  // class, and waiting on it waits for ever.
+  const covered = d.documentElement.classList.contains("booting");
+  if (!covered || (waited || 0) > 6000) { go(); return; }
+  setTimeout(() => whenReady(d, go, (waited || 0) + 100), 100);
+}
+
+f.addEventListener("load", () => setTimeout(() => {
+  try {
+    const d = f.contentDocument, w = f.contentWindow;
+    const box = d.querySelector("details.dossier");
+    if (!box) { say("none"); return; }
+    whenReady(d, () => measure(d, w, box));
+  } catch (err) { say("threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-")); }
+}, 300));
+
+function measure(d, w, box) {
+  try {
+
+    /* Everything in the reveal released, as it is for anyone who has
+     * scrolled to the card. The reveal puts a `transform` on the <ol>,
+     * and a transformed ancestor is the containing block for anything
+     * `position: fixed` inside it — which would make the reading
+     * surface a box inside the card instead of the page. Measured: 343
+     * x 757 at 23,-136 before the reveal; the viewport after it. */
+    d.querySelectorAll(".reveal").forEach((e) => {
+      /* The transition taken off FIRST. `.in` only sets the end state,
+       * and the 650ms journey to it keeps a `transform` on the element
+       * the whole way — so measuring half a second after adding the
+       * class caught it mid-flight, and `covers` came out true on one
+       * run and false on the next. Setting it through the element's own
+       * style is CSSOM, which `style-src 'self'` allows; an injected
+       * <style> element would be blocked. */
+      e.style.transition = "none";
+      e.classList.add("in");
+    });
+
+    const leaves = box.querySelector(".leaves");
+    const pages = leaves.querySelectorAll(".leaf").length;
+    // Anything at all that could hand the reader a file.
+    const links = box.querySelectorAll("a[href], [download]").length;
+
+    box.querySelector("summary").click();
+    setTimeout(() => {
+      /* READ IT NOW, not in `say()`. `getComputedStyle` returns a LIVE
+       * object: holding on to it and reading `.position` three timeouts
+       * later reported `static` every time, because by then the ground
+       * click had closed the document. The booleans beside it were
+       * computed eagerly and said the opposite, which is what gave a
+       * verdict of `pos=static covers=y` — two measurements of the same
+       * element at different moments, dressed as one. */
+      const pos = w.getComputedStyle(leaves).position;
+      const r = leaves.getBoundingClientRect();
+      const covers = Math.abs(r.width - w.innerWidth) < 2
+                  && Math.abs(r.height - w.innerHeight) < 2
+                  && Math.abs(r.left) < 2 && Math.abs(r.top) < 2;
+      /* Scrollable, not merely overflowing. A box with `overflow:
+       * visible` still reports a scrollHeight past its clientHeight —
+       * the content spills instead of scrolling — so taking the
+       * stylesheet's `overflow-y` away left this test green while the
+       * pages ran off the bottom of the screen with no way to reach
+       * them. Both halves are needed: room to scroll, and permission. */
+      const oy = w.getComputedStyle(leaves).overflowY;
+      const scrolls = leaves.scrollHeight > leaves.clientHeight + 10
+                   && (oy === "auto" || oy === "scroll");
+      const leaf = leaves.querySelector(".leaf");
+      const sharp = leaf.naturalWidth / Math.max(1, leaf.getBoundingClientRect().width);
+
+      leaf.click();                       // reading, not leaving
+      setTimeout(() => {
+        const stillOpen = box.open;
+        leaves.click();                   // the margin, which is leaving
+        setTimeout(() => {
+          say("pages=" + pages + " links=" + links
+            + " pos=" + pos
+            + " covers=" + (covers ? "y" : "n")
+            + " scrolls=" + (scrolls ? "y" : "n")
+            + " sharp=" + sharp.toFixed(1)
+            + " onpage=" + (stillOpen ? "stays" : "CLOSED")
+            + " onground=" + (box.open ? "STAYS" : "closes"));
+        }, 150);
+      }, 150);
+    }, 500);
+  } catch (err) { say("threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-")); }
+}
+function say(s) { document.getElementById("o").textContent = "DOC " + s; }
+</script>"""
+
+
+def check_document(chrome: str, out: Path, url: str) -> "list[str]":
+    (out / "_doc.html").write_text(DOC_PROBE, encoding="utf-8")
+    said = dom(chrome, url + "/_doc.html", 500, 900, budget=20000)
+    found = re.search(r"DOC ([^<]*)", said)
+    if not found:
+        return ["doc: the probe returned no verdict"]
+    verdict = found.group(1).strip()
+    if verdict == "none":
+        return []                      # no dossier on the page, nothing to check
+    if "=" not in verdict:
+        return [f"doc: the probe could not run — {verdict}"]
+    f = dict(kv.split("=") for kv in verdict.split())
+    bad = []
+
+    if int(f["pages"]) < 1:
+        bad.append("doc: the document has no pages")
+    if f["links"] != "0":
+        bad.append(f"doc: there are {f['links']} links inside the document. A "
+                   f"dossier is shown, never handed over — nothing in it may "
+                   f"point at a file")
+    if f["pos"] != "fixed" or f["covers"] != "y":
+        bad.append(f"doc: the reading surface is not the page ({verdict}). A "
+                   f"transformed or filtered ancestor becomes the containing "
+                   f"block for `position: fixed`, and the document ends up in "
+                   f"a box inside the card")
+    if f["scrolls"] != "y":
+        bad.append(f"doc: the pages do not scroll — scroll mode is the whole "
+                   f"of what a dossier is ({verdict})")
+    if float(f["sharp"]) < 1.8:
+        bad.append(f"doc: each page is served at {f['sharp']}x the size it is "
+                   f"shown. That is not enough to read on a dense screen")
+    if f["onpage"] != "stays":
+        bad.append("doc: clicking a page closes the document. A click on a "
+                   "page is someone reading it")
+    if f["onground"] != "closes":
+        bad.append("doc: clicking the margin does not close the document")
+    return bad
+
+
+def check_no_pdf_served(out: Path) -> "list[str]":
+    """Nothing in the built site is a PDF, and no page image is served
+    at a size the page does not use.
+
+    The promise is narrow and worth keeping exact: a file the browser
+    renders is a file the reader already has, so the only honest version
+    of "not downloadable" is that the document was never published. This
+    is what holds that true."""
+    bad = []
+    pdfs = [p for p in out.rglob("*") if p.suffix.lower() == ".pdf"]
+    if pdfs:
+        bad.append(f"doc: the built site serves {pdfs[0].name}. The PDF is "
+                   f"meant to stay behind — only its pages are published")
+
+    # The 1600px originals are build inputs, not output. `ignored_content`
+    # keeps them out, and ONLY the `**/` form of the glob does — measured.
+    originals = list(out.glob("dossier-*.jpg"))
+    if originals:
+        bad.append(f"doc: {len(originals)} full-size page image(s) are served "
+                   f"as well as the derivatives ({originals[0].name}). Check "
+                   f"`ignored_content` in config.toml still starts with `**/`")
+    return bad
+
+
 def check_shape(html: str, where: str) -> "list[str]":
     """The two buttons that open the form look like the form.
 
@@ -1426,6 +1596,8 @@ def main() -> int:
             problems += check_marks_declared(site_css)
             problems += check_marks(chrome, out, url, site_css)
             problems += check_arc(chrome, out, url)
+            problems += check_document(chrome, out, url)
+            problems += check_no_pdf_served(out)
             problems += check_crossing(chrome, out, url, False)
             problems += check_crossing(chrome, out, url, True)
             problems += check_cloud_css(site_css)

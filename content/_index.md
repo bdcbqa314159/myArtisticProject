@@ -934,6 +934,19 @@ status = "Opportunity area"
 name = "Format Three"
 text = "Concept name and description supplied at handover."
 
+# ---------------------------------------------------------------------
+# A document behind a concept. The PDF is NOT here and never goes here:
+# everything in content/ is copied into the built site, so a PDF put
+# beside these pages would be downloadable — the one thing this is for
+# avoiding. `tools/dossier.py` checks the PDF is really a PDF, turns it
+# into the dossier-*.jpg pages, and leaves the PDF where it was dropped.
+# ---------------------------------------------------------------------
+[[extra.dossier]]
+concept = 2
+id = "format-two"
+pages = 3
+alt = "Placeholder concept outline, three pages. Not the client's document."
+
 # ---- 05 professional ecosystem --------------------------------------
 
 # ---- 06 about --------------------------------------------------------
