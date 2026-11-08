@@ -41,6 +41,10 @@ jobs:
       - run: python3 tools/vcard.py          # the saveable contact, or nothing at all
       - run: python3 tools/objects.py        # every content object is well formed
       - run: python3 tools/content-check.py  # the client's publication rules hold
+      - run: python3 tools/objects-check.py  # the object checker itself still bites
+      - run: python3 tools/fr-check.py       # the French page has the English page's shape
+      - run: python3 tools/translate-check.py # the DeepL tool, against its own fake server
+      - run: node tools/contact-check.mjs    # the form refuses what it must
       # poppler is what reads a PDF and turns its pages into images. The
       # BUILD does not need it — the pages are made once, on the machine
       # where the document was dropped, and committed like any other
@@ -53,6 +57,11 @@ jobs:
         with:
           tool: zola@0.23.6
       - run: zola build
+      # After the build, because it reads what was built. This is the
+      # check that catches an inline script whose hash no longer matches
+      # the policy — which happens every time one is edited, and which
+      # the browser answers by refusing to run it at all.
+      - run: python3 tools/csp-check.py      # every inline script is named by the policy
 
       # The only check here that runs the page rather than reading it.
       # Uses the runner's own Chrome — no dependency, nothing installed.

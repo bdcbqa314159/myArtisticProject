@@ -26,7 +26,11 @@ node_modules/
 # ---------------------------------------------------------------
 /_ref/
 *.pdf
-!/content/**/*.pdf
+# NO EXCEPTION for content/. There was one, and it was a trap: Zola
+# copies everything under content/ into the built site, so a PDF left
+# there would be published and downloadable — the one thing a dossier
+# exists to prevent. `tools/objects.py` refuses it too; this makes it
+# impossible to commit in the first place.
 *.ai
 *.psd
 *.sketch

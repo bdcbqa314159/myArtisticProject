@@ -1700,7 +1700,6 @@ section:not(.hero) > .wrap > .eyebrow::after {
    button PR, paid here, where this CSS was already open. */
 @media (hover: none) {
   .links a:hover { color: inherit; }
-  .menu-items a:hover { background: none; }
   .credit a:hover, .footer a:hover { color: var(--muted); }
 }
 
@@ -2608,7 +2607,7 @@ html.js:has(.group[open]) { overflow: hidden; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .project summary img, .project-name { transition: none; }
+  .project summary img { transition: none; }
 }
 
 /* AS LARGE AS FITS, and no larger.
