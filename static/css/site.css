@@ -659,6 +659,64 @@ html.scrolling .case .image img { will-change: transform; }
   background: var(--panel);
 }
 
+/* ============================================================================
+   CROSSING BETWEEN SECTIONS — the band only
+   ============================================================================
+
+   "Interaction from the menu should lead us in a more smooth way,
+    without seeing the whole movement."
+
+   So a tap on the band no longer travels the page. It softens what is
+   on screen, moves while nobody can read it, and clears again onto the
+   section asked for.
+
+   THE BUTTONS ARE DELIBERATELY NOT THIS. "Explore selected work" keeps
+   its long scroll because the journey is the point there and the client
+   likes it; the band is navigation, and a reader who asks for About
+   wants About, not a tour of everything above it.
+
+   `backdrop-filter` on one fixed, viewport-sized element rather than a
+   filter on the page: a filter over a document this long is expensive
+   and — the lesson this page has learned three times — makes its
+   element the containing block for every fixed thing inside it. Nothing
+   is inside this one.
+
+   Below the header's z-index (10) so the band stays sharp. It is the
+   thing just touched; blurring it would read as a fault.
+   ============================================================================ */
+
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  /* Never in the way of a click, at any moment of its life. */
+  pointer-events: none;
+  opacity: 0;
+  background: color-mix(in oklab, var(--bg) 72%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+/* No script, no crossing: the browser's own jump is what happens, and a
+   permanent veil over a page that never crosses would be a bug. */
+html:not(.js) .veil { display: none; }
+
+/* Going. Short — this half is a delay, and the reader is waiting. */
+html.js.crossing .veil {
+  opacity: 1;
+  transition: opacity 240ms ease-in;
+}
+
+/* Arriving. Longer, and eased the other way: the section is rediscovered
+   rather than revealed, which is the whole of the effect. */
+html.js.crossing.arrived .veil {
+  opacity: 0;
+  transition: opacity 520ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .veil { display: none; }
+}
+
 /* ---- ecosystem, about, contact -------------------------------------------- */
 
 /* ============================================================================

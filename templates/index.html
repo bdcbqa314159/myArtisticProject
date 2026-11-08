@@ -91,6 +91,14 @@
   </div>
 </header>
 
+{# The page goes behind this on its way between sections.
+
+   Below the header's z-index on purpose: the band you have just touched
+   stays legible while everything under it softens. Inert and invisible
+   until script asks for it, and never present at all for a reader who
+   asked for less motion. #}
+<div class="veil" aria-hidden="true"></div>
+
 {# ---- 01 hero ------------------------------------------------------- #}
 <section class="hero" id="top">
   <div class="wrap hero-grid">
