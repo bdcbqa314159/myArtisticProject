@@ -379,8 +379,13 @@
     </h2>
     <div class="section-intro"><p class="muted" data-edit="ecosystem_lead">{{ e.ecosystem_lead }}</p></div>
     {% if e.ecosystem_fields %}
-    <ul class="strip">
-      {% for f in e.ecosystem_fields %}<li class="pill">{{ f }}</li>{% endfor %}
+    {# Words, not buttons.
+       `.pill` was a bordered capsule — the same shape as every button on
+       this page — so six things that cannot be clicked looked like six
+       things that could. These are the fields the work sits in: they are
+       read, not pressed. #}
+    <ul class="cloud">
+      {% for f in e.ecosystem_fields %}<li class="drop">{{ f }}</li>{% endfor %}
     </ul>
     {% endif %}
   </div>
