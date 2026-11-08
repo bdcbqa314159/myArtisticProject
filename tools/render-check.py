@@ -1632,8 +1632,15 @@ def check_live(html: str) -> "list[str]":
 
     if "noindex" in html:
         bad.append("live: still noindex — the page would never be found")
-    if "data-palette-toggle" in html:
-        bad.append("live: the palette toggle is on the published page")
+    # The palette toggle this used to look for no longer exists
+    # anywhere, so that assertion could not fail — and a check that
+    # cannot fail is worse than none, because it is still counted.
+    # What matters now is that the published page ARRIVES IN CREAM:
+    # no palette baked into the HTML, nothing read before first paint.
+    if "data-palette=" in html:
+        bad.append("live: a palette is baked into the published page. Every "
+                   "visit begins in cream, and only going into the work "
+                   "changes that")
     # The BADGE, not the words. The demo's placeholder alt text reads
     # "Stand-in photograph…", so matching the phrase anywhere made a
     # check that could never pass — and a check that always fails is

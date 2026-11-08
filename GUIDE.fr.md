@@ -146,6 +146,40 @@ clique dessus et modifie le texte sans choisir de nouveau fichier.
 
 ---
 
+### Un document (PDF) derrière un concept
+
+Chacune des trois fiches de *Formats in development* peut porter **un**
+document. Sous chaque fiche, un cadre en pointillés indique
+*« Drop a PDF here, or click »* — ou *« Drop a PDF to replace this
+document »* s'il y en a déjà un.
+
+- **Fais glisser** le PDF dessus, **ou clique** pour le choisir
+- la question posée est *« What is this document? »*
+- **écris ce que c'est** — obligatoire, pour la même raison que les
+  photographies
+- **Save** pour valider
+
+Sur la page, le document apparaît en **miniature**. Un clic l'ouvre en
+**pleine page**, et on le fait défiler du doigt comme n'importe quelle
+page. Un clic à côté du document le referme.
+
+> **Le PDF n'est jamais mis en ligne.** L'outil le transforme en images
+> de pages, et ce sont ces images seules qui partent sur le site. Il n'y
+> a donc aucun fichier à télécharger — c'est volontaire. En revanche
+> n'importe qui peut toujours faire une capture d'écran : ça, aucun site
+> au monde ne peut l'empêcher.
+
+**Seulement de vrais PDF.** Renommer un fichier en `.pdf` ne suffit pas :
+l'outil regarde ce qu'il y a *à l'intérieur*, et refuse tout le reste en
+disant pourquoi. Maximum **16 pages** — chaque page devient une image que
+le visiteur doit charger.
+
+> **Si le site répond qu'il manque `pdfinfo`** : ouvre le Terminal et
+> tape `brew install poppler`, puis recommence. C'est l'outil qui sait
+> lire un PDF ; Homebrew (étape 1) l'installe en une ligne.
+
+---
+
 ## Ce qui ne peut pas casser
 
 Le panneau refuse ce qui abîmerait le site, et te dit pourquoi :
