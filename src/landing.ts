@@ -1049,50 +1049,40 @@ function softWhileMoving(): void {
   );
 }
 
-/* ---- choosing a palette -----------------------------------------------
- * An instrument for deciding, not a feature: the control is only
- * rendered while `live = false`, and the finished site has one palette.
+/* ---- going into the work changes the light ---------------------------
  *
- * Switching RELOADS the page rather than swapping the tokens in place.
- * That is deliberate and it is the cheaper answer:
+ * "By default we are cream, always. Scrolling does nothing. If the user
+ *  clicks on Explore selected work we move to the right section and we
+ *  switch to the grey palette. Re-clicking does nothing. If we quit and
+ *  come back we are cream again."
  *
- *   - the loader appears by itself, which is the "waiting animation in
- *     between" that was asked for. No second mechanism, no second thing
- *     that can get the sequence wrong.
- *   - the choice is read before first paint by the inline script in the
- *     head, so the page arrives already in its palette instead of
- *     changing colour after it has been seen.
+ * All four of those fall out of one line: set the attribute, store
+ * nothing. Setting it twice is the same as setting it once, and a
+ * reload has no memory to consult — the head used to read a saved
+ * palette before first paint and no longer does, which is what makes
+ * "quit and come back" reliable rather than hopeful.
  *
- * Swapping tokens live would avoid the reload and reintroduce exactly
- * the class of bug that cost most of a day: two things changing the
- * page's appearance at once.
+ * The tokens change under a short transition, put on and taken off
+ * again, so the page warms into the new light instead of flicking. A
+ * permanent transition on every element would animate every hover on
+ * the page as well.
  */
-const PALETTES: readonly string[] = ["cool", "cream"];
+const TINT_MS = 700;
 
-function paletteControl(): void {
-  const button = document.querySelector<HTMLButtonElement>("[data-palette-toggle]");
-  if (!button) return;
+function tintOnTheWayIn(): void {
+  for (const trigger of document.querySelectorAll<HTMLElement>("[data-tint]")) {
+    trigger.addEventListener("click", () => {
+      const want = trigger.dataset["tint"];
+      if (!want || document.documentElement.dataset["palette"] === want) return;
 
-  // `noUncheckedIndexedAccess` is on, so an index is `string | undefined`
-  // whatever the array literally holds. The fallbacks are not defensive
-  // noise — they are what makes this compile honestly.
-  const current = document.documentElement.dataset["palette"] ?? PALETTES[0] ?? "cool";
-  const after = PALETTES[(PALETTES.indexOf(current) + 1) % PALETTES.length];
-  const next = after ?? "cool";
-
-  button.textContent = `Palette: ${current} → ${next}`;
-
-  button.addEventListener("click", () => {
-    try {
-      localStorage.setItem("palette", next);
-    } catch {
-      // Private browsing refuses storage. Switch for this view anyway
-      // rather than appearing to do nothing.
-      document.documentElement.dataset["palette"] = next;
-      return;
-    }
-    location.reload();
-  });
+      if (!reduced) {
+        document.documentElement.classList.add("tinting");
+        window.setTimeout(
+          () => document.documentElement.classList.remove("tinting"), TINT_MS);
+      }
+      document.documentElement.dataset["palette"] = want;
+    });
+  }
 }
 
 /* ---- copy the address -------------------------------------------------
@@ -1271,7 +1261,7 @@ WIDE.addEventListener("change", syncBar);
 markCurrentSection();
 closeMenuOnNavigate();
 copyButtons();
-paletteControl();
+tintOnTheWayIn();
 countTheWait();
 softWhileMoving();
 exchangePhrases();

@@ -34,7 +34,7 @@
   default-src 'self';
   img-src 'self';
   style-src 'self';
-  script-src 'self' 'sha256-S5z115ZJ/h3aHd7ry/JMsJUw7Ie2eTvj9g4zH79QneA=';
+  script-src 'self' 'sha256-344/RiILII5GCO+ZgtZtiDiwKMqGWoLVCsMbOylTnP0=';
   connect-src 'none';
   base-uri 'none';
   object-src 'none'">
@@ -51,9 +51,9 @@
    myBureau makes, for the same reason. #}
 <script>
 (function(d){d.classList.add("js","booting");
-/* The chosen palette, before anything is painted. Later than this and
-   the page would arrive in one palette and change into another. */
-try{var p=localStorage.getItem("palette");if(p){d.dataset.palette=p}}catch(e){}
+/* No palette is read here any more. There is nothing stored to read:
+   every visit begins in cream, and only going into the work changes
+   it — for that visit alone. */
 /* Failsafe: if the script that reveals the page never loads or throws,
    un-hide the page anyway. A portfolio must never stay blank. */
 setTimeout(function(){d.classList.remove("booting")},6000)})(document.documentElement)
