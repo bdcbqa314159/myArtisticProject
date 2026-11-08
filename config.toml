@@ -107,6 +107,35 @@ vcard_url = ""         # optional
 # The host's details are a fact about where the site is served and are
 # filled in already.
 # ---------------------------------------------------------------
+# ---------------------------------------------------------------
+# LET'S TALK — where the form sends.
+#
+# One endpoint for everybody on the service; the access key is the only
+# thing that says whose inbox a message lands in. Ported from myBureau,
+# which has been running it — see LICENCE §2, the engine travels with
+# the Author.
+#
+# TWO KEYS, picked by `live`, for the same reason the identity and the
+# robots policy are. A single key would mean flipping `live = true` puts
+# the client's name up while his enquiries still arrive in the studio's
+# inbox — silently, until somebody says they never heard back.
+#
+# An empty key makes the form say it is not connected rather than
+# swallowing the message. The key is public by design: it lives in the
+# page so the browser can submit. It is a destination, not a secret.
+#
+# Everything the browser checks is a courtesy — an attacker POSTs
+# straight at the endpoint and none of our code runs.
+# ---------------------------------------------------------------
+[extra.contact_form]
+endpoint = "https://api.web3forms.com/submit"
+
+[extra.contact_form.demo]
+access_key = ""        # the studio's own, while live = false
+
+[extra.contact_form.real]
+access_key = ""        # the client's own, registered by him, to his address
+
 [extra.legal]
 entity = ""            # the legal name of the publisher
 status = ""            # e.g. "Entrepreneur individuel", "SASU"

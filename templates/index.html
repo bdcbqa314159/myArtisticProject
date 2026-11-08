@@ -1,6 +1,11 @@
 {# One switch picks who this site belongs to — see config.toml. #}
 {% if config.extra.live %}{% set_global id = config.extra.real %}
 {% else %}{% set_global id = config.extra.demo %}{% endif %}
+{# The form's destination follows the identity, for the same reason the
+   name and the robots policy do: one key would mean the client's name
+   goes up while his enquiries still arrive in the studio's inbox. #}
+{% if config.extra.live %}{% set_global contact_key = config.extra.contact_form.real.access_key %}
+{% else %}{% set_global contact_key = config.extra.contact_form.demo.access_key %}{% endif %}
 {% set e = section.extra %}
 <!doctype html>
 <html lang="{{ lang }}">
@@ -100,7 +105,7 @@
       {% if e.intro %}<p class="muted hero-intro" data-edit="intro">{{ e.intro }}</p>{% endif %}
       <div class="actions">
         {% if e.cta_work %}<a class="btn primary" href="#work" data-edit="cta_work">{{ e.cta_work }}</a>{% endif %}
-        {% if e.cta_contact %}<a class="btn" href="#contact" data-edit="cta_contact">{{ e.cta_contact }}</a>{% endif %}
+        {% if e.cta_contact %}<a class="btn" href="#talk" data-talk data-edit="cta_contact">{{ e.cta_contact }}</a>{% endif %}
       </div>
     </div>
     {# The maquette's narrow right-hand column: the masthead line and the
@@ -418,9 +423,13 @@
     <p class="eyebrow">Contact</p>
     <h2 data-edit="contact_title">{{ e.contact_title }}</h2>
     <div class="section-intro"><p class="muted" data-edit="contact_lead">{{ e.contact_lead }}</p></div>
-    {% if config.extra.contact.email %}
     <div class="actions">
-      <a class="btn primary" href="mailto:{{ config.extra.contact.email }}">{{ config.extra.contact.email }}</a>
+      {# The way through, whether or not an address is ever configured.
+         It replaces the "to configure" line, which told a visitor
+         nothing and a client that his own site was unfinished. #}
+      <a class="btn primary" href="#talk" data-talk>{{ e.cta_contact }}</a>
+      {% if config.extra.contact.email %}
+      <a class="btn" href="mailto:{{ config.extra.contact.email }}">{{ config.extra.contact.email }}</a>
       {# The saveable card. In the moment this page is actually used — a
          phone handed across a table — the useful action is the one that
          KEEPS him, not one that sends into a void. Built by
@@ -429,10 +438,53 @@
       <a class="btn" href="{{ get_url(path='contact.vcf') }}" download>{{ e.contact_save }}</a>
       {% endif %}
       <button class="btn" type="button" data-copy="{{ config.extra.contact.email }}">{{ e.contact_copy }}</button>
+      {% endif %}
     </div>
-    {% else %}
-    <p class="pending" data-edit="contact_pending">{{ e.contact_pending }}</p>
-    {% endif %}
+
+    {# THE FORM.
+       A <dialog>, because a form is the one thing on this page that
+       genuinely needs focus trapped: a reader tabbing out of it into a
+       page they cannot see is lost. With no script the stylesheet shows
+       it inline, right here — one element, never a second copy.
+
+       Everything it can say is written in as data, so the French page
+       carries its own words and the script carries none. #}
+    <dialog class="talk" id="talk">
+      <form class="contact-form" action="{{ config.extra.contact_form.endpoint }}"
+            method="post" novalidate
+            data-says='{"form_sending":"{{ e.form_sending }}","form_sent":"{{ e.form_sent }}","form_failed":"{{ e.form_failed }}","form_offline":"{{ e.form_offline }}","err_mail_missing":"{{ e.err_mail_missing }}","err_mail_invalid":"{{ e.err_mail_invalid }}","err_mail_long":"{{ e.err_mail_long }}","err_mail_one":"{{ e.err_mail_one }}","err_subject":"{{ e.err_subject }}","err_message_missing":"{{ e.err_message_missing }}","err_message_long":"{{ e.err_message_long }}","err_message_bad":"{{ e.err_message_bad }}","err_message_links":"{{ e.err_message_links }}"}'>
+
+        {# Where it goes. Public by design — the browser has to send it. #}
+        <input type="hidden" name="access_key" value="{{ contact_key }}">
+
+        {# A field no person can see and no screen reader reaches. Filled
+           in means a bot. Moved off-screen rather than display:none,
+           because some bots skip hidden fields and some assistive
+           technology reads them. #}
+        <div class="trap" aria-hidden="true">
+          <label for="_trap">Leave this empty</label>
+          <input id="_trap" name="_trap" type="text" tabindex="-1" autocomplete="off">
+        </div>
+
+        <h3>{{ e.form_title }}</h3>
+        <p class="muted">{{ e.form_lead }}</p>
+
+        <label>{{ e.form_mail }}
+          <input type="email" name="email" maxlength="254" required autocomplete="email"></label>
+        <label>{{ e.form_subject }}
+          <input type="text" name="subject" maxlength="150"></label>
+        <label>{{ e.form_message }}
+          <textarea name="message" rows="5" maxlength="4000" required></textarea></label>
+
+        <p class="says" data-says role="status" aria-live="polite"></p>
+        <p class="small muted">{{ e.form_privacy }}</p>
+
+        <div class="actions">
+          <button class="btn primary" type="submit">{{ e.form_send }}</button>
+          <button class="btn" type="button" data-talk-close>{{ e.form_cancel }}</button>
+        </div>
+      </form>
+    </dialog>
   </div>
 </section>
 {% endif %}
@@ -480,5 +532,6 @@
 </footer>
 
 <script type="module" src="{{ get_url(path='js/landing.js') }}"></script>
+<script type="module" src="{{ get_url(path='js/contact.js') }}"></script>
 </body>
 </html>

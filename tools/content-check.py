@@ -170,6 +170,22 @@ def main() -> int:
     elif poster:
         problems.append("showreel: a poster with no video is never shown")
 
+    # --- where "Let's talk" sends ------------------------------------------
+    # The access key IS the destination. Empty, the form says it is not
+    # connected rather than swallowing the message — which is right while
+    # the site is a demo and unacceptable the day it is not. A live page
+    # with a working form and no key is a page collecting enquiries into
+    # nothing, and the first anyone knows is a client saying they never
+    # heard back.
+    key = re.search(r'\[extra\.contact_form\.real\][^\[]*?access_key\s*=\s*"([^"]*)"',
+                    cfg, re.S)
+    if not (key and key.group(1).strip()):
+        problems.append(
+            "Let's talk has no destination: [extra.contact_form.real] "
+            "access_key is empty, so a message sent from the live page "
+            "would go nowhere"
+        )
+
     # --- the legal notice -------------------------------------------------
     # Required of a publisher established in France whoever the audience
     # is, and a notice with gaps in it is worse than an honest absence —
