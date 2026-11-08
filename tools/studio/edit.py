@@ -645,6 +645,95 @@ def attach_photo(project_id: str, filename: str, raw: bytes, alt: str) -> str:
         raise
 
 
+def attach_dossier(concept: int, filename: str, raw: bytes, alt: str) -> str:
+    """A PDF dropped on a concept, checked and turned into pages.
+
+    THE PDF IS NOT KEPT. It is written to a temporary file, checked by
+    `tools/dossier.py` — which looks at what is inside it and never at
+    its name — rasterised, and discarded. Nothing but the page images
+    survives this function, so there is no PDF to publish and none to
+    leak out of the panel either.
+
+    One document per concept. Dropping a second replaces the first,
+    pages and all, because a card shows one.
+    """
+    import tempfile
+
+    from dossier import Rejected as PdfRejected, render as render_pdf
+
+    _, fm, _ = _front(CONTENT.read_text(encoding="utf-8"))
+    concepts = blocks(fm, "extra.concepts")
+    if not 1 <= concept <= len(concepts):
+        raise Refused(f"there is no concept {concept}")
+
+    alt = alt.strip()
+    if not alt:
+        raise Refused("a document needs a description — what is it?")
+    if UNWRITTEN in alt:
+        raise Refused("that is the placeholder, not a description")
+    if len(alt) > MAX_LEN:
+        raise Refused(f"{len(alt)} characters; the limit is {MAX_LEN}")
+    plain(alt, "that description")
+
+    if not raw:
+        raise Refused("no file arrived")
+
+    stem = _safe_name(filename).rsplit(".", 1)[0].lower()
+    slug = re.sub(r"[^a-z0-9-]+", "-", stem).strip("-")[:38] or f"concept-{concept}"
+    if len(slug) < 3:
+        slug = f"concept-{concept}"
+
+    with tempfile.TemporaryDirectory() as tmp:
+        dropped = Path(tmp) / "dropped"
+        dropped.write_bytes(raw)
+        try:
+            pages = render_pdf(dropped, slug, ROOT / "content")
+        except PdfRejected as no:
+            # The checker's words, not ours. It is the thing that looked.
+            raise Refused(str(no))
+
+    # Replace whatever this concept had.
+    #
+    # NOTHING IS DELETED UNTIL THE WRITE HAS SUCCEEDED. The first version
+    # removed the old pages here, before rewriting the front matter, and
+    # when the rewrite then failed it left a concept pointing at pages
+    # that no longer existed — the files gone, the entry still there.
+    # The old images are taken away at the end, or not at all.
+    text = CONTENT.read_text(encoding="utf-8")
+    head, fm, tail = _front(text)
+    superseded = ""
+    for i, doc in enumerate(blocks(fm, "extra.dossier")):
+        if doc.get("concept", "").strip() != str(concept):
+            continue
+        superseded = doc.get("id", "").strip()
+        # `_block_span` counts from ZERO — `enumerate` without a start,
+        # therefore. Handing it a 1-based index asks for a block one past
+        # the end, which it refuses, and the refusal arrives after the
+        # pages have already been written.
+        start, end = _block_span(fm, "extra.dossier", i)
+        fm = fm[:start] + fm[end:]
+        break
+
+    block = (f"[[extra.dossier]]\n"
+             f"concept = {concept}\n"
+             f'id = "{slug}"\n'
+             f"pages = {len(pages)}\n"
+             # `quote()` escapes the contents; the quotes themselves are
+             # the caller's, as everywhere else in this file. Without
+             # them the front matter is not TOML and the build stops.
+             f'alt = "{quote(alt)}"\n')
+    at = _insert_at(fm, "extra.dossier")
+    fm = fm[:at] + block + "\n" + fm[at:]
+    message = _commit(head + "+++" + fm + tail,
+                      f"{len(pages)}-page document on concept {concept}")
+
+    # Written and accepted. Now the pages nothing points at any more.
+    if superseded and superseded != slug:
+        for leaf in (ROOT / "content").glob(f"dossier-{superseded}-p*.jpg"):
+            leaf.unlink()
+    return message
+
+
 def remove_photo(file: str) -> str:
     """One photograph out of a reel. The file stays — another may use it."""
     text = CONTENT.read_text(encoding="utf-8")

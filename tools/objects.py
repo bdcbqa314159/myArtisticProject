@@ -98,6 +98,20 @@ SCHEMA = {
             "text": (True, "a phrase, not a sentence — these sit in a narrow column"),
         },
     ),
+    "dossier": (
+        "extra.dossier",
+        "A document behind one concept, shown as pages and never as a "
+        "file. The PDF itself is not published: `tools/dossier.py` turns "
+        "it into images here, so there is nothing on the server to "
+        "download and nothing executable to serve. `pages` is how many "
+        "`dossier-<id>-pNN.jpg` there are in content/.",
+        {
+            "concept": (True, "which concept it belongs to, 1-based"),
+            "id":      (True, "lower-case name used for the files, e.g. format-two"),
+            "pages":   (True, "how many pages — must match the files in content/"),
+            "alt":     (True, "what the document is, for someone who cannot see it"),
+        },
+    ),
 }
 
 
@@ -112,6 +126,10 @@ SCHEMA = {
 # `image` is locked here because slice 4 owns it: a photograph arrives
 # with a file and an `alt`, and adding one without the other is the gap
 # the alt field was introduced to close.
+# A dossier id becomes part of a filename, so it is held to the same
+# shape `tools/dossier.py` enforces when it writes them.
+DOSSIER_ID = re.compile(r"^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$")
+
 LOCKED = {"verified", "verified_on", "evidence", "image"}
 
 # Kinds that are allowed to have none.
@@ -123,7 +141,7 @@ LOCKED = {"verified", "verified_on", "evidence", "image"}
 # Projects and photographs are different. They are additive, the tracked
 # page carries no real ones, and a site with six references and no
 # projects yet is a site mid-handover rather than a broken one.
-MAY_BE_EMPTY = {"project", "photo"}
+MAY_BE_EMPTY = {"project", "photo", "dossier"}
 
 
 def front_matter() -> str:
@@ -253,6 +271,67 @@ def check() -> int:
             problems.append(
                 f"project {owner}: {many} photographs, and a carousel takes "
                 "five"
+            )
+
+    # ---- dossiers ------------------------------------------------------
+    #
+    # A dossier is the one object whose files are DERIVED rather than
+    # named: the page images come out of `tools/dossier.py`, and the
+    # count in the front matter has to agree with what is on disk. If it
+    # does not, the page either stops short of the document or shows a
+    # gap where a page should be, and neither announces itself.
+    concepts = blocks(fm, "extra.concepts")
+    dossiers = blocks(fm, "extra.dossier")
+    claimed = {}
+    for i, doc in enumerate(dossiers, 1):
+        slug = doc.get("id", "").strip()
+        where = doc.get("concept", "").strip()
+
+        if where:
+            if not where.isdigit() or not 1 <= int(where) <= len(concepts):
+                problems.append(
+                    f"dossier {i} ({slug or '?'}): concept {where!r} is not "
+                    f"one of the {len(concepts)} there are"
+                )
+            elif where in claimed:
+                problems.append(
+                    f"dossier {i} ({slug or '?'}): concept {where} already has "
+                    f"a document, {claimed[where]!r}. A card shows one"
+                )
+            else:
+                claimed[where] = slug
+
+        if not slug:
+            continue
+        if not DOSSIER_ID.match(slug):
+            problems.append(
+                f"dossier {i} ({slug!r}): not a usable id — lower case "
+                f"letters, digits and hyphens only. It becomes a filename"
+            )
+            continue
+
+        said = doc.get("pages", "").strip()
+        on_disk = sorted(CONTENT.parent.glob(f"dossier-{slug}-p*.jpg"))
+        if not said.isdigit():
+            problems.append(f"dossier {i} ({slug}): pages is {said!r}, which "
+                            f"is not a number")
+        elif int(said) != len(on_disk):
+            problems.append(
+                f"dossier {i} ({slug}): says {said} pages, and content/ has "
+                f"{len(on_disk)}. Re-run tools/dossier.py, or the page shows "
+                f"a gap where a page should be"
+            )
+
+        # The PDF must not be sitting in content/ — Zola copies that
+        # directory into the built site wholesale, which would publish
+        # the very file the reader is not meant to be able to take.
+        stray = list(CONTENT.parent.glob("*.pdf"))
+        if stray:
+            problems.append(
+                f"content/ holds {stray[0].name}. Everything in content/ is "
+                f"copied into the built site, so that PDF would be "
+                f"downloadable — which is the one thing a dossier is for "
+                f"avoiding"
             )
 
     for i, photo in enumerate(blocks(fm, "extra.photo"), 1):

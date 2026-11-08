@@ -26,6 +26,20 @@ compile_sass = false
 build_search_index = false
 minify_html = true
 
+
+# The dossier page images are USED by the build — `resize_image` reads
+# them — but the originals are not published. Everything else in
+# content/ is copied into the output as it stands, and these are a
+# document at 1600px: the point of a dossier is that the reader can look
+# at it and not take it away. The derivatives the page shows are still
+# generated and served.
+#
+# THE `**/` IS LOAD-BEARING. Measured: `dossier-*.jpg` and
+# `content/dossier-*.jpg` both leave all three originals in the output,
+# and only `**/dossier-*.jpg` removes them. A pattern that silently
+# matches nothing looks exactly like one that works.
+ignored_content = ["**/dossier-*.jpg"]
+
 [markdown]
 smart_punctuation = true
 lazy_async_image = true

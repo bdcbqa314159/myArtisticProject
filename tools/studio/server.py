@@ -37,7 +37,8 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from objects import LOCKED, SCHEMA, blocks, front_matter  # noqa: E402
 from edit import (CONFIG, CONFIG_FIELDS, MAX_IMAGE, Refused, add,  # noqa: E402
-                  add_project, attach, attach_photo, remove, remove_photo,
+                  add_project, attach, attach_dossier, attach_photo, remove,
+                  remove_photo,
                   remove_project, set_config, set_text, write)
 
 # A token in the path, as myBureau does. The panel binds to loopback, so
@@ -283,6 +284,11 @@ function arm() {
       color:canvas;opacity:0;transition:opacity 140ms;pointer-events:none}
     [data-reel]:hover::after,[data-reel].over::after{opacity:1}
     [data-reel].over{outline:2px dashed currentColor;outline-offset:3px}
+    .studio-doc{display:block;margin-top:10px;padding:10px;cursor:copy;
+      border:1px dashed currentColor;border-radius:6px;opacity:.6;
+      font:500 11px/1.4 system-ui;letter-spacing:.06em;text-transform:uppercase}
+    .studio-doc:hover,.studio-doc.over{opacity:1}
+    .studio-doc.over{border-style:solid}
     .studio-add button,.studio-drop{font:500 11px/1 system-ui;letter-spacing:.08em;
       text-transform:uppercase;color:inherit;background:none;cursor:pointer;
       border:1px dashed color-mix(in oklch,currentColor 40%,transparent);
@@ -321,6 +327,27 @@ function arm() {
   for (const reel of doc.querySelectorAll("[data-reel]")) {
     reel.dataset.hint = "Drop a photograph to add it to this project";
   }
+
+  /* ---- a document on a concept ---------------------------------------
+     Every concept card takes one PDF. Marked here rather than in the
+     template for the same reason as the add and remove controls: a
+     published page should carry no affordance only an editor can use.
+
+     `accept=".pdf"` on the picker is a convenience and NOTHING MORE. It
+     filters a file dialog; it does not inspect a byte. What decides is
+     `tools/dossier.py` on the other side of the wire — the signature,
+     the trailer, a real parser's verdict, and whether every page will
+     actually rasterise. A text file renamed .pdf gets past this line
+     and no further. */
+  doc.querySelectorAll("#concepts .card").forEach((card, i) => {
+    if (card.querySelector("[data-dossier-drop]")) return;
+    const zone = doc.createElement("div");
+    zone.setAttribute("data-dossier-drop", String(i + 1));
+    zone.className = "studio-doc";
+    zone.textContent = card.querySelector("details.dossier")
+      ? "Drop a PDF to replace this document" : "Drop a PDF here, or click";
+    card.appendChild(zone);
+  });
 
   /* The add and remove controls are the PANEL's, not the page's. They
      are injected here rather than rendered by the template, because a
@@ -367,6 +394,30 @@ function arm() {
   doc.addEventListener("dragover", (ev) => ev.preventDefault());
   doc.addEventListener("drop", (ev) => ev.preventDefault());
 
+  for (const zone of doc.querySelectorAll("[data-dossier-drop]")) {
+    const take = (file) => {
+      if (!file) return;
+      if (busy) { say("Still saving the last one.", true); return; }
+      askDoc(zone, file);
+    };
+    zone.addEventListener("click", () => {
+      const pick = doc.createElement("input");
+      pick.type = "file";
+      pick.accept = ".pdf,application/pdf";   // a dialog filter, not a check
+      pick.addEventListener("change", () => take(pick.files[0]));
+      pick.click();
+    });
+    zone.addEventListener("dragover", (ev) => {
+      ev.preventDefault(); ev.stopPropagation(); zone.classList.add("over");
+    });
+    zone.addEventListener("dragleave", () => zone.classList.remove("over"));
+    zone.addEventListener("drop", (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      zone.classList.remove("over");
+      take(ev.dataTransfer && ev.dataTransfer.files[0]);
+    });
+  }
+
   for (const fig of doc.querySelectorAll("[data-photo],[data-reel]")) {
     fig.addEventListener("dragover", (ev) => {
       ev.preventDefault(); ev.stopPropagation(); fig.classList.add("over");
@@ -405,6 +456,22 @@ function choose(fig) {
   pick.click();
 }
 
+/* A document asks the same question a photograph does — what is it? —
+   and sends it to a different verb. No preview: the panel cannot render
+   a PDF, and a thumbnail it invented would be a thumbnail of nothing. */
+let pendingDoc = null;
+
+function askDoc(zone, file) {
+  pendingDoc = {zone, file};
+  pending = null;
+  ptitle.textContent = file.name;
+  perr.textContent = "";
+  palt.value = "";
+  pview.removeAttribute("src");
+  sheet.hidden = false;
+  palt.focus();
+}
+
 function ask(fig, file) {
   pending = {fig, file};
   ptitle.textContent = file ? file.name : "Description";
@@ -421,7 +488,8 @@ function ask(fig, file) {
 }
 
 document.getElementById("pno").addEventListener("click", () => {
-  sheet.hidden = true; pending = null; say("Nothing changed.");
+  sheet.hidden = true; pending = null; pendingDoc = null;
+  say("Nothing changed.");
 });
 sheet.addEventListener("click", (ev) => {
   if (ev.target === sheet) document.getElementById("pno").click();
@@ -432,6 +500,30 @@ document.addEventListener("keydown", (ev) => {
 
 document.getElementById("photo").addEventListener("submit", (ev) => {
   ev.preventDefault();
+
+  /* A DOCUMENT TAKES A DIFFERENT ROAD. Same sheet, same question, but
+     the bytes go to the verb that knows how to judge a PDF. Nothing
+     here looks at the file: it is sent, and the answer comes back from
+     `tools/dossier.py`. */
+  if (pendingDoc) {
+    const words = palt.value.replace(/\s+/g, " ").trim();
+    if (!words) { perr.textContent = "What is this document?"; palt.focus(); return; }
+    const doc = pendingDoc;
+    const read = new FileReader();
+    read.onload = () => {
+      sheet.hidden = true;
+      pendingDoc = null;
+      send("/dossier", {
+        concept: doc.zone.getAttribute("data-dossier-drop"),
+        filename: doc.file.name,
+        file: read.result,
+        alt: words,
+      });
+    };
+    read.readAsDataURL(doc.file);
+    return;
+  }
+
   if (!pending) return;
   const alt = palt.value.replace(/\s+/g, " ").trim();
   if (!alt) { perr.textContent = "A photograph needs a description."; palt.focus(); return; }
@@ -871,14 +963,20 @@ class Panel(http.server.BaseHTTPRequestHandler):
             return
         route = self.path.rsplit("/", 1)[-1]
         if route not in {"edit", "add", "remove", "attach", "config", "text",
-                         "photo", "project-add", "project-remove", "photo-remove"}:
+                         "photo", "project-add", "project-remove", "photo-remove",
+                         "dossier"}:
             self.send_error(404)
             return
 
         length = int(self.headers.get("Content-Length", "0"))
         # base64 is a third larger than the bytes it carries, and a
         # photograph is allowed to be 12MB.
-        cap = int(MAX_IMAGE * 1.4) if route in ("attach", "photo") else 8192
+        # A document is bigger than a photograph, and the dossier tool
+        # has its own 40MB ceiling — this only has to let one through to
+        # the place that judges it.
+        cap = (56 * 1024 * 1024 if route == "dossier"
+               else int(MAX_IMAGE * 1.4) if route in ("attach", "photo")
+               else 8192)
         if length > cap:
             self.reply({"ok": False, "message": "that is more than this accepts"})
             return
@@ -909,6 +1007,14 @@ class Panel(http.server.BaseHTTPRequestHandler):
                     str(body.get("key", "")),
                     str(body.get("value", "")),
                 )
+            elif route == "dossier":
+                message = attach_dossier(
+                    int(form.get("concept", "0")),
+                    form.get("filename", ""),
+                    form.get("file", b""),
+                    form.get("alt", ""),
+                )
+
             elif route == "attach":
                 message = attach(
                     kind,
