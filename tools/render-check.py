@@ -1097,6 +1097,112 @@ def check_no_pdf_served(out: Path) -> "list[str]":
     return bad
 
 
+# Cream by default; the work turns the light grey, once, for this visit.
+#
+# DRIVEN WITH MOTION STILLED, deliberately. The change is eased by a
+# 700ms transition, and a transition in an iframe never progresses —
+# there are no animation frames — so the computed colour stays at the
+# value it started from and every reading says "nothing happened".
+# Under reduced motion the page sets the palette without the easing,
+# which is the state machine this is here to check. The easing itself
+# is a thing to look at, not to assert.
+TINT_PROBE = """
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+const L = [];
+const ground = (d, w) => w.getComputedStyle(d.body).backgroundColor;
+/* Not brightness — WARMTH. Cream (#f6f2e9) and the cool palette's light
+ * ground (#f4f5f7) are both pale, within two points of the same
+ * luminance, so a brightness test cannot tell them apart: swapping the
+ * default from one to the other passed a check that only asked whether
+ * the page was light. Red against blue separates them at a glance —
+ * cream is +13, cool light is -3, cool dark is -7. */
+const warmth = (s) => {
+  const m = (s.match(/[\\d.]+/g) || [0, 0, 0]).map(Number);
+  return Math.round(m[0] - m[2]);
+};
+function visit(then) {
+  const f = document.createElement("iframe");
+  f.width = 390; f.height = 720; f.style.border = 0; f.src = "/";
+  document.body.appendChild(f);
+  f.addEventListener("load", () => setTimeout(() => then(f.contentDocument,
+                                                         f.contentWindow), 1400));
+}
+visit((d, w) => {
+  try {
+    const tag = (name) => L.push(name + "=" + (d.documentElement.dataset.palette
+                                               || "none") + ":" + warmth(ground(d, w)));
+    tag("arrive");
+    w.scrollTo({ top: 2500, behavior: "instant" });
+    setTimeout(() => {
+      tag("scrolled");
+      const go = d.querySelector("[data-tint]");
+      if (!go) { say("no-trigger"); return; }
+      go.click();
+      setTimeout(() => {
+        tag("clicked");
+        go.click();
+        setTimeout(() => {
+          tag("again");
+          // Quitting and coming back: a second visit, with nothing kept.
+          visit((d2, w2) => {
+            L.push("returned=" + (d2.documentElement.dataset.palette || "none")
+                   + ":" + warmth(ground(d2, w2)));
+            d2.querySelector("[data-tint]").click();
+            setTimeout(() => {
+              L.push("reclicked=" + (d2.documentElement.dataset.palette || "none")
+                     + ":" + warmth(ground(d2, w2)));
+              say(L.join(" "));
+            }, 400);
+          });
+        }, 400);
+      }, 400);
+    }, 400);
+  } catch (err) { say("threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-")); }
+});
+function say(s) { document.getElementById("o").textContent = "TINT " + s; }
+</script>"""
+
+
+def check_tint(chrome: str, out: Path, url: str) -> "list[str]":
+    (out / "_tint.html").write_text(TINT_PROBE, encoding="utf-8")
+    said = dom(chrome, url + "/_tint.html", 500, 900, reduced=True, budget=25000)
+    found = re.search(r"TINT ([^<]*)", said)
+    if not found:
+        return ["tint: the probe returned no verdict"]
+    verdict = found.group(1).strip()
+    if "=" not in verdict:
+        return [f"tint: the probe could not run — {verdict}"]
+    f = dict(kv.split("=") for kv in verdict.split())
+    bad = []
+
+    def warm(step: str) -> bool:
+        return int(f[step].split(":")[1]) > 6
+
+    def named(step: str) -> str:
+        return f[step].split(":")[0]
+
+    if named("arrive") != "none" or not warm("arrive"):
+        bad.append(f"tint: the page does not arrive in cream ({verdict}). "
+                   f"Every visit starts there, and nothing is remembered")
+    if f["scrolled"] != f["arrive"]:
+        bad.append(f"tint: scrolling changed the light ({verdict}). Only going "
+                   f"into the work does that")
+    if named("clicked") != "cool" or warm("clicked"):
+        bad.append(f"tint: Explore selected work did not turn the light grey "
+                   f"({verdict})")
+    if f["again"] != f["clicked"]:
+        bad.append(f"tint: clicking it a second time changed something "
+                   f"({verdict}). It has already been done")
+    if f["returned"] != f["arrive"]:
+        bad.append(f"tint: coming back does not start again in cream "
+                   f"({verdict}) — something was remembered that should not "
+                   f"have been")
+    if f["reclicked"] != f["clicked"]:
+        bad.append(f"tint: on a second visit the button no longer works "
+                   f"({verdict}). Its count goes back to zero with the page")
+    return bad
+
+
 def check_shape(html: str, where: str) -> "list[str]":
     """The two buttons that open the form look like the form.
 
@@ -1604,6 +1710,7 @@ def main() -> int:
             problems += check_marks(chrome, out, url, site_css)
             problems += check_arc(chrome, out, url)
             problems += check_document(chrome, out, url)
+            problems += check_tint(chrome, out, url)
             problems += check_no_pdf_served(out)
             problems += check_crossing(chrome, out, url, False)
             problems += check_crossing(chrome, out, url, True)

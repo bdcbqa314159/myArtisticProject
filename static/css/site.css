@@ -23,42 +23,24 @@
  * it.
  */
 
-:root,
-[data-palette="cool"] {
-  color-scheme: light dark;
+:root {
+  /* CREAM IS THE DEFAULT, AND THE DEFAULT IS WHAT EVERY VISIT STARTS
+     IN. There is no stored preference and nothing to remember: close
+     the page and come back and it is cream again. The only thing that
+     changes it is going into the work — see `[data-tint]`. */
+  color-scheme: light;
 
-  /* ---- the palette --------------------------------------------------
-     COOL NEUTRALS, NO ACCENT COLOUR.
-     The previous warm paper and burnt orange had two problems: the
-     orange reads as Claude/Anthropic rather than as this client, and
-     warmth is not what the preferred reference does.
-
-     uncomn.world is built on near-neutrals with a cold cast. Its own
-     tokens: ground `oklch(18% 0 0)`, text `oklch(96% 0 0)`, borders
-     white at 10-12%, and the panels carrying a faint blue —
-     `oklch(20.8% .042 265.755)`, `oklch(27.9% .041 260.031)`. Hue ~260
-     at chroma 0.04 is the nuance: grey that is not neutral grey, a
-     blue-black rather than a brown-black.
-
-     Reproduced here in hex, around hue 255, so nothing depends on
-     oklch() support. The relationship is the point, not the notation.
-
-     The page has NO accent hue. uncomn's "accent" is simply a lighter
-     near-black. Emphasis comes from weight, size and space — which is
-     also what separates editorial from luxury.
-     ------------------------------------------------------------------ */
-
-  --ink:   #14171c;
-  --muted: #5e6672;
-  --faint: #656d7a;
-  --line:  #d7dbe2;
-  --bg:    #f4f5f7;
+  --ink:   #2f3236;
+  --muted: #62666c;
+  --faint: #696e75;
+  --line:  #ded5c3;
+  --bg:    #f6f2e9;
   --mark-for-light: inline;
   --mark-for-dark: none;
-  --panel: #e8eaee;
+  --panel: #ece7db;
   --card:  transparent;
-  --tint:  #e8eaee;
-  --accent:#14171c;
+  --tint:  #ece7db;
+  --accent:#3c4a57;
 
   --max:    1160px;
   --gutter: clamp(1.25rem, 6vw, 4rem);
@@ -71,8 +53,37 @@
   --track-label: 0.24em;
 }
 
+/* ---- cool ------------------------------------------------------------
+   COOL NEUTRALS, NO ACCENT COLOUR.
+   uncomn.world is built on near-neutrals with a cold cast: ground
+   `oklch(18% 0 0)`, text `oklch(96% 0 0)`, borders white at 10-12%, and
+   panels carrying a faint blue. Hue ~260 at chroma 0.04 is the nuance:
+   grey that is not neutral grey, a blue-black rather than a brown-black.
+
+   Reproduced here in hex, around hue 255, so nothing depends on oklch()
+   support. The relationship is the point, not the notation.
+
+   The page has NO accent hue. Emphasis comes from weight, size and
+   space — which is also what separates editorial from luxury.
+
+   Unlike cream, this one has a dark twin and follows the machine. */
+[data-palette="cool"] {
+  color-scheme: light dark;
+
+  --ink:   #14171c;
+  --muted: #5e6672;
+  --faint: #656d7a;
+  --line:  #d7dbe2;
+  --bg:    #f4f5f7;
+  --mark-for-light: inline;
+  --mark-for-dark: none;
+  --panel: #e8eaee;
+  --card:  transparent;
+  --tint:  #e8eaee;
+  --accent:#14171c;
+}
+
 @media (prefers-color-scheme: dark) {
-  :root,
   [data-palette="cool"] {
     --ink:   #eef1f5;
     --muted: #9aa3b0;
@@ -85,45 +96,14 @@
     --tint:  #14181d;
     --accent:#eef1f5;
   }
-
-  /* Cream has no dark twin — a cream page in the dark is a lamp. What it
-     keeps in the dark is its warmth: a brown-black rather than the
-     blue-black of the cool palette, and paper-coloured type. */
-  [data-palette="cream"] {
-    --ink:   #ece7db;
-    --muted: #a39b8b;
-    --faint: #8a8375;
-    --line:  #2b2720;
-    --bg:    #14120e;
-    --mark-for-light: none;
-    --mark-for-dark: inline;
-    --panel: #1d1a14;
-    --tint:  #1a1712;
-    --accent:#e4ddcd;
-  }
 }
 
-/* ---- cream -----------------------------------------------------------
-   The client's request: "un fond crème, plutôt que blanc ou noir, et une
-   typographie gris foncé… garder quelques contrastes avec les couleurs
-   que tu utilises actuellement".
+/* Cream had a dark twin here once. It was dead code: an unconditional
+   `[data-palette="cream"]` block followed it with the same specificity,
+   and a later rule of equal weight wins — media queries contribute
+   none. So cream was a pale page in the dark whatever that block said,
+   which is the behaviour this keeps, now stated rather than implied. */
 
-   So: cream ground, dark GREY type rather than black, and the accent
-   kept cool — a slate against the warm ground is the contrast he asked
-   to keep, and it is the one thing here that is not simply warmer. */
-[data-palette="cream"] {
-  --ink:   #2f3236;
-  --muted: #62666c;
-  --faint: #696e75;
-  --line:  #ded5c3;
-  --bg:    #f6f2e9;
-  --mark-for-light: inline;
-  --mark-for-dark: none;
-  --panel: #ece7db;
-  --card:  transparent;
-  --tint:  #ece7db;
-  --accent:#3c4a57;
-}
 
 * { box-sizing: border-box; }
 
@@ -812,6 +792,15 @@ html:not(.js) .dossier[open] > .leaves .leaf {
 
 @media (prefers-reduced-motion: reduce) {
   .dossier > summary img { transition: none; }
+}
+
+/* While the light changes.
+   Put on for the length of the change and taken off again: a permanent
+   transition here would animate every hover on the page as well. */
+html.tinting,
+html.tinting * {
+  transition: background-color 700ms ease, color 700ms ease,
+              border-color 700ms ease, opacity 700ms ease;
 }
 
 /* ---- ecosystem, about, contact -------------------------------------------- */
@@ -1715,30 +1704,11 @@ section:not(.hero) > .wrap > .eyebrow::after {
   .credit a:hover, .footer a:hover { color: var(--muted); }
 }
 
-/* The palette control. Quiet, in the footer, and gone the moment the
-   site goes live — see the template. */
-.palette {
-  margin-right: auto;
-  padding: 0.5em 1em;
-  border: 1px solid var(--line);
-  border-radius: 2em;
-  background: none;
-  color: var(--muted);
-  font: 500 0.6875rem/1 var(--sans);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: color 160ms ease, border-color 160ms ease, transform 110ms ease;
-}
 
 @media (hover: hover) {
-  .palette:hover { color: var(--ink); border-color: var(--muted); }
 }
 
-.palette:active { transform: translateY(1px) scale(0.985); }
 
-@media (prefers-reduced-motion: reduce) { .palette { transition: none; } }
 
 /* ---- soft while moving ------------------------------------------------
    The images go slightly out of focus while the page is moving and come
@@ -2076,10 +2046,8 @@ section:focus-visible { outline: none; }
    without it they are buttons that do nothing when pressed, which is a
    worse answer than not being there. `js` is set by the inline script in
    the head, before first paint. */
-.palette,
 [data-copy] { display: none; }
 
-html.js .palette { display: inline-block; }
 html.js [data-copy] { display: inline-flex; }
 
 /* ============================================================================
@@ -2108,8 +2076,7 @@ html.js [data-copy] { display: inline-flex; }
 
   .skip,
   header,
-  .palette,
-  [data-copy],
+    [data-copy],
   .loader { display: none; }
 
   /* Nothing hidden by a reveal that will never be released, and nothing
