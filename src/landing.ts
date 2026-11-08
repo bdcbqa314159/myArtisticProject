@@ -696,9 +696,19 @@ function keepOneAddress(): void {
         const offset = bar ? bar.getBoundingClientRect().height : 0;
         scrollTo(
           window.scrollY + target.getBoundingClientRect().top - offset,
-          // The band stops guessing where the reader is the moment the
-          // journey actually ends — arrived, or abandoned.
-          () => marker?.release(id as string),
+          () => {
+            // The band stops guessing where the reader is the moment the
+            // journey actually ends — arrived, or abandoned.
+            marker?.release(id as string);
+            /* Contact IS the form now. Opening it only once the journey
+             * has finished means closing it leaves the reader at
+             * Contact rather than wherever they set off from — and the
+             * section is behind the blur while they write, which is
+             * what says where they are. The form lives in another
+             * module; an event is how this one asks for it without
+             * knowing anything about it. */
+            if (id === "contact") dispatchEvent(new CustomEvent("talk:open"));
+          },
         );
         // And the keyboard follows the page.
         //

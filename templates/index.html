@@ -105,7 +105,7 @@
       {% if e.intro %}<p class="muted hero-intro" data-edit="intro">{{ e.intro }}</p>{% endif %}
       <div class="actions">
         {% if e.cta_work %}<a class="btn primary" href="#work" data-edit="cta_work">{{ e.cta_work }}</a>{% endif %}
-        {% if e.cta_contact %}<a class="btn" href="#talk" data-talk data-edit="cta_contact">{{ e.cta_contact }}</a>{% endif %}
+        {% if e.cta_contact %}<a class="btn bubble" href="#talk" data-talk data-edit="cta_contact">{{ e.cta_contact }}</a>{% endif %}
       </div>
     </div>
     {# The maquette's narrow right-hand column: the masthead line and the
@@ -427,7 +427,7 @@
       {# The way through, whether or not an address is ever configured.
          It replaces the "to configure" line, which told a visitor
          nothing and a client that his own site was unfinished. #}
-      <a class="btn primary" href="#talk" data-talk>{{ e.cta_contact }}</a>
+      <a class="btn primary bubble" href="#talk" data-talk>{{ e.cta_contact }}</a>
       {% if config.extra.contact.email %}
       <a class="btn" href="mailto:{{ config.extra.contact.email }}">{{ config.extra.contact.email }}</a>
       {# The saveable card. In the moment this page is actually used — a
