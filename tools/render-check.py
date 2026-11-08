@@ -991,8 +991,15 @@ function measure(d, w, box) {
        * element at different moments, dressed as one. */
       const pos = w.getComputedStyle(leaves).position;
       const r = leaves.getBoundingClientRect();
-      const covers = Math.abs(r.width - w.innerWidth) < 2
-                  && Math.abs(r.height - w.innerHeight) < 2
+      /* Against the DOCUMENT's client box, not `innerWidth`.
+       * `innerWidth` includes the scrollbar; a fixed element does not.
+       * On a Mac, where scrollbars are overlays, the two agree and this
+       * passed. On the Linux runner, where a scrollbar takes 15 real
+       * pixels, it failed — a platform difference reported as a page
+       * fault. The check was wrong, not the page. */
+      const vw = d.documentElement.clientWidth;
+      const vh = d.documentElement.clientHeight;
+      const covers = Math.abs(r.width - vw) < 2 && Math.abs(r.height - vh) < 2
                   && Math.abs(r.left) < 2 && Math.abs(r.top) < 2;
       /* Scrollable, not merely overflowing. A box with `overflow:
        * visible` still reports a scrollHeight past its clientHeight —
