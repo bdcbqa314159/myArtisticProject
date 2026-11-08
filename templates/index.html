@@ -508,10 +508,21 @@
       {% for key, s in config.extra.social %}
         {% if s.url %}
         <a href="{{ s.url }}" target="_blank" rel="noopener noreferrer me">
-          <picture>
-            <source srcset="{{ get_url(path='img/brand/' ~ s.mark_dark) }}" media="(prefers-color-scheme: dark)">
-            <img src="{{ get_url(path='img/brand/' ~ s.mark) }}" alt="" aria-hidden="true">
-          </picture>
+          {# Both marks, and the PALETTE picks. A `<picture>` can only ask
+             the operating system, which is the wrong question: the cream
+             palette stays a pale page in the dark, and asking the system
+             put a white mark on it. Measured — ground luma 242, mark
+             white.
+
+             Both are the owners' own artwork, so whichever shows is
+             unmodified. Which one that is lives in `--mark-for-light`
+             and `--mark-for-dark`, set in the same blocks that set
+             `--bg`: a palette cannot choose a ground without choosing
+             the marks that go on it. #}
+          <img class="mark for-light" src="{{ get_url(path='img/brand/' ~ s.mark) }}"
+               alt="" aria-hidden="true">
+          <img class="mark for-dark" src="{{ get_url(path='img/brand/' ~ s.mark_dark) }}"
+               alt="" aria-hidden="true">
           <span class="dock-name">{{ s.name }}</span>
         </a>
         {% elif not config.extra.live %}
