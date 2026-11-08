@@ -822,6 +822,104 @@ def check_cloud(chrome: str, out: Path, url: str, still: bool) -> "list[str]":
     return bad
 
 
+# The band crosses; the buttons travel.
+#
+# Driven in an iframe, which is what makes the second half checkable at
+# all: no animation frames run there, so a link that still TRAVELS
+# cannot arrive, while one that CROSSES — an instant jump between two
+# timers — arrives exactly. The two are told apart by whether the page
+# moved, which is as direct as it gets.
+CROSS_PROBE = """
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+const f = document.createElement("iframe");
+f.width = 390; f.height = 700; f.style.border = 0; f.src = "/";
+document.body.appendChild(f);
+f.addEventListener("load", () => setTimeout(() => {
+  try {
+    const d = f.contentDocument, w = f.contentWindow;
+    const root = d.documentElement;
+    const bar = d.querySelector("header");
+    const veil = d.querySelector(".veil");
+    const link = d.querySelector('.links a[href$="#about"]');
+    const btn = d.querySelector(".hero .btn.primary");
+    if (!veil || !link || !btn) { say("missing"); return; }
+
+    const inert = w.getComputedStyle(veil).pointerEvents === "none" ? "y" : "n";
+    const about = d.getElementById("about");
+    const want = Math.round(w.scrollY + about.getBoundingClientRect().top
+                            - bar.getBoundingClientRect().height);
+    link.click();
+    setTimeout(() => {
+      const during = root.classList.contains("crossing") ? "y" : "n";
+      const landed = Math.abs(w.scrollY - want) <= 2 ? "y" : "n";
+      setTimeout(() => {
+        const after = root.classList.contains("crossing") ? "y" : "n";
+        const held = Math.abs(w.scrollY - want) <= 2 ? "y" : "n";
+        w.scrollTo({ top: 0, behavior: "instant" });
+        setTimeout(() => {
+          btn.click();
+          setTimeout(() => {
+            // A travelling link cannot arrive here. A crossing one would.
+            const btnCrossed = root.classList.contains("crossing")
+                               || w.scrollY > 2 ? "y" : "n";
+            say("inert=" + inert + " during=" + during + " landed=" + landed
+              + " after=" + after + " held=" + held + " btn=" + btnCrossed
+              + " want=" + want);
+          }, 500);
+        }, 100);
+      }, 640);
+    }, 330);
+  } catch (err) { say("threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-")); }
+}, 900));
+function say(s) { document.getElementById("o").textContent = "CROSS " + s; }
+</script>"""
+
+
+def check_crossing(chrome: str, out: Path, url: str, still: bool) -> "list[str]":
+    (out / "_cross.html").write_text(CROSS_PROBE, encoding="utf-8")
+    said = dom(chrome, url + "/_cross.html", 500, 900, reduced=still)
+    found = re.search(r"CROSS ([^<]*)", said)
+    if not found:
+        return ["cross: the probe returned no verdict"]
+    verdict = found.group(1).strip()
+    if "=" not in verdict:
+        return [f"cross: the probe could not run — {verdict}"]
+    f = dict(kv.split("=") for kv in verdict.split())
+    bad = []
+
+    if f["inert"] != "y":
+        bad.append("cross: the veil takes pointer events. It lies over the "
+                   "whole page, so that is every click on the site swallowed")
+    if f["landed"] != "y":
+        bad.append(f"cross: a tap on the band does not put the page at the "
+                   f"section ({verdict}). The jump obeys the stylesheet's "
+                   f"`scroll-behavior: smooth` unless it is told not to, and "
+                   f"a smooth jump outlives the veil that was hiding it")
+    if f["held"] != "y":
+        bad.append(f"cross: the page does not stay where the band put it "
+                   f"({verdict})")
+    if f["after"] != "n":
+        bad.append(f"cross: the veil is still up after the crossing — the "
+                   f"page is left behind a blur ({verdict})")
+
+    if still:
+        # Reduced motion: no veil at any point, and the move still works.
+        if f["during"] != "n":
+            bad.append("cross: the veil is used under reduced motion, which "
+                       "is the one setting that asked for none of this")
+        return bad
+
+    if f["during"] != "y":
+        bad.append(f"cross: the band jumps with nothing over it, so the "
+                   f"reader sees the page cut from one place to another "
+                   f"({verdict})")
+    if f["btn"] != "n":
+        bad.append("cross: the hero button crosses too. It is meant to keep "
+                   "its long scroll — that journey is the point there, and "
+                   "it is the one the client asked to keep")
+    return bad
+
+
 def check_shape(html: str, where: str) -> "list[str]":
     """The two buttons that open the form look like the form.
 
@@ -1328,6 +1426,8 @@ def main() -> int:
             problems += check_marks_declared(site_css)
             problems += check_marks(chrome, out, url, site_css)
             problems += check_arc(chrome, out, url)
+            problems += check_crossing(chrome, out, url, False)
+            problems += check_crossing(chrome, out, url, True)
             problems += check_cloud_css(site_css)
             problems += check_loops_close(site_css)
             problems += check_cloud(chrome, out, url, False)

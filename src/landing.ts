@@ -640,6 +640,58 @@ const browserScroll: ScrollEnv = {
   },
 };
 
+/* ---- crossing, for the band -------------------------------------------
+ *
+ * "Interaction from the menu should lead us in a more smooth way,
+ *  without seeing the whole movement."
+ *
+ * The page softens, moves while nobody can read it, and clears again
+ * onto the section asked for. The move itself is instant and that is
+ * the point — a reader who asks for About wants About, not a tour of
+ * everything above it.
+ *
+ * `setTimeout`, not `transitionend`: a transition that never fires —
+ * because the tab was in the background, because reduced motion took
+ * the veil away — would strand the page behind it for ever. A clock
+ * always goes off.
+ *
+ * The buttons keep their long scroll. That journey is the point there,
+ * and it is the one the client likes.
+ */
+const VEIL_IN_MS = 240;      // matches the stylesheet's going
+const VEIL_OUT_MS = 520;     // and its arriving
+
+function crossTo(top: number, onDone: () => void): void {
+  const root = document.documentElement;
+
+  // Nothing to hide behind: go straight there.
+  if (reduced) {
+    window.scrollTo(0, top);
+    onDone();
+    return;
+  }
+
+  root.classList.add("crossing");
+  window.setTimeout(() => {
+    /* Instant, and unseen: everything on screen is already illegible.
+     *
+     * `behavior: "instant"` and not the two-argument form, which obeys
+     * the stylesheet — and the stylesheet says `scroll-behavior:
+     * smooth`. Measured: the page did not move at all, because the
+     * smooth scroll it asked for needs animation frames the probe's
+     * iframe never runs. On a real screen it would have been worse than
+     * nothing: a second-long journey underneath a veil that clears in
+     * half that, so the reader watches the end of exactly the movement
+     * this was built to hide. */
+    window.scrollTo({ top, behavior: "instant" });
+    root.classList.add("arrived");
+    window.setTimeout(() => {
+      root.classList.remove("crossing", "arrived");
+      onDone();
+    }, VEIL_OUT_MS);
+  }, VEIL_IN_MS);
+}
+
 function scrollTo(top: number, onSettled?: () => void): void {
   // A newer journey replaces an older one, and the older one settles
   // rather than being dropped — whoever was waiting on it still gets
@@ -717,12 +769,22 @@ function keepOneAddress(): void {
          * without knowing anything about it. */
         if (id === "contact") dispatchEvent(new CustomEvent("talk:open"));
 
-        scrollTo(
-          window.scrollY + target.getBoundingClientRect().top - offset,
-          // The band stops guessing where the reader is the moment the
-          // journey actually ends — arrived, or abandoned.
-          () => marker?.release(id as string),
-        );
+        const landing =
+          window.scrollY + target.getBoundingClientRect().top - offset;
+
+        /* The band crosses; everything else travels. `closest` rather
+         * than a class on the link, because what decides this is where
+         * the link LIVES — a navigation band — not how it is dressed. */
+        if (a.closest(".links") !== null) {
+          crossTo(landing, () => marker?.release(id as string));
+        } else {
+          scrollTo(
+            landing,
+            // The band stops guessing where the reader is the moment the
+            // journey actually ends — arrived, or abandoned.
+            () => marker?.release(id as string),
+          );
+        }
         // And the keyboard follows the page.
         //
         // Without this the focus stays on the link that was just used,
