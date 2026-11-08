@@ -22,6 +22,7 @@ skips the check and says so, rather than failing for the wrong reason.
 
 import http.server
 import json
+import math
 import re
 import shutil
 import socketserver
@@ -673,6 +674,61 @@ SIZES.forEach(([w, h]) => {
 </script>"""
 
 
+def check_loops_close(css: str) -> "list[str]":
+    """Every lap must close — in position, in size, and in velocity.
+
+    This is the fault that was reported: "we have at some point a
+    breaking point". There were two, and only one of them was visible
+    in the position.
+
+    A Brownian BRIDGE pins x(T) = x(0) and says nothing about the
+    derivative, so looping one still breaks. The paths are periodic
+    Fourier sums now, which close in every derivative — and this checks
+    the consequence rather than the construction: the change in
+    velocity across the seam must be no worse than the largest such
+    change anywhere else on the lap. If the seam is the roughest point,
+    it is a seam."""
+    bad = []
+    for name, body in re.findall(r"@keyframes (drop-\d+) \{\n(.*?)\n\}", css, re.S):
+        pts = [(float(x), float(y), float(sc)) for x, y, sc in re.findall(
+            r"translate\((-?[\d.]+)px, (-?[\d.]+)px\) scale\(([\d.]+)\)", body)]
+        if len(pts) < 8:
+            bad.append(f"css: `@keyframes {name}` has only {len(pts)} waypoints — "
+                       f"too few to follow a curve without cornering")
+            continue
+
+        gap = math.hypot(pts[-1][0] - pts[0][0], pts[-1][1] - pts[0][1])
+        if gap > 0.15:
+            bad.append(f"css: `@keyframes {name}` ends {gap:.2f}px from where it "
+                       f"began, so the word jumps once a lap")
+
+        # The swell closed at a half cycle for three of six words, which
+        # snapped the size back by as much as 24% every lap. Invisible
+        # in the position, very visible on the page.
+        if abs(pts[-1][2] - pts[0][2]) > 0.002:
+            bad.append(f"css: `@keyframes {name}` ends at scale "
+                       f"{pts[-1][2]:.3f} having begun at {pts[0][2]:.3f} — the "
+                       f"word snaps back to size once a lap. The swell needs a "
+                       f"whole number of cycles to the lap")
+
+        n = len(pts) - 1
+        seg = [(pts[(i + 1) % n][0] - pts[i][0], pts[(i + 1) % n][1] - pts[i][1])
+               for i in range(n)]
+        mean = sum(math.hypot(*v) for v in seg) / n or 1
+        jerk = [math.hypot(seg[(i + 1) % n][0] - seg[i][0],
+                           seg[(i + 1) % n][1] - seg[i][1]) / mean for i in range(n)]
+        if jerk[-1] > max(jerk) * 0.95 and jerk[-1] > 0.2:
+            bad.append(f"css: `@keyframes {name}` turns harder at the seam "
+                       f"({jerk[-1]:.2f}) than anywhere else on the lap — that "
+                       f"is a break, not a drift")
+        if max(jerk) > 0.9:
+            bad.append(f"css: `@keyframes {name}` changes direction by "
+                       f"{max(jerk):.2f} of its own speed in one step. The "
+                       f"curve is being sampled too coarsely for its highest "
+                       f"mode and the word jerks")
+    return bad
+
+
 def check_cloud_css(css: str) -> "list[str]":
     """No custom property may appear inside the drift keyframes.
 
@@ -1273,6 +1329,7 @@ def main() -> int:
             problems += check_marks(chrome, out, url, site_css)
             problems += check_arc(chrome, out, url)
             problems += check_cloud_css(site_css)
+            problems += check_loops_close(site_css)
             problems += check_cloud(chrome, out, url, False)
             problems += check_cloud(chrome, out, url, True)
 
