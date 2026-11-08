@@ -103,7 +103,6 @@
   }
 }
 
-
 /* ---- cream -----------------------------------------------------------
    The client's request: "un fond crème, plutôt que blanc ou noir, et une
    typographie gris foncé… garder quelques contrastes avec les couleurs
@@ -545,7 +544,6 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
   text-transform: uppercase;
 }
 
-
 .status {
   align-self: start;
   padding: 0.35em 0.85em;
@@ -664,45 +662,58 @@ html.scrolling .case .image img { will-change: transform; }
 /* ---- ecosystem, about, contact -------------------------------------------- */
 
 /* ============================================================================
-   THE FIELDS THE WORK SITS IN — a first sketch, for the client to react to
+   THE FIELDS THE WORK SITS IN — a sketch, for the client to react to
    ============================================================================
 
    They were capsules with a border and a radius: the shape of every
    button on this page, worn by six things that cannot be clicked. Now
-   they are words set at different sizes, drifting slowly where they
-   stand.
+   they are words at different sizes, drifting where they stand.
 
-   NOT SCROLL-LINKED. The drift is a CSS animation on its own clock, so
-   the words keep their place in the page as it moves and are only ever
-   moved by themselves.
+   ---- why every value here is a number -------------------------------
 
-   The wandering is two oscillations of DIFFERENT PERIOD on two
-   different properties — `translate` for one axis, `transform` for the
-   other — so neither overwrites the other and the pair traces a figure
-   that takes many minutes to repeat. A single keyframe pair with a
-   per-word amplitude would have given six words all swinging in time,
-   which is a metronome, not water.
+   These keyframes used to read `calc(var(--drop-dx) * ...)`, which is
+   shorter to write and, on a 1x screen, the reason the drift never
+   looked fluid: an animation whose keyframes must be re-resolved from
+   custom properties cannot be handed to the compositor, so it is
+   computed on the main thread and lands on the pixel grid.
 
-   Laid out in normal flow rather than placed absolutely: six words of
-   different sizes pinned to percentages collide at some width, and the
-   width where they collide is always one nobody tested. Flow cannot
-   overlap, and the drift is small enough to stay inside its own gap. */
+   That grid is the whole problem. A step smaller than one device pixel
+   cannot be drawn, so a word at 5px/s advances 0.09 of a pixel per
+   frame and JUMPS about eight times a second. No amplitude fixes it:
+   smooth at 1x would need 60px/s, which is not floating, it is
+   fleeing. A phone hides it because three device pixels to the CSS
+   pixel makes the steps three times finer. Only a composited layer
+   interpolates below the pixel.
+
+   ---- and why there is one animation per word ------------------------
+
+   Position and swell ride in a single `transform`, so each word has one
+   compositable animation rather than three competing for the same
+   element. The swell keeps its own rhythm all the same: it runs two to
+   four cycles per lap, so it never locks to the drift.
+
+   The path is a CLOSED Brownian walk — random steps with the net drift
+   taken back out, so the last waypoint is the first and `infinite`
+   never jumps. Generated, not placed by hand: 16 waypoints, about 120px
+   of path per lap, roughly 5px a second.
+   ---------------------------------------------------------------- */
 
 .cloud {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  /* Generous, because the drift AND the swell have both to live inside
-     the gap. The swell is the larger of the two on a long word: a
-     200px phrase at 1.18 grows by 36px, 18 of them to each side. */
-  /* These numbers are arithmetic, not taste. Two neighbours can drift
-     up to 40px each toward one another AND swell by around 20px a side
-     at the same moment, so the gap has to clear roughly 120px in the
-     worst case. Found by bisection against the overlap probe: 3.6rem /
-     5rem still collides in a handful of 200 sampled phases, 4.5rem /
-     7rem is the first clean pair, and this is that with a margin. */
-  gap: 5rem 7.5rem;
+  /* Bisected against the overlap probe at 390, 600 and 900px rather
+     than chosen by eye. The column gap is the larger of the two on
+     purpose: it keeps words off each other's rows, where they cannot
+     collide at all, and a word alone on a row needs very little room
+     above and below it.
+
+     One notch tighter — 1.4rem / 2.5rem — and 390px collides again, so
+     this is the edge of what fits. The field is 236px tall at 390px
+     where it was 553px, which is the complaint this answers: it was
+     eating most of a phone screen. */
+  gap: 1.6rem clamp(3rem, 7vw, 5rem);
   margin-top: 2.5rem;
   padding: 0.5rem 0;
 }
@@ -717,68 +728,154 @@ html.scrolling .case .image img { will-change: transform; }
   /* Nearer things are brighter. It is the only depth cue here, and
      without it six sizes read as six arbitrary sizes. */
   opacity: calc(0.52 + var(--drop-size, 1) * 0.3);
-  /* ON ITS OWN LAYER, AND THIS IS NOT AN OPTIMISATION.
-     Text drawn in the normal way lands on the pixel grid, and at these
-     speeds a word advanced 0.005 of a pixel per frame: it held still
-     for two or three seconds and then jumped a whole pixel. Frozen and
-     erratic at the same time, which is exactly how it was described —
-     on a desktop. A phone at three device pixels to one CSS pixel
-     takes the same journey in steps three times finer, three times as
-     often, which is why it looked fluid there and nowhere else.
-     A composited layer is moved by the compositor at sub-pixel
-     precision instead, so slow is smooth rather than stepped. */
-  will-change: transform, translate, scale;
-  animation:
-    drop-x var(--drop-tx, 21s) ease-in-out infinite alternate var(--drop-ox, 0s),
-    drop-y var(--drop-ty, 27s) ease-in-out infinite alternate var(--drop-oy, 0s),
-    drop-breathe var(--drop-tp, 17s) ease-in-out infinite alternate var(--drop-op, 0s);
+  will-change: transform;
 }
 
-@keyframes drop-x       { to { translate: var(--drop-dx, 8px) 0; } }
-@keyframes drop-y       { to { transform: translateY(var(--drop-dy, 6px)); } }
-@keyframes drop-breathe { to { scale: var(--drop-pulse, 1.05); } }
+.cloud .drop:nth-child(6n + 1) { --drop-size: 1.45; }
+.cloud .drop:nth-child(6n + 2) { --drop-size: 0.95; }
+.cloud .drop:nth-child(6n + 3) { --drop-size: 1.2; }
+.cloud .drop:nth-child(6n + 4) { --drop-size: 0.88; }
+.cloud .drop:nth-child(6n + 5) { --drop-size: 1.3; }
+.cloud .drop:nth-child(6n + 6) { --drop-size: 1.05; }
 
-/* Six sets, cycling, so a seventh field is a content change and not a
-   stylesheet change. The periods are deliberately unrelated to each
-   other — shared factors are what make a crowd march in step — and the
-   negative offsets start every word somewhere different in its own
-   cycle, so the field is already in motion the first time it is seen
-   rather than setting off together from rest. */
-.cloud .drop:nth-child(6n + 1) {
-  --drop-size: 1.45; --drop-dx: 38px; --drop-dy: -26px; --drop-pulse: 1.11;
-  --drop-tx: 7s; --drop-ty: 11s; --drop-tp: 5s;
-  --drop-ox: -4s; --drop-oy: -11s; --drop-op: -6s;
+/* Declared only where motion is welcome. Stating it here rather
+   than overriding it later is not tidiness: these selectors are
+   three classes deep, so a `.drop { animation: none }` under
+   reduced motion lost the cascade and the words kept drifting —
+   measured, six animations still running. */
+@media (prefers-reduced-motion: no-preference) {
+  .cloud .drop:nth-child(6n + 1) { animation: drop-1 19s linear infinite -4s; }
+  .cloud .drop:nth-child(6n + 2) { animation: drop-2 23s linear infinite -13s; }
+  .cloud .drop:nth-child(6n + 3) { animation: drop-3 21s linear infinite -8s; }
+  .cloud .drop:nth-child(6n + 4) { animation: drop-4 25s linear infinite -19s; }
+  .cloud .drop:nth-child(6n + 5) { animation: drop-5 17s linear infinite -2s; }
+  .cloud .drop:nth-child(6n + 6) { animation: drop-6 27s linear infinite -11s; }
 }
-.cloud .drop:nth-child(6n + 2) {
-  --drop-size: 0.95; --drop-dx: -32px; --drop-dy: 30px; --drop-pulse: 1.26;
-  --drop-tx: 5s; --drop-ty: 7s; --drop-tp: 9s;
-  --drop-ox: -13s; --drop-oy: -3s; --drop-op: -17s;
+
+/* The field holds still while the page is moving.
+   Asked for, and it earns its keep twice over: motion that competes
+   with a scroll is motion nobody can follow, and the compositor has one
+   less thing to carry at the moment it is busiest. */
+.cloud.held .drop { animation-play-state: paused; }
+
+@keyframes drop-1 {
+     from { transform: translate(-3.1px, -0.4px) scale(1.000); }
+    6.67% { transform: translate(-2.7px, -6.6px) scale(1.025); }
+   13.33% { transform: translate(1.4px, 0.5px) scale(1.075); }
+   20.00% { transform: translate(8.9px, 1.6px) scale(1.100); }
+   26.67% { transform: translate(12.6px, 6.6px) scale(1.075); }
+   33.33% { transform: translate(12.2px, -1.4px) scale(1.025); }
+   40.00% { transform: translate(6.8px, -5.8px) scale(1.000); }
+   46.67% { transform: translate(13.0px, -4.6px) scale(1.025); }
+   53.33% { transform: translate(6.0px, -1.2px) scale(1.075); }
+   60.00% { transform: translate(9.6px, 2.2px) scale(1.100); }
+   66.67% { transform: translate(4.4px, -0.3px) scale(1.075); }
+   73.33% { transform: translate(-1.5px, 2.9px) scale(1.025); }
+   80.00% { transform: translate(2.5px, -1.9px) scale(1.000); }
+   86.67% { transform: translate(-2.4px, -0.4px) scale(1.025); }
+   93.33% { transform: translate(-13.0px, -2.1px) scale(1.075); }
+       to { transform: translate(-3.1px, -0.4px) scale(1.100); }
 }
-.cloud .drop:nth-child(6n + 3) {
-  --drop-size: 1.2; --drop-dx: 35px; --drop-dy: 24px; --drop-pulse: 1.16;
-  --drop-tx: 7s; --drop-ty: 5s; --drop-tp: 11s;
-  --drop-ox: -8s; --drop-oy: -21s; --drop-op: -2s;
+
+@keyframes drop-2 {
+     from { transform: translate(-4.9px, 0.5px) scale(1.000); }
+    6.67% { transform: translate(0.8px, 5.7px) scale(1.107); }
+   13.33% { transform: translate(-3.4px, 7.1px) scale(1.237); }
+   20.00% { transform: translate(-7.6px, -0.7px) scale(1.157); }
+   26.67% { transform: translate(-13.0px, -0.6px) scale(1.010); }
+   33.33% { transform: translate(1.2px, -3.8px) scale(1.060); }
+   40.00% { transform: translate(-6.7px, -7.0px) scale(1.217); }
+   46.67% { transform: translate(0.8px, -7.1px) scale(1.200); }
+   53.33% { transform: translate(1.9px, -0.7px) scale(1.040); }
+   60.00% { transform: translate(13.0px, -0.5px) scale(1.023); }
+   66.67% { transform: translate(8.4px, 2.0px) scale(1.180); }
+   73.33% { transform: translate(1.8px, -1.4px) scale(1.230); }
+   80.00% { transform: translate(12.8px, -1.9px) scale(1.083); }
+   86.67% { transform: translate(3.8px, -1.2px) scale(1.003); }
+   93.33% { transform: translate(0.0px, 2.7px) scale(1.133); }
+       to { transform: translate(-4.9px, 0.5px) scale(1.240); }
 }
-.cloud .drop:nth-child(6n + 4) {
-  --drop-size: 0.88; --drop-dx: -40px; --drop-dy: -22px; --drop-pulse: 1.3;
-  --drop-tx: 9s; --drop-ty: 13s; --drop-tp: 7s;
-  --drop-ox: -19s; --drop-oy: -7s; --drop-op: -9s;
+
+@keyframes drop-3 {
+     from { transform: translate(11.1px, -1.7px) scale(1.000); }
+    6.67% { transform: translate(11.8px, -7.5px) scale(1.023); }
+   13.33% { transform: translate(8.8px, -2.3px) scale(1.077); }
+   20.00% { transform: translate(-6.8px, -6.5px) scale(1.127); }
+   26.67% { transform: translate(-7.6px, -4.7px) scale(1.138); }
+   33.33% { transform: translate(-4.0px, 0.4px) scale(1.105); }
+   40.00% { transform: translate(5.3px, -0.4px) scale(1.048); }
+   46.67% { transform: translate(8.9px, 4.7px) scale(1.006); }
+   53.33% { transform: translate(-1.0px, 7.5px) scale(1.006); }
+   60.00% { transform: translate(8.0px, 3.9px) scale(1.048); }
+   66.67% { transform: translate(0.2px, 1.8px) scale(1.105); }
+   73.33% { transform: translate(-11.8px, -3.7px) scale(1.138); }
+   80.00% { transform: translate(-5.3px, -4.4px) scale(1.127); }
+   86.67% { transform: translate(-1.6px, -0.5px) scale(1.077); }
+   93.33% { transform: translate(5.6px, -4.4px) scale(1.023); }
+       to { transform: translate(11.1px, -1.7px) scale(1.000); }
 }
-.cloud .drop:nth-child(6n + 5) {
-  --drop-size: 1.3; --drop-dx: 30px; --drop-dy: -32px; --drop-pulse: 1.14;
-  --drop-tx: 11s; --drop-ty: 9s; --drop-tp: 13s;
-  --drop-ox: -2s; --drop-oy: -17s; --drop-op: -23s;
+
+@keyframes drop-4 {
+     from { transform: translate(-3.9px, 6.0px) scale(1.000); }
+    6.67% { transform: translate(2.4px, 7.5px) scale(1.097); }
+   13.33% { transform: translate(-1.2px, 1.6px) scale(1.253); }
+   20.00% { transform: translate(-2.0px, -1.9px) scale(1.253); }
+   26.67% { transform: translate(4.0px, -4.3px) scale(1.097); }
+   33.33% { transform: translate(13.0px, -3.5px) scale(1.000); }
+   40.00% { transform: translate(7.0px, -3.2px) scale(1.097); }
+   46.67% { transform: translate(4.3px, -7.5px) scale(1.253); }
+   53.33% { transform: translate(-2.2px, -4.5px) scale(1.253); }
+   60.00% { transform: translate(-6.5px, -1.3px) scale(1.097); }
+   66.67% { transform: translate(-10.0px, -4.5px) scale(1.000); }
+   73.33% { transform: translate(-7.4px, -0.9px) scale(1.097); }
+   80.00% { transform: translate(-9.6px, -4.7px) scale(1.253); }
+   86.67% { transform: translate(-9.2px, -0.9px) scale(1.253); }
+   93.33% { transform: translate(-13.0px, 2.9px) scale(1.097); }
+       to { transform: translate(-3.9px, 6.0px) scale(1.000); }
 }
-.cloud .drop:nth-child(6n + 6) {
-  --drop-size: 1.05; --drop-dx: -34px; --drop-dy: 28px; --drop-pulse: 1.21;
-  --drop-tx: 5s; --drop-ty: 13s; --drop-tp: 9s;
-  --drop-ox: -11s; --drop-oy: -13s; --drop-op: -14s;
+
+@keyframes drop-5 {
+     from { transform: translate(-8.3px, -3.4px) scale(1.000); }
+    6.67% { transform: translate(-8.7px, -0.6px) scale(1.030); }
+   13.33% { transform: translate(-1.5px, -1.5px) scale(1.090); }
+   20.00% { transform: translate(0.5px, -5.4px) scale(1.120); }
+   26.67% { transform: translate(5.1px, -2.4px) scale(1.090); }
+   33.33% { transform: translate(-4.5px, 0.6px) scale(1.030); }
+   40.00% { transform: translate(3.6px, 5.0px) scale(1.000); }
+   46.67% { transform: translate(8.7px, 7.5px) scale(1.030); }
+   53.33% { transform: translate(4.3px, 2.9px) scale(1.090); }
+   60.00% { transform: translate(4.1px, -0.7px) scale(1.120); }
+   66.67% { transform: translate(2.0px, 5.1px) scale(1.090); }
+   73.33% { transform: translate(-7.8px, 6.7px) scale(1.030); }
+   80.00% { transform: translate(-3.2px, 4.2px) scale(1.000); }
+   86.67% { transform: translate(-6.3px, -2.5px) scale(1.030); }
+   93.33% { transform: translate(-8.1px, -7.5px) scale(1.090); }
+       to { transform: translate(-8.3px, -3.4px) scale(1.120); }
+}
+
+@keyframes drop-6 {
+     from { transform: translate(7.5px, 1.9px) scale(1.000); }
+    6.67% { transform: translate(13.0px, 2.2px) scale(1.110); }
+   13.33% { transform: translate(3.7px, 3.6px) scale(1.198); }
+   20.00% { transform: translate(-1.3px, 7.1px) scale(1.069); }
+   26.67% { transform: translate(2.8px, 3.1px) scale(1.009); }
+   33.33% { transform: translate(-3.2px, 1.7px) scale(1.150); }
+   40.00% { transform: translate(0.4px, 4.7px) scale(1.181); }
+   46.67% { transform: translate(-7.4px, 6.0px) scale(1.033); }
+   53.33% { transform: translate(-13.0px, -1.8px) scale(1.033); }
+   60.00% { transform: translate(-3.0px, -4.5px) scale(1.181); }
+   66.67% { transform: translate(5.0px, -7.1px) scale(1.150); }
+   73.33% { transform: translate(-0.2px, -4.9px) scale(1.009); }
+   80.00% { transform: translate(0.3px, 2.2px) scale(1.069); }
+   86.67% { transform: translate(8.0px, 2.7px) scale(1.198); }
+   93.33% { transform: translate(-0.9px, -0.7px) scale(1.110); }
+       to { transform: translate(7.5px, 1.9px) scale(1.000); }
 }
 
 /* Still words, still different sizes, simply still. */
 @media (prefers-reduced-motion: reduce) {
   /* `will-change` goes too: there is nothing left to promise. */
-  .drop { animation: none; will-change: auto; }
+  .drop { will-change: auto; }
 }
 
 .about { display: grid; gap: 18px; }
@@ -1055,7 +1152,6 @@ html.scrolling .case .image img { will-change: transform; }
     color: var(--ink);
   }
 
-
   html:has(.menu[open]) { overflow: hidden; }
 }
 
@@ -1147,7 +1243,6 @@ section:not(.hero) > .wrap > .eyebrow::after {
   #contact > .wrap > .section-intro {
     padding-left: 3.5rem;
   }
-
 
 }
 
@@ -1280,7 +1375,6 @@ html.scrolling .case .image img.smear { filter: blur(3px) url(#smear); }
       which is the maquette's own intent for them.
    ============================================================================ */
 
-
 /* The hanging rail went with the numbers it was built for. The
    photographs keep the full card width, which is where the rail was
    pushing them back to anyway. */
@@ -1290,7 +1384,6 @@ html.scrolling .case .image img.smear { filter: blur(3px) url(#smear); }
      numerals are gone, and it was quietly turning the centred label into
      a vertically-centred column pinned to the left.) */
 }
-
 
 /* ============================================================================
    CENTRED SECTION HEADINGS
@@ -1332,7 +1425,6 @@ section:not(.hero) > .wrap > .section-intro,
 section:not(.hero) > .wrap > .lead,
 section:not(.hero) > .wrap > .note { text-align: left; }
 
-
 /* ============================================================================
    FULL-BLEED PHOTOGRAPHS
 
@@ -1366,7 +1458,6 @@ section:not(.hero) > .wrap > .note { text-align: left; }
     aspect-ratio: 3 / 2;
   }
 }
-
 
 /* ============================================================================
    BOTH BUTTONS, AND TIME TO SEE THEM
@@ -1519,7 +1610,6 @@ section:not(.hero) > .wrap > .note { text-align: left; }
    ring around the whole screen — the scroll is the feedback. */
 section:focus,
 section:focus-visible { outline: none; }
-
 
 /* Two controls need script to do anything: the palette toggle reloads
    the page, and the copy button writes to the clipboard. Rendered
@@ -1912,7 +2002,6 @@ html.js .group[open] > .group-front .fridge {
   max-height: 84vh;
 }
 
-
 /* NO CLOSE BUTTON. The ground around the work is the way out.
    A button in a corner is a thing to find; the empty space is already
    where the thumb is not. Escape does it too, and script puts the
@@ -2094,8 +2183,6 @@ html.js:has(.group[open]) { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .project summary img, .project-name { transition: none; }
 }
-
-
 
 /* AS LARGE AS FITS, and no larger.
    A fixed height here did what it does in the inline reel: a landscape

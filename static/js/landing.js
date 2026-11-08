@@ -1068,9 +1068,40 @@ function prepareMotion() {
     splitHeadlines();
     markReveals();
 }
+/* ---- the field holds still while the page is moving --------------------
+ *
+ * "When we stop the scroll they should move, and stop when the
+ *  scrolling goes back."
+ *
+ * The drift is not scroll-driven and never was — it keeps its own clock.
+ * This only decides WHEN that clock runs. Two reasons it is worth
+ * having: motion that competes with a scroll is motion nobody can
+ * follow, and the compositor has one less thing to carry at the moment
+ * it is busiest.
+ *
+ * `animation-play-state` rather than anything of our own, so the words
+ * resume exactly where they were rather than restarting their lap.
+ *
+ * The window's scroll, not an observer: an IntersectionObserver reports
+ * where things are, and the question here is only whether the page is
+ * moving at all.
+ */
+const SETTLED_MS = 160; // long enough to bridge the gaps between events
+function stillWhileScrolling() {
+    const cloud = document.querySelector(".cloud");
+    if (!cloud)
+        return;
+    let settling = 0;
+    addEventListener("scroll", () => {
+        cloud.classList.add("held");
+        window.clearTimeout(settling);
+        settling = window.setTimeout(() => cloud.classList.remove("held"), SETTLED_MS);
+    }, { passive: true });
+}
 function startMotion() {
     releaseHeadlines();
     observeReveals();
+    stillWhileScrolling();
 }
 if (!reduced)
     prepareMotion();
