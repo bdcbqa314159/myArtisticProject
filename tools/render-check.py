@@ -634,7 +634,7 @@ SIZES.forEach(([w, h]) => {
           let seed = 20261108;
           const next = () => (seed = (seed * 1103515245 + 12345) % 2147483648)
                              / 2147483648;
-          for (let sample = 0; sample < 64; sample++) {
+          for (let sample = 0; sample < 200; sample++) {
             anims.forEach((a) => {
               a.currentTime = next() * a.effect.getTiming().duration;
             });
@@ -710,7 +710,7 @@ def check_cloud(chrome: str, out: Path, url: str, still: bool) -> "list[str]":
                        f"swing in step. That is a metronome, not water")
         if f["over"] != "0":
             bad.append(f"cloud: at {width}px a word leaves the page in "
-                       f"{f['over']} of 384 sampled positions. The page clips "
+                       f"{f['over']} of 1200 sampled positions. The page clips "
                        f"rather than scrolls, so that is a word with its end "
                        f"cut off")
         if f["collide"] != "0":

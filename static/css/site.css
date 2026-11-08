@@ -696,13 +696,13 @@ html.scrolling .case .image img { will-change: transform; }
   /* Generous, because the drift AND the swell have both to live inside
      the gap. The swell is the larger of the two on a long word: a
      200px phrase at 1.18 grows by 36px, 18 of them to each side. */
-  /* 64px between columns is not generosity, it is arithmetic: two
-     neighbours can drift 18px each toward one another AND swell by
-     about 18px a side at the same time, and 44px of gap was not enough
-     — measured, two words overlapping in 16 of 64 sampled phases at
-     900px. Vertically the swell adds almost nothing, because the words
-     are short, so the rows need only clear the drift. */
-  gap: 2.6rem 4rem;
+  /* These numbers are arithmetic, not taste. Two neighbours can drift
+     up to 40px each toward one another AND swell by around 20px a side
+     at the same moment, so the gap has to clear roughly 120px in the
+     worst case. Found by bisection against the overlap probe: 3.6rem /
+     5rem still collides in a handful of 200 sampled phases, 4.5rem /
+     7rem is the first clean pair, and this is that with a margin. */
+  gap: 5rem 7.5rem;
   margin-top: 2.5rem;
   padding: 0.5rem 0;
 }
@@ -745,33 +745,33 @@ html.scrolling .case .image img { will-change: transform; }
    cycle, so the field is already in motion the first time it is seen
    rather than setting off together from rest. */
 .cloud .drop:nth-child(6n + 1) {
-  --drop-size: 1.45; --drop-dx: 18px; --drop-dy: -11px; --drop-pulse: 1.14;
-  --drop-tx: 13s; --drop-ty: 17s; --drop-tp: 11s;
+  --drop-size: 1.45; --drop-dx: 38px; --drop-dy: -26px; --drop-pulse: 1.11;
+  --drop-tx: 7s; --drop-ty: 11s; --drop-tp: 5s;
   --drop-ox: -4s; --drop-oy: -11s; --drop-op: -6s;
 }
 .cloud .drop:nth-child(6n + 2) {
-  --drop-size: 0.95; --drop-dx: -14px; --drop-dy: 12px; --drop-pulse: 1.18;
-  --drop-tx: 17s; --drop-ty: 11s; --drop-tp: 13s;
+  --drop-size: 0.95; --drop-dx: -32px; --drop-dy: 30px; --drop-pulse: 1.26;
+  --drop-tx: 5s; --drop-ty: 7s; --drop-tp: 9s;
   --drop-ox: -13s; --drop-oy: -3s; --drop-op: -17s;
 }
 .cloud .drop:nth-child(6n + 3) {
-  --drop-size: 1.2; --drop-dx: 16px; --drop-dy: 10px; --drop-pulse: 1.12;
-  --drop-tx: 11s; --drop-ty: 19s; --drop-tp: 17s;
+  --drop-size: 1.2; --drop-dx: 35px; --drop-dy: 24px; --drop-pulse: 1.16;
+  --drop-tx: 7s; --drop-ty: 5s; --drop-tp: 11s;
   --drop-ox: -8s; --drop-oy: -21s; --drop-op: -2s;
 }
 .cloud .drop:nth-child(6n + 4) {
-  --drop-size: 0.88; --drop-dx: -17px; --drop-dy: -9px; --drop-pulse: 1.17;
-  --drop-tx: 19s; --drop-ty: 13s; --drop-tp: 7s;
+  --drop-size: 0.88; --drop-dx: -40px; --drop-dy: -22px; --drop-pulse: 1.3;
+  --drop-tx: 9s; --drop-ty: 13s; --drop-tp: 7s;
   --drop-ox: -19s; --drop-oy: -7s; --drop-op: -9s;
 }
 .cloud .drop:nth-child(6n + 5) {
-  --drop-size: 1.3; --drop-dx: 13px; --drop-dy: -12px; --drop-pulse: 1.1;
-  --drop-tx: 7s; --drop-ty: 17s; --drop-tp: 19s;
+  --drop-size: 1.3; --drop-dx: 30px; --drop-dy: -32px; --drop-pulse: 1.14;
+  --drop-tx: 11s; --drop-ty: 9s; --drop-tp: 13s;
   --drop-ox: -2s; --drop-oy: -17s; --drop-op: -23s;
 }
 .cloud .drop:nth-child(6n + 6) {
-  --drop-size: 1.05; --drop-dx: -15px; --drop-dy: 11px; --drop-pulse: 1.16;
-  --drop-tx: 17s; --drop-ty: 7s; --drop-tp: 13s;
+  --drop-size: 1.05; --drop-dx: -34px; --drop-dy: 28px; --drop-pulse: 1.21;
+  --drop-tx: 5s; --drop-ty: 13s; --drop-tp: 9s;
   --drop-ox: -11s; --drop-oy: -13s; --drop-op: -14s;
 }
 
