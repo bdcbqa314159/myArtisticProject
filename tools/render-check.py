@@ -271,6 +271,13 @@ f.addEventListener("load", () => setTimeout(() => {
     const afterOther = box.open;
     link.click();
     setTimeout(() => {
+      /* Read the band's result into its own variable HERE, before
+       * anything else is clicked. It was reported from `box.open` at the
+       * very end, after the probe had opened the form itself to look at
+       * the focus — so it said "the band works" no matter what the band
+       * did, and a mutation that opened the form only when the scroll
+       * landed passed cleanly. */
+      const fromTheBand = box.open;
       /* And the two openers are still BUTTONS.
        *
        * The shape class was first called `.talk`, which is the dialog's
@@ -283,7 +290,23 @@ f.addEventListener("load", () => setTimeout(() => {
         return parseFloat(cs.borderTopWidth) < 0.5
             || parseFloat(cs.paddingLeft) < 1;
       }).length;
-      say("contact=" + box.open + " control=" + afterOther + " flat=" + flat);
+
+      /* Where the cursor lands, and whether the browser drew its own
+       * ring. Both have been wrong: the ring appeared around the whole
+       * window because the page focused the dialog as if it were a
+       * section, and the cursor landed in the honeypot because
+       * `showModal` takes the first focusable element and `tabindex=-1`
+       * still qualifies. */
+      box.close();
+      d.querySelector("[data-talk]").click();
+      setTimeout(() => {
+        const a = d.activeElement;
+        const cs = f.contentWindow.getComputedStyle(a);
+        say("contact=" + fromTheBand + " control=" + afterOther
+          + " flat=" + flat
+          + " lands=" + (a.getAttribute("name") || a.tagName.toLowerCase())
+          + " ring=" + (cs.outlineStyle === "none" ? "no" : cs.outlineStyle));
+      }, 150);
     }, 120);
   }, 120);
 }, 400));
@@ -292,7 +315,13 @@ f.addEventListener("load", () => setTimeout(() => {
 
 def check_menu(chrome: str, out: Path, url: str) -> "list[str]":
     (out / "_menu.html").write_text(MENU_PROBE, encoding="utf-8")
-    said = dom(chrome, url + "/_menu.html", 500, 900, reduced=True)
+    # NOT under reduced motion, deliberately. The page's scroll runs on
+    # animation frames this browser does not run, so a journey started
+    # here never settles — which makes this the distinguishing
+    # experiment for the thing that was asked for: the form must open AT
+    # ONCE, not when the scroll lands. Opened on arrival, it would never
+    # open here at all.
+    said = dom(chrome, url + "/_menu.html", 500, 900)
     found = re.search(r"MENU ([^<]*)", said)
     if not found:
         return ["menu: the probe returned no verdict"]
@@ -307,6 +336,14 @@ def check_menu(chrome: str, out: Path, url: str) -> "list[str]":
     if "flat=0" not in verdict:
         bad.append(f"shape: an opener has lost its border or its padding — it "
                    f"is no longer drawn as a button ({verdict})")
+    if "lands=email" not in verdict:
+        bad.append(f"form: opening it does not put the cursor in the address "
+                   f"field. If it lands in `_trap` the visitor fills the bot "
+                   f"honeypot and their message is dropped in silence "
+                   f"({verdict})")
+    if "ring=no" not in verdict:
+        bad.append(f"form: the browser is drawing its own focus ring on the "
+                   f"open form ({verdict})")
     return bad
 
 
@@ -371,6 +408,15 @@ def check_shape_css(css: str) -> "list[str]":
             bad.append(f"css: `.btn.bubble` sets `{forbidden}`, which is what "
                        "the press is made of — the shape may change, the "
                        "press may not")
+
+    # The press on a hovering device must be written for the HOVERED
+    # button. Without these the desktop press flashes the outline button
+    # from near-white to the dark ground and back — measured.
+    for sel in (".btn:not(.primary):hover:active", ".btn.primary:hover:active"):
+        if sel not in css:
+            bad.append(f"css: `{sel}` is gone. On a desktop the pointer is "
+                       "always hovering when it presses, so without it the "
+                       "press is written for a state that never happens there")
 
     after = re.search(r"\.btn\.bubble::after\s*\{([^}]*)\}", css)
     if after is None:
