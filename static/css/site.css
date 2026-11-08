@@ -693,8 +693,16 @@ html.scrolling .case .image img { will-change: transform; }
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  /* Generous, because the drift has to live inside the gap. */
-  gap: 1.1rem 1.9rem;
+  /* Generous, because the drift AND the swell have both to live inside
+     the gap. The swell is the larger of the two on a long word: a
+     200px phrase at 1.18 grows by 36px, 18 of them to each side. */
+  /* 64px between columns is not generosity, it is arithmetic: two
+     neighbours can drift 18px each toward one another AND swell by
+     about 18px a side at the same time, and 44px of gap was not enough
+     — measured, two words overlapping in 16 of 64 sampled phases at
+     900px. Vertically the swell adds almost nothing, because the words
+     are short, so the rows need only clear the drift. */
+  gap: 2.6rem 4rem;
   margin-top: 2.5rem;
   padding: 0.5rem 0;
 }
@@ -709,6 +717,17 @@ html.scrolling .case .image img { will-change: transform; }
   /* Nearer things are brighter. It is the only depth cue here, and
      without it six sizes read as six arbitrary sizes. */
   opacity: calc(0.52 + var(--drop-size, 1) * 0.3);
+  /* ON ITS OWN LAYER, AND THIS IS NOT AN OPTIMISATION.
+     Text drawn in the normal way lands on the pixel grid, and at these
+     speeds a word advanced 0.005 of a pixel per frame: it held still
+     for two or three seconds and then jumped a whole pixel. Frozen and
+     erratic at the same time, which is exactly how it was described —
+     on a desktop. A phone at three device pixels to one CSS pixel
+     takes the same journey in steps three times finer, three times as
+     often, which is why it looked fluid there and nowhere else.
+     A composited layer is moved by the compositor at sub-pixel
+     precision instead, so slow is smooth rather than stepped. */
+  will-change: transform, translate, scale;
   animation:
     drop-x var(--drop-tx, 21s) ease-in-out infinite alternate var(--drop-ox, 0s),
     drop-y var(--drop-ty, 27s) ease-in-out infinite alternate var(--drop-oy, 0s),
@@ -726,39 +745,40 @@ html.scrolling .case .image img { will-change: transform; }
    cycle, so the field is already in motion the first time it is seen
    rather than setting off together from rest. */
 .cloud .drop:nth-child(6n + 1) {
-  --drop-size: 1.45; --drop-dx:  11px; --drop-dy: -7px; --drop-pulse: 1.05;
-  --drop-tx: 23s; --drop-ty: 31s; --drop-tp: 19s;
+  --drop-size: 1.45; --drop-dx: 18px; --drop-dy: -11px; --drop-pulse: 1.14;
+  --drop-tx: 13s; --drop-ty: 17s; --drop-tp: 11s;
   --drop-ox: -4s; --drop-oy: -11s; --drop-op: -6s;
 }
 .cloud .drop:nth-child(6n + 2) {
-  --drop-size: 0.95; --drop-dx:  -8px; --drop-dy:  9px; --drop-pulse: 1.07;
-  --drop-tx: 29s; --drop-ty: 19s; --drop-tp: 23s;
+  --drop-size: 0.95; --drop-dx: -14px; --drop-dy: 12px; --drop-pulse: 1.18;
+  --drop-tx: 17s; --drop-ty: 11s; --drop-tp: 13s;
   --drop-ox: -13s; --drop-oy: -3s; --drop-op: -17s;
 }
 .cloud .drop:nth-child(6n + 3) {
-  --drop-size: 1.2; --drop-dx:  9px; --drop-dy:  7px; --drop-pulse: 1.04;
-  --drop-tx: 17s; --drop-ty: 37s; --drop-tp: 29s;
+  --drop-size: 1.2; --drop-dx: 16px; --drop-dy: 10px; --drop-pulse: 1.12;
+  --drop-tx: 11s; --drop-ty: 19s; --drop-tp: 17s;
   --drop-ox: -8s; --drop-oy: -21s; --drop-op: -2s;
 }
 .cloud .drop:nth-child(6n + 4) {
-  --drop-size: 0.88; --drop-dx: -12px; --drop-dy: -6px; --drop-pulse: 1.08;
-  --drop-tx: 37s; --drop-ty: 23s; --drop-tp: 13s;
+  --drop-size: 0.88; --drop-dx: -17px; --drop-dy: -9px; --drop-pulse: 1.17;
+  --drop-tx: 19s; --drop-ty: 13s; --drop-tp: 7s;
   --drop-ox: -19s; --drop-oy: -7s; --drop-op: -9s;
 }
 .cloud .drop:nth-child(6n + 5) {
-  --drop-size: 1.3; --drop-dx:  7px; --drop-dy: -10px; --drop-pulse: 1.03;
-  --drop-tx: 19s; --drop-ty: 29s; --drop-tp: 37s;
+  --drop-size: 1.3; --drop-dx: 13px; --drop-dy: -12px; --drop-pulse: 1.1;
+  --drop-tx: 7s; --drop-ty: 17s; --drop-tp: 19s;
   --drop-ox: -2s; --drop-oy: -17s; --drop-op: -23s;
 }
 .cloud .drop:nth-child(6n + 6) {
-  --drop-size: 1.05; --drop-dx: -9px; --drop-dy:  8px; --drop-pulse: 1.06;
-  --drop-tx: 31s; --drop-ty: 17s; --drop-tp: 23s;
+  --drop-size: 1.05; --drop-dx: -15px; --drop-dy: 11px; --drop-pulse: 1.16;
+  --drop-tx: 17s; --drop-ty: 7s; --drop-tp: 13s;
   --drop-ox: -11s; --drop-oy: -13s; --drop-op: -14s;
 }
 
 /* Still words, still different sizes, simply still. */
 @media (prefers-reduced-motion: reduce) {
-  .drop { animation: none; }
+  /* `will-change` goes too: there is nothing left to promise. */
+  .drop { animation: none; will-change: auto; }
 }
 
 .about { display: grid; gap: 18px; }

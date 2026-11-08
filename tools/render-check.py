@@ -615,19 +615,44 @@ SIZES.forEach(([w, h]) => {
         /* Every drift driven to both of its ends at once — the widest
          * the field can ever be. A page that only fits while the words
          * happen to be centred is a page that overflows later. */
-        let over = 0;
+        /* Where the words can get to, sampled.
+         *
+         * Driving every drift to the SAME end is not the worst case —
+         * the three clocks on each word are independent, so over a few
+         * minutes every combination of phases happens. A deterministic
+         * pseudo-random walk over 64 of them is a fair picture of what
+         * the field actually does; driving them all to one end only
+         * tests the one arrangement that never occurs.
+         *
+         * `scrollWidth` is no witness here either: the page sets
+         * `overflow-x: clip`, so a word pushed past the edge is
+         * silently cut rather than scrolled to. The words' own rectangles
+         * are what gets measured. */
+        let over = 0, collide = 0;
         if (scrolly === 0) {
-          for (const end of [0, 1]) {
+          anims.forEach((a) => a.pause());
+          let seed = 20261108;
+          const next = () => (seed = (seed * 1103515245 + 12345) % 2147483648)
+                             / 2147483648;
+          for (let sample = 0; sample < 64; sample++) {
             anims.forEach((a) => {
-              a.pause();
-              a.currentTime = end ? a.effect.getTiming().duration : 0;
+              a.currentTime = next() * a.effect.getTiming().duration;
             });
-            if (d.documentElement.scrollWidth > d.documentElement.clientWidth) over++;
+            const r = drops.map((p) => p.getBoundingClientRect());
+            for (let i = 0; i < r.length; i++) {
+              if (r[i].left < 0 || r[i].right > d.documentElement.clientWidth) over++;
+              for (let j = i + 1; j < r.length; j++) {
+                if (!(r[i].right <= r[j].left || r[j].right <= r[i].left
+                   || r[i].bottom <= r[j].top || r[j].bottom <= r[i].top)) collide++;
+              }
+            }
           }
         }
         out.push(w + ":n=" + drops.length + ":anims=" + anims.length
           + ":scrolly=" + scrolly + ":periods=" + periods.size
-          + ":boxed=" + boxed + ":fonts=" + fonts.size + ":over=" + over);
+          + ":boxed=" + boxed + ":fonts=" + fonts.size + ":over=" + over
+          + ":collide=" + collide + ":layer=" + (win.getComputedStyle(drops[0])
+              .willChange.includes("transform") ? "yes" : "no"));
       }
     } catch (err) {
       out.push(w + ":threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-"));
@@ -684,9 +709,19 @@ def check_cloud(chrome: str, out: Path, url: str, still: bool) -> "list[str]":
                        f"{f['periods']} periods between them, so the words "
                        f"swing in step. That is a metronome, not water")
         if f["over"] != "0":
-            bad.append(f"cloud: at {width}px the field overflows the page "
-                       f"when its drift is at full stretch — it fits only "
-                       f"while the words happen to be centred")
+            bad.append(f"cloud: at {width}px a word leaves the page in "
+                       f"{f['over']} of 384 sampled positions. The page clips "
+                       f"rather than scrolls, so that is a word with its end "
+                       f"cut off")
+        if f["collide"] != "0":
+            bad.append(f"cloud: at {width}px two words overlap in "
+                       f"{f['collide']} sampled positions — the drift and the "
+                       f"swell have outgrown the gap they live in")
+        if f["layer"] != "yes":
+            bad.append(f"cloud: at {width}px the words are not promoted to "
+                       f"their own layer, so the drift is snapped to the "
+                       f"pixel grid. At these speeds that is a word holding "
+                       f"still for seconds and then jumping a whole pixel")
     return bad
 
 
