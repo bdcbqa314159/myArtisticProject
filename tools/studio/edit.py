@@ -301,7 +301,14 @@ TEXT_FIELDS = {
     "about_text":       "the second paragraph of About",
     "contact_title":    "the heading of 07 / Contact",
     "contact_lead":     "the paragraph under it",
-    "contact_pending":  "what stands in for the address until there is one",
+    "form_title":       "the heading inside the form",
+    "form_lead":        "the line under it",
+    "form_mail":        "the label on the address field",
+    "form_subject":     "the label on the subject field",
+    "form_message":     "the label on the message field",
+    "form_send":        "the button that sends",
+    "form_cancel":      "the button that does not",
+    "form_privacy":     "what happens to a message, in one sentence",
 }
 
 

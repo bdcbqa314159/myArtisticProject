@@ -1900,3 +1900,110 @@ html.js .project[open] > summary::after {
 
 /* The page does not move underneath it. */
 html.js:has(.project[open]) { overflow: hidden; }
+
+/* ---- the form behind "Let's talk" ---------------------------------------
+ * A <dialog>, because a form is the one thing here that genuinely needs
+ * focus trapped. The look is the page's: the same blurred ground as the
+ * gallery's focus, the same quiet type, no box drawn around anything
+ * that does not need one.
+ */
+.talk {
+  margin: auto;
+  padding: 0;
+  border: 0;
+  max-width: min(34rem, calc(100vw - var(--gutter) * 2));
+  width: 100%;
+  background: none;
+  color: var(--ink);
+  overflow: visible;
+}
+
+/* The ground behind it, blurred rather than covered — the same answer as
+   the gallery, and for the same reason: the reader is still here, they
+   are only looking at one thing. */
+.talk::backdrop {
+  backdrop-filter: blur(16px) saturate(0.85);
+  background: color-mix(in oklch, var(--bg) 62%, transparent);
+}
+
+.talk .contact-form {
+  display: grid;
+  gap: 0.85rem;
+  padding: clamp(1.25rem, 5vw, 2.25rem);
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+.talk h3 {
+  margin: 0;
+  font: 400 clamp(1.4rem, 5vw, 1.9rem)/1.15 var(--serif);
+  letter-spacing: -0.015em;
+}
+
+.talk .muted { margin: 0; }
+
+.talk label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.talk input,
+.talk textarea {
+  font: 400 1rem/1.5 var(--sans);
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 0.45rem 0;
+  border-radius: 0;          /* iOS rounds inputs on its own */
+  transition: border-color 180ms ease;
+}
+
+.talk textarea { resize: vertical; min-height: 6rem; }
+
+.talk input:focus-visible,
+.talk textarea:focus-visible {
+  outline: none;
+  border-bottom-color: var(--ink);
+}
+
+/* What it says back. `aria-live` carries it to a screen reader; this
+   only has to make it visible, and only once there is something. */
+.talk .says:empty { display: none; }
+.talk .says {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink);
+  border-left: 2px solid var(--accent);
+  padding-left: 0.7rem;
+}
+
+.talk .actions { margin-top: 0.4rem; }
+
+/* OFF-SCREEN, not hidden. Some bots skip `display: none` and some
+   assistive technology reads it — this is neither seen nor reached. */
+.trap {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* WITH NO SCRIPT, the form is simply part of Contact.
+   `<dialog>` without `open` is display:none, so without this rule the
+   only way to the form would be a button whose handler never loaded. */
+html:not(.js) .talk {
+  display: block;
+  position: static;
+  margin: 1.5rem 0 0;
+  max-width: 34rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .talk input, .talk textarea { transition: none; }
+}

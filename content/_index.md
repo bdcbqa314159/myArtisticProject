@@ -52,7 +52,7 @@ roles = "Artist. Creative Director. Experience Designer. Creating across culture
 intro = "I bring artistic vision, multidisciplinary experience and the right collaborators together to shape ideas into live experiences."
 
 cta_work = "Explore selected work"
-cta_contact = "Start a conversation"
+cta_contact = "Let's talk"
 
 approach_title = "Ideas become experiences."
 showreel_label = "Showreel"
@@ -79,7 +79,31 @@ about_title = "Built on practice. Open to new territories."
 about_text = "Working across artistic and operational roles helps me connect creative ambition with the realities of delivery. Through 10MILES I develop concepts and international collaborations, with a priority market abroad."
 contact_title = "Let's build something together."
 contact_lead = "For creative direction, experience design, original concepts and collaborations."
-contact_pending = "Email contact — to configure"
+
+# ---- the form behind "Let's talk" -----------------------------------
+# Every word it can say, here rather than in the script, so the French
+# page carries its own and tools/fr-check.py can see them.
+form_title = "Let's talk."
+form_lead = "Tell me what you are making, and where it is going."
+form_mail = "Your email"
+form_subject = "Subject"
+form_message = "Your message"
+form_send = "Send"
+form_cancel = "Not now"
+form_privacy = "Your message reaches an inbox. It is not stored anywhere else, and the address is used only to reply."
+form_sending = "Sending…"
+form_sent = "Sent. Thank you — you will have a reply."
+form_failed = "That did not send. Try again in a moment."
+form_offline = "The form is not connected yet. No message was sent."
+err_mail_missing = "An email address, so there is somewhere to reply."
+err_mail_invalid = "That address does not look like one."
+err_mail_long = "That address is longer than an address can be."
+err_mail_one = "One address, please."
+err_subject = "The subject has something in it that cannot be sent."
+err_message_missing = "A message, however short."
+err_message_long = "That is longer than the form accepts."
+err_message_bad = "The message has something in it that cannot be sent."
+err_message_links = "That is a lot of links. Say it in words and I will ask."
 contact_copy = "Copy introduction"
 contact_save = "Save contact"
 ecosystem_fields = [
