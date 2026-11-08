@@ -435,6 +435,144 @@ def check_marks_declared(css: str) -> "list[str]":
     return bad
 
 
+# The two phrases draw a C.
+#
+# Driven, not argued for: the animation is PAUSED and its `currentTime`
+# is set by hand, so the path is read out of the browser's own
+# interpolation without a single animation frame — which is just as
+# well, because none run inside an iframe.
+#
+# What a check has to be able to see here is the difference between an
+# arc and the straight diagonal it replaced. A straight line between the
+# same two points has no sideways excursion at all, so the depth of the
+# bow against the length of the travel is the whole measurement.
+ARC_PROBE = """
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+const out = []; let done = 0;
+const SIZES = [[390, 700], [900, 800]];
+SIZES.forEach(([w, h]) => {
+  const f = document.createElement("iframe");
+  f.width = w; f.height = h; f.style.border = 0; f.src = "/";
+  document.body.appendChild(f);
+  f.addEventListener("load", () => setTimeout(() => {
+    try {
+      const d = f.contentDocument;
+      const sw = d.querySelector(".swap");
+      const ph = [...d.querySelectorAll(".swap .phrase")];
+      if (!sw || ph.length !== 2) { out.push(w + ":no-heading"); }
+      else {
+        sw.classList.add("swapping");
+        const a = ph.map((p) => p.getAnimations()[0]);
+        if (a.some((x) => !x)) { out.push(w + ":no-animation"); }
+        else {
+          a.forEach((x) => x.pause());
+          /* The INK, not the block. The heading is centred, so the
+           * block reaches the gutter with empty margin on both sides
+           * and its own left edge may cross the viewport without a
+           * single letter doing so. Measuring the block failed a sweep
+           * that was comfortably inside the page. */
+          const inkOf = (p) => {
+            const r = d.createRange();
+            r.selectNodeContents(p);
+            const box = r.getBoundingClientRect();
+            return box.width > 0 ? box : p.getBoundingClientRect();
+          };
+          const at = (t) => { a.forEach((x) => { x.currentTime = t; });
+                              return ph.map(inkOf); };
+
+          /* Home is where the phrases rest with NO animation and no
+           * waiting offset — read before any of this starts. Taking it
+           * from the animation's own last frame instead made "did they
+           * land home" compare the end against itself, so a version
+           * that finished six pixels off passed. */
+          sw.classList.remove("swapping");
+          ph.forEach((p) => { p.style.transform = ""; });
+          const home = ph.map(inkOf);
+          sw.classList.add("swapping");
+          a.length = 0;
+          ph.forEach((p) => a.push(p.getAnimations()[0]));
+          a.forEach((x) => x.pause());
+          let bow = 0, edge = 1e9, travel = 0, cross = 1e9, crossGap = 0, rightward = 0;
+          for (let i = 0; i <= 24; i++) {
+            const r = at(480 + 820 * i / 24);
+            for (let k = 0; k < 2; k++) {
+              const dx = r[k].left - home[k].left;
+              if (dx > 0.5) rightward++;            // a C never goes right
+              bow = Math.max(bow, -dx);
+              travel = Math.max(travel, Math.abs(r[k].top - home[k].top));
+            }
+            edge = Math.min(edge, r[0].left, r[1].left);
+            const dy = Math.abs(r[0].top - r[1].top);
+            if (dy < cross) { cross = dy; crossGap = Math.abs(r[0].left - r[1].left); }
+          }
+          const end = at(1300);
+          const landed = ph.every((p, k) =>
+            Math.abs(end[k].left - home[k].left) < 0.5
+            && Math.abs(end[k].top - home[k].top) < 0.5);
+          out.push(w + ":bow=" + Math.round(bow) + ":travel=" + Math.round(travel)
+            + ":edge=" + Math.round(edge) + ":gap=" + Math.round(crossGap)
+            + ":right=" + rightward + ":home=" + landed);
+        }
+      }
+    } catch (err) { out.push(w + ":threw-" + err.message); }
+    if (++done === SIZES.length) {
+      document.getElementById("o").textContent = "ARC " + out.join(" ");
+    }
+  }, 900));
+});
+</script>"""
+
+
+def check_arc(chrome: str, out: Path, url: str) -> "list[str]":
+    (out / "_arc.html").write_text(ARC_PROBE, encoding="utf-8")
+    said = dom(chrome, url + "/_arc.html", 1000, 900)
+    found = re.search(r"ARC ([^<]*)", said)
+    if not found:
+        return ["arc: the probe returned no verdict"]
+    bad = []
+    for word in found.group(1).split():
+        width, _, rest = word.partition(":")
+        if "=" not in rest:
+            bad.append(f"arc: at {width}px the probe could not run — {rest}")
+            continue
+        f = dict(kv.split("=") for kv in rest.split(":"))
+        bow, travel = float(f["bow"]), float(f["travel"])
+
+        # A C, not an I. A straight diagonal between the same two points
+        # has no excursion at all, so this is the assertion that tells
+        # the new motion from the one it replaced.
+        if travel < 1:
+            bad.append(f"arc: at {width}px the phrases do not travel at all")
+        elif bow / travel < 0.25:
+            bad.append(f"arc: at {width}px the path is nearly straight — bow "
+                       f"{bow:.0f}px against {travel:.0f}px of travel. That is "
+                       f"the italic I again, not a C")
+
+        # A C opens to the RIGHT, so the stroke only ever goes left.
+        if f["right"] != "0":
+            bad.append(f"arc: at {width}px the path swings right ({f['right']} "
+                       f"samples) — that draws a reversed C")
+
+        # The page clips at its edge; an arc that overruns it takes the
+        # first characters of the heading off the side mid-sweep.
+        if float(f["edge"]) < 0:
+            bad.append(f"arc: at {width}px the sweep reaches {f['edge']}px — "
+                       f"past the edge of the page, so the heading is clipped "
+                       f"while it moves")
+
+        # They cross at the half-way point. Landing on exactly the same
+        # spot is two lines of text superimposed, which is a blur.
+        if float(f["gap"]) < 4:
+            bad.append(f"arc: at {width}px the two phrases pass within "
+                       f"{f['gap']}px of each other — at the crossing they are "
+                       f"the same height, so this is all that separates them")
+
+        if f["home"] != "true":
+            bad.append(f"arc: at {width}px the phrases do not finish in their "
+                       f"own places")
+    return bad
+
+
 def check_shape(html: str, where: str) -> "list[str]":
     """The two buttons that open the form look like the form.
 
@@ -940,6 +1078,7 @@ def main() -> int:
             problems += check_shape_css(site_css)
             problems += check_marks_declared(site_css)
             problems += check_marks(chrome, out, url, site_css)
+            problems += check_arc(chrome, out, url)
 
             for w, h, name, anchor in SIZES:
                 html = dom(chrome, url + anchor, w, h, shots / f"{name}.png")
