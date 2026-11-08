@@ -679,6 +679,18 @@ function keepOneAddress(): void {
       const target = id ? document.getElementById(id) : null;
       if (!target) return;              // let the browser deal with it
 
+      /* A button that opens the form is not a journey. Its `#talk` is
+       * the no-script fallback — the dialog shown where it stands — and
+       * with script `contact.ts` owns the click entirely.
+       *
+       * Treating it as a scroll target put a blue ring around the open
+       * form: the focus further down is meant to move the keyboard into
+       * a SECTION, and run on the dialog it both fought `showModal`,
+       * which had already placed focus properly, and drew the browser's
+       * own focus outline around the whole window. Measured, from both
+       * openers: `outline: 1px auto rgb(153, 200, 255)` on `dialog#talk`. */
+      if (a.hasAttribute("data-talk")) return;
+
       ev.preventDefault();
 
       // The band knows where we are going before we get there.
@@ -694,21 +706,22 @@ function keepOneAddress(): void {
         // version and has to be done by hand now.
         const bar = document.querySelector("header");
         const offset = bar ? bar.getBoundingClientRect().height : 0;
+        /* Contact IS the form. Asked for straight away, not at the
+         * end of the journey — waiting a second for it while the page
+         * slides underneath is the delay, not the arrival.
+         *
+         * The scroll still runs, behind the blur: nobody watches it, but
+         * it is what leaves the reader at Contact when they close the
+         * form rather than back where they set off from. The form lives
+         * in another module; an event is how this one asks for it
+         * without knowing anything about it. */
+        if (id === "contact") dispatchEvent(new CustomEvent("talk:open"));
+
         scrollTo(
           window.scrollY + target.getBoundingClientRect().top - offset,
-          () => {
-            // The band stops guessing where the reader is the moment the
-            // journey actually ends — arrived, or abandoned.
-            marker?.release(id as string);
-            /* Contact IS the form now. Opening it only once the journey
-             * has finished means closing it leaves the reader at
-             * Contact rather than wherever they set off from — and the
-             * section is behind the blur while they write, which is
-             * what says where they are. The form lives in another
-             * module; an event is how this one asks for it without
-             * knowing anything about it. */
-            if (id === "contact") dispatchEvent(new CustomEvent("talk:open"));
-          },
+          // The band stops guessing where the reader is the moment the
+          // journey actually ends — arrived, or abandoned.
+          () => marker?.release(id as string),
         );
         // And the keyboard follows the page.
         //

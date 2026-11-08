@@ -413,19 +413,29 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
  * alternative text so a screen reader reads the label and not three
  * full stops; browsers without that syntax simply draw it. */
 .btn.bubble {
-  border-radius: 2em 2em 2em 0.35em;
-  gap: 0.45em;
+  /* 0.35em read as a chipped pill rather than as a bubble: 4.5px beside
+     the 26px of every other corner is a nick, not a shape. At 0.75em it
+     is unmistakably deliberate. */
+  border-radius: 2em 2em 2em 0.75em;
+  gap: 0.5em;
 }
 
 .btn.bubble::after {
-  /* Plain first: a browser without the alternative-text syntax drops
+  /* Three middle dots rather than an ellipsis. An ellipsis sits on the
+     baseline and crowds its own glyph, so it reads as punctuation
+     attached to the word; three middle dots sit at the x-height and can
+     be let apart, which reads as a message still being written — and
+     echoes the three dots the page already uses while it loads.
+
+     Plain first: a browser without the alternative-text syntax drops
      that whole declaration, and would otherwise draw nothing. */
-  content: "\2026";
-  content: "\2026" / "";
-  opacity: 0.65;
-  /* Optically the dots sit high in their box; a hair down centres them
-     against the cap height of the label beside them. */
-  transform: translateY(-0.04em);
+  content: "\B7\B7\B7";
+  content: "\B7\B7\B7" / "";
+  letter-spacing: 0.16em;
+  /* The last dot's trailing letter-space would push the padding out of
+     true on the right. Taken back, so the label sits centred. */
+  margin-right: -0.16em;
+  opacity: 0.6;
 }
 
 /* Hover, only where there is a pointer that can hover.
@@ -1266,6 +1276,34 @@ section:not(.hero) > .wrap > .note { text-align: left; }
 .btn.primary:active {
   background: color-mix(in oklab, var(--accent) 88%, var(--bg));
   border-color: color-mix(in oklab, var(--accent) 88%, var(--bg));
+}
+
+/* The press, when the pointer is already hovering — which on a desktop
+   is ALWAYS, and is why the buttons felt worse there than on a phone.
+   Measured: the ground is luma 19 and the accent luma 241, so hover
+   fills the outline button near-white; the press then dropped it to 12%
+   ALPHA, i.e. back to the dark ground. White, near-black, white again,
+   in under a tenth of a second. The filled one inverted the other way:
+   hover empties it, and the press refilled it.
+
+   Both rules above were written for the un-hovered button, which is the
+   only state a phone ever has. So on a hovering device the two simply
+   exchange treatments: the press is always the CURRENT appearance,
+   pushed a little further in the direction it already sits. */
+@media (hover: hover) {
+  /* Hovered, it is filled — so the press deepens the fill. */
+  .btn:not(.primary):hover:active {
+    background: color-mix(in oklab, var(--accent) 88%, var(--bg));
+    border-color: color-mix(in oklab, var(--accent) 88%, var(--bg));
+    color: var(--bg);
+  }
+
+  /* Hovered, the filled one has emptied — so the press veils it. */
+  .btn.primary:hover:active {
+    background: color-mix(in oklab, var(--accent) 12%, transparent);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

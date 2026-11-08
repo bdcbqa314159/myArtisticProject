@@ -188,10 +188,27 @@ function openTheForm(): void {
   const box = document.querySelector<HTMLDialogElement>("dialog.talk");
   if (!box) return;
 
+  /* Open it, and put the reader in the first real field.
+   *
+   * `showModal` focuses the first FOCUSABLE element, and `tabindex="-1"`
+   * still counts as focusable — so the cursor landed in the honeypot.
+   * Measured: `activeElement` was `input#_trap`. A keyboard visitor who
+   * opened the form and started typing filled the bot trap, and their
+   * message was then dropped without a word.
+   *
+   * Done here rather than with `autofocus`, which fires on page load
+   * for anyone whose script never ran: the form is shown inline for
+   * them, so the browser would scroll a first-time reader straight to
+   * the bottom of the page. */
+  const show = (): void => {
+    box.showModal();
+    box.querySelector<HTMLInputElement>('input[name="email"]')?.focus();
+  };
+
   for (const opener of document.querySelectorAll<HTMLElement>("[data-talk]")) {
     opener.addEventListener("click", (ev) => {
       ev.preventDefault();
-      box.showModal();
+      show();
     });
   }
 
@@ -210,7 +227,7 @@ function openTheForm(): void {
    * long that takes. `open` is checked because the band can be used
    * again while the form is already up. */
   addEventListener("talk:open", () => {
-    if (!box.open) box.showModal();
+    if (!box.open) show();
   });
 }
 
