@@ -601,6 +601,13 @@ SIZES.forEach(([w, h]) => {
         const periods = new Set(anims.map(
           (a) => String(a.effect.getTiming().duration)));
 
+        /* Held while the page moves, moving again once it settles.
+         * A real `scroll` event is dispatched; what is read back is the
+         * computed `animation-play-state`, which is the browser's own
+         * answer rather than the class the page sets. */
+        win.dispatchEvent(new Event("scroll"));
+        const whileScrolling = win.getComputedStyle(drops[0]).animationPlayState;
+
         // Button-ness, which is what was wrong with them before.
         const boxed = drops.filter((p) => {
           const cs = win.getComputedStyle(p);
@@ -648,7 +655,8 @@ SIZES.forEach(([w, h]) => {
             }
           }
         }
-        out.push(w + ":n=" + drops.length + ":anims=" + anims.length
+        out.push(w + ":held=" + whileScrolling
+          + ":n=" + drops.length + ":anims=" + anims.length
           + ":scrolly=" + scrolly + ":periods=" + periods.size
           + ":boxed=" + boxed + ":fonts=" + fonts.size + ":over=" + over
           + ":collide=" + collide + ":layer=" + (win.getComputedStyle(drops[0])
@@ -663,6 +671,34 @@ SIZES.forEach(([w, h]) => {
   }, 900));
 });
 </script>"""
+
+
+def check_cloud_css(css: str) -> "list[str]":
+    """No custom property may appear inside the drift keyframes.
+
+    HONEST ABOUT WHAT THIS IS: a structural guard, not a measurement.
+    Whether an animation actually runs on the compositor cannot be read
+    from JavaScript, and this harness has no way to ask. What it can do
+    is hold the shape that makes compositing possible — keyframes whose
+    values must be re-resolved from custom properties are computed on
+    the main thread, and that is what made the drift land on the pixel
+    grid and look stepped on a 1x screen.
+
+    So this fails if the shorter, tempting form comes back. It cannot
+    tell you the drift is smooth; it can tell you it is still eligible
+    to be."""
+    bad = []
+    for name, body in re.findall(r"@keyframes (drop-\d+) \{([^}]*(?:\}[^@]*?)*?)\n\}",
+                                 css):
+        if "var(" in body:
+            bad.append(f"css: `@keyframes {name}` uses a custom property. "
+                       f"Those keyframes cannot be handed to the compositor, "
+                       f"so the drift is computed on the main thread and "
+                       f"lands on the pixel grid — which is what made it look "
+                       f"stepped on a desktop")
+    if not re.search(r"@keyframes drop-1 \{", css):
+        bad.append("css: the drift keyframes are gone")
+    return bad
 
 
 def check_cloud(chrome: str, out: Path, url: str, still: bool) -> "list[str]":
@@ -717,6 +753,11 @@ def check_cloud(chrome: str, out: Path, url: str, still: bool) -> "list[str]":
             bad.append(f"cloud: at {width}px two words overlap in "
                        f"{f['collide']} sampled positions — the drift and the "
                        f"swell have outgrown the gap they live in")
+        if f.get("held") != "paused":
+            bad.append(f"cloud: at {width}px the words keep drifting "
+                       f"while the page is being scrolled (play-state "
+                       f"{f.get('held')!r}) — they were asked to hold "
+                       f"still until it settles")
         if f["layer"] != "yes":
             bad.append(f"cloud: at {width}px the words are not promoted to "
                        f"their own layer, so the drift is snapped to the "
@@ -1231,6 +1272,7 @@ def main() -> int:
             problems += check_marks_declared(site_css)
             problems += check_marks(chrome, out, url, site_css)
             problems += check_arc(chrome, out, url)
+            problems += check_cloud_css(site_css)
             problems += check_cloud(chrome, out, url, False)
             problems += check_cloud(chrome, out, url, True)
 
