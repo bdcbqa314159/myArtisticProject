@@ -1523,11 +1523,48 @@ html.js [data-copy] { display: inline-flex; }
    permanently it would animate the phrases every time anything else
    moved them — a resize, a font arriving late — which is the loop the
    brief rules out. */
+/* The path is a C.
+ *
+ * "Plutôt qu'un I italique, on aimerait un C" — so the two phrases no
+ * longer slide along a straight diagonal. They sweep out to the left and
+ * back, which is the stroke of a C: an arc whose opening faces right.
+ *
+ * A transition could not do this. It interpolates straight between two
+ * transforms, and a straight line is the italic I that was there. So the
+ * arc is sampled as keyframes — x across the bow as sin(pi * p), y
+ * falling home as (1 - p).
+ *
+ * THE SAMPLES ARE EVENLY SPACED ALONG THE PATH, NOT IN TIME, which is
+ * why the percentages look irregular. The old easing —
+ * cubic-bezier(.76, 0, .24, 1) — is steep enough that an even split of
+ * the TIME puts almost every sample where the phrases are barely
+ * moving, and only two across the bend: the apex came out as a corner.
+ * Spacing them along the path instead and running the animation
+ * `linear` puts the samples where the curve is, and the uneven times
+ * are the easing itself. Twelve segments; the chord never leaves the
+ * true arc by as much as a pixel.
+ *
+ * The delay lets the block's own arrival finish first. Both at once and
+ * the crossing happens underneath a fade, which is motion spent on
+ * something nobody can make out. */
 .swap.swapping .phrase {
-  /* The delay lets the block's own arrival finish first. Both at once
-     and the crossing happens underneath a fade, which is motion spent
-     on something nobody can make out. */
-  transition: transform 820ms cubic-bezier(.76, 0, .24, 1) 480ms;
+  animation: draw-a-c 820ms linear 480ms both;
+}
+
+@keyframes draw-a-c {
+     from { transform: translate(calc(var(--bow) * -0.0000), calc(var(--from-y) * 1.0000)); }
+   29.80% { transform: translate(calc(var(--bow) * -0.2588), calc(var(--from-y) * 0.9167)); }
+   37.75% { transform: translate(calc(var(--bow) * -0.5000), calc(var(--from-y) * 0.8333)); }
+   42.41% { transform: translate(calc(var(--bow) * -0.7071), calc(var(--from-y) * 0.7500)); }
+   45.56% { transform: translate(calc(var(--bow) * -0.8660), calc(var(--from-y) * 0.6667)); }
+   47.95% { transform: translate(calc(var(--bow) * -0.9659), calc(var(--from-y) * 0.5833)); }
+   50.00% { transform: translate(calc(var(--bow) * -1.0000), calc(var(--from-y) * 0.5000)); }
+   52.05% { transform: translate(calc(var(--bow) * -0.9659), calc(var(--from-y) * 0.4167)); }
+   54.44% { transform: translate(calc(var(--bow) * -0.8660), calc(var(--from-y) * 0.3333)); }
+   57.59% { transform: translate(calc(var(--bow) * -0.7071), calc(var(--from-y) * 0.2500)); }
+   62.25% { transform: translate(calc(var(--bow) * -0.5000), calc(var(--from-y) * 0.1667)); }
+   70.20% { transform: translate(calc(var(--bow) * -0.2588), calc(var(--from-y) * 0.0833)); }
+       to { transform: translate(0, 0); }
 }
 
 @media (prefers-reduced-motion: reduce) {

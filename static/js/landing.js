@@ -734,28 +734,67 @@ function exchangePhrases() {
     // to make, and a swap of nothing is worse than none.
     if (apart <= 0)
         return;
-    /* A few pixels sideways as well, in opposite directions, so the two
-     * pass each other rather than sliding through the same column. It is
-     * the difference between an exchange and a glitch. */
-    first.style.transform = `translate(-0.6rem, ${apart}px)`;
-    second.style.transform = `translate(0.6rem, ${-apart}px)`;
+    /* How deep the C's stroke goes.
+     *
+     * MEASURED TWICE, because two different things limit it. Against the
+     * travel, so the letter keeps its proportions at every width — a C is
+     * about three-quarters as wide as it is tall. And against the room
+     * actually to the left of the heading, because the page clips at its
+     * edge: at 390px the heading begins 14px in, so an arc drawn to a
+     * letter's proportions would take the first characters off the side
+     * of the page mid-sweep. Where there is room it is a letter; where
+     * there is not it is as much of one as fits.
+     *
+     * The two phrases take arcs of DIFFERENT depth, and that difference
+     * is the only thing keeping them apart. They cross at the half-way
+     * point, where both are at the same height, so the gap between them
+     * there is exactly the difference between the two depths.
+     *
+     * Not a stagger — that cannot work, and the arithmetic says so before
+     * any of it is built. The bow is sin(pi * p), symmetric about the
+     * middle, so wherever a delay makes their heights equal it makes
+     * their sideways offsets equal too: they would meet exactly, later. */
+    /* The room is measured from the TEXT, not from the block that holds
+     * it. The heading is centred, so the block reaches the gutter while
+     * the glyphs start well inside it — measuring the block gave 23px at
+     * 390px where the letters really had 36px, and the arc came out a
+     * third shallower than it needed to be. A Range over the contents
+     * reports where the ink actually is. */
+    const ink = document.createRange();
+    ink.selectNodeContents(first);
+    const inked = ink.getBoundingClientRect();
+    const edge = inked.width > 0 ? inked.left : first.getBoundingClientRect().left;
+    const room = edge - 4;
+    const bow = Math.max(0, Math.min(apart * 0.72, room));
+    first.style.setProperty("--from-y", `${apart}px`);
+    first.style.setProperty("--bow", `${bow}px`);
+    second.style.setProperty("--from-y", `${-apart}px`);
+    second.style.setProperty("--bow", `${bow * 0.42}px`);
+    /* Where they wait until the section is reached. The animation's own
+     * first frame is this same position, so nothing jumps when it
+     * starts. */
+    first.style.transform = `translateY(${apart}px)`;
+    second.style.transform = `translateY(${-apart}px)`;
     const seen = new IntersectionObserver((entries) => {
         for (const entry of entries) {
             if (!entry.isIntersecting)
                 continue;
             seen.unobserve(entry.target);
+            /* The animation carries the whole journey now, so there is no
+             * second write to transition FROM and no layout to force:
+             * adding the class starts it, and its own first frame is where
+             * the phrases already are. */
             heading.classList.add("swapping");
-            // Read the layout so the browser registers the crossed position
-            // as a starting point. Without it the class and the clearing
-            // are coalesced into one change and the phrases simply appear
-            // in place — the animation never happens.
-            void heading.offsetWidth;
-            first.style.transform = "";
-            second.style.transform = "";
-            // Take the transition away once it has been spent, so nothing
+            // Take the animation away once it has been spent, so nothing
             // that moves these phrases later — a resize, a late font —
-            // animates them again. The brief asked for once.
-            window.setTimeout(() => heading.classList.remove("swapping"), SWAP_DONE_MS);
+            // animates them again. The brief asked for once. The waiting
+            // transform goes in the same breath, so there is no frame
+            // between losing the animation and losing the offset.
+            window.setTimeout(() => {
+                first.style.transform = "";
+                second.style.transform = "";
+                heading.classList.remove("swapping");
+            }, SWAP_DONE_MS);
         }
     }, { threshold: 0.6 });
     seen.observe(heading);
