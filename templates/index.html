@@ -226,7 +226,7 @@
                      where the next move has to be offered: the reader is
                      looking at five photographs and nothing has told them
                      that each one opens. One on the card said "come in";
-                     five here say "and again". #}<i class="look" aria-hidden="true"></i></summary>
+                     five here say "and again". #}<i class="look" aria-hidden="true"{% if pr.look %}{% set spot = pr.look | split(pat=" ") %} style="--look-x:{{ spot[0] }}%;--look-y:{{ spot[1] }}%"{% endif %}></i></summary>
                 <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
                   {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                   {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
@@ -241,7 +241,7 @@
                      where the next move has to be offered: the reader is
                      looking at five photographs and nothing has told them
                      that each one opens. One on the card said "come in";
-                     five here say "and again". #}<i class="look" aria-hidden="true"></i></summary>
+                     five here say "and again". #}<i class="look" aria-hidden="true"{% if pr.look %}{% set spot = pr.look | split(pat=" ") %} style="--look-x:{{ spot[0] }}%;--look-y:{{ spot[1] }}%"{% endif %}></i></summary>
                 <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
                   {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                   {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
@@ -256,7 +256,7 @@
                      where the next move has to be offered: the reader is
                      looking at five photographs and nothing has told them
                      that each one opens. One on the card said "come in";
-                     five here say "and again". #}<i class="look" aria-hidden="true"></i></summary>
+                     five here say "and again". #}<i class="look" aria-hidden="true"{% if pr.look %}{% set spot = pr.look | split(pat=" ") %} style="--look-x:{{ spot[0] }}%;--look-y:{{ spot[1] }}%"{% endif %}></i></summary>
                 <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
                   {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                   {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
@@ -271,7 +271,7 @@
                      where the next move has to be offered: the reader is
                      looking at five photographs and nothing has told them
                      that each one opens. One on the card said "come in";
-                     five here say "and again". #}<i class="look" aria-hidden="true"></i></summary>
+                     five here say "and again". #}<i class="look" aria-hidden="true"{% if pr.look %}{% set spot = pr.look | split(pat=" ") %} style="--look-x:{{ spot[0] }}%;--look-y:{{ spot[1] }}%"{% endif %}></i></summary>
                 <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
                   {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                   {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}
@@ -286,7 +286,7 @@
                      where the next move has to be offered: the reader is
                      looking at five photographs and nothing has told them
                      that each one opens. One on the card said "come in";
-                     five here say "and again". #}<i class="look" aria-hidden="true"></i></summary>
+                     five here say "and again". #}<i class="look" aria-hidden="true"{% if pr.look %}{% set spot = pr.look | split(pat=" ") %} style="--look-x:{{ spot[0] }}%;--look-y:{{ spot[1] }}%"{% endif %}></i></summary>
                 <div class="reel" tabindex="0" role="group" aria-label="{{ pr.name }}" data-reel="{{ pr.id }}">
                   {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}
                   {% set shot = resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74) %}

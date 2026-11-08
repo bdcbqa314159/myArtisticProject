@@ -61,6 +61,7 @@ and the value is simply gone.
 | `id` | yes | unique, and what a photograph points at — e.g. "r1-a" |
 | `reference` | yes | which of the six references this belongs to, 1-6 |
 | `name` | yes | the project, as it is shown under its thumbnail |
+| `look` | no | where the light sits on this print, as "x y" percentages of it — e.g. "50 100" for the foot. Leave empty for the arrangement's own place, which is already clear of its neighbours |
 
 ## photo
 
