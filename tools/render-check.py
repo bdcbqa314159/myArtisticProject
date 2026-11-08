@@ -573,6 +573,123 @@ def check_arc(chrome: str, out: Path, url: str) -> "list[str]":
     return bad
 
 
+# The fields drift; they do not look like buttons and they do not move
+# with the page.
+CLOUD_PROBE = """
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+const out = []; let done = 0;
+const SIZES = [[390, 700], [900, 800]];
+SIZES.forEach(([w, h]) => {
+  const f = document.createElement("iframe");
+  f.width = w; f.height = h; f.style.border = 0; f.src = "/";
+  document.body.appendChild(f);
+  f.addEventListener("load", () => setTimeout(() => {
+    try {
+      const d = f.contentDocument, win = f.contentWindow;
+      const drops = [...d.querySelectorAll(".cloud .drop")];
+      if (!drops.length) { out.push(w + ":none"); }
+      else {
+        const anims = drops.flatMap((p) => p.getAnimations());
+
+        /* Scroll-driven animation has a ScrollTimeline instead of the
+         * document's. This is the assertion for "they do not move when
+         * the page moves". */
+        const scrolly = anims.filter(
+          (a) => a.timeline && a.timeline !== d.timeline).length;
+
+        // Six words swinging on the same clock is a metronome.
+        const periods = new Set(anims.map(
+          (a) => String(a.effect.getTiming().duration)));
+
+        // Button-ness, which is what was wrong with them before.
+        const boxed = drops.filter((p) => {
+          const cs = win.getComputedStyle(p);
+          return parseFloat(cs.borderTopWidth) > 0.5
+              || (cs.backgroundColor !== "rgba(0, 0, 0, 0)"
+                  && cs.backgroundColor !== "transparent");
+        }).length;
+
+        const fonts = new Set(drops.map(
+          (p) => win.getComputedStyle(p).fontSize));
+
+        /* Every drift driven to both of its ends at once — the widest
+         * the field can ever be. A page that only fits while the words
+         * happen to be centred is a page that overflows later. */
+        let over = 0;
+        if (scrolly === 0) {
+          for (const end of [0, 1]) {
+            anims.forEach((a) => {
+              a.pause();
+              a.currentTime = end ? a.effect.getTiming().duration : 0;
+            });
+            if (d.documentElement.scrollWidth > d.documentElement.clientWidth) over++;
+          }
+        }
+        out.push(w + ":n=" + drops.length + ":anims=" + anims.length
+          + ":scrolly=" + scrolly + ":periods=" + periods.size
+          + ":boxed=" + boxed + ":fonts=" + fonts.size + ":over=" + over);
+      }
+    } catch (err) {
+      out.push(w + ":threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-"));
+    }
+    if (++done === SIZES.length) {
+      document.getElementById("o").textContent = "CLOUD " + out.join(" ");
+    }
+  }, 900));
+});
+</script>"""
+
+
+def check_cloud(chrome: str, out: Path, url: str, still: bool) -> "list[str]":
+    (out / "_cloud.html").write_text(CLOUD_PROBE, encoding="utf-8")
+    said = dom(chrome, url + "/_cloud.html", 1000, 900, reduced=still)
+    found = re.search(r"CLOUD ([^<]*)", said)
+    if not found:
+        return ["cloud: the probe returned no verdict"]
+    where = "with motion stilled" if still else "at rest"
+    bad = []
+    for word in found.group(1).split():
+        width, _, rest = word.partition(":")
+        if "=" not in rest:
+            bad.append(f"cloud: at {width}px there are no drifting words "
+                       f"({rest})")
+            continue
+        f = dict(kv.split("=") for kv in rest.split(":"))
+
+        if still:
+            # Stillness is the whole requirement here; nothing else is
+            # different, so nothing else is asserted twice.
+            if f["anims"] != "0":
+                bad.append(f"cloud: at {width}px the words still drift under "
+                           f"reduced motion ({f['anims']} animations)")
+            continue
+
+        if f["boxed"] != "0":
+            bad.append(f"cloud: at {width}px {f['boxed']} of the words have a "
+                       f"border or a fill — that is the capsule that made six "
+                       f"unclickable things look like buttons")
+        if int(f["fonts"]) < 3:
+            bad.append(f"cloud: at {width}px the words are all much of a size "
+                       f"({f['fonts']} distinct) — the varying scale is the "
+                       f"whole of the effect")
+        if f["anims"] == "0":
+            bad.append(f"cloud: at {width}px nothing drifts {where}")
+        if f["scrolly"] != "0":
+            bad.append(f"cloud: at {width}px {f['scrolly']} animations are "
+                       f"driven by the scroll. They must keep their own "
+                       f"clock — the words move when the page is still, not "
+                       f"because it moved")
+        if int(f["periods"]) < 4:
+            bad.append(f"cloud: at {width}px the drifts share "
+                       f"{f['periods']} periods between them, so the words "
+                       f"swing in step. That is a metronome, not water")
+        if f["over"] != "0":
+            bad.append(f"cloud: at {width}px the field overflows the page "
+                       f"when its drift is at full stretch — it fits only "
+                       f"while the words happen to be centred")
+    return bad
+
+
 def check_shape(html: str, where: str) -> "list[str]":
     """The two buttons that open the form look like the form.
 
@@ -1079,6 +1196,8 @@ def main() -> int:
             problems += check_marks_declared(site_css)
             problems += check_marks(chrome, out, url, site_css)
             problems += check_arc(chrome, out, url)
+            problems += check_cloud(chrome, out, url, False)
+            problems += check_cloud(chrome, out, url, True)
 
             for w, h, name, anchor in SIZES:
                 html = dom(chrome, url + anchor, w, h, shots / f"{name}.png")

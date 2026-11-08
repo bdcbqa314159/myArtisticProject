@@ -663,14 +663,102 @@ html.scrolling .case .image img { will-change: transform; }
 
 /* ---- ecosystem, about, contact -------------------------------------------- */
 
-.strip { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+/* ============================================================================
+   THE FIELDS THE WORK SITS IN — a first sketch, for the client to react to
+   ============================================================================
 
-.pill {
-  padding: 0.6em 1.1em;
-  border: 1px solid var(--line);
-  border-radius: 2em;
+   They were capsules with a border and a radius: the shape of every
+   button on this page, worn by six things that cannot be clicked. Now
+   they are words set at different sizes, drifting slowly where they
+   stand.
+
+   NOT SCROLL-LINKED. The drift is a CSS animation on its own clock, so
+   the words keep their place in the page as it moves and are only ever
+   moved by themselves.
+
+   The wandering is two oscillations of DIFFERENT PERIOD on two
+   different properties — `translate` for one axis, `transform` for the
+   other — so neither overwrites the other and the pair traces a figure
+   that takes many minutes to repeat. A single keyframe pair with a
+   per-word amplitude would have given six words all swinging in time,
+   which is a metronome, not water.
+
+   Laid out in normal flow rather than placed absolutely: six words of
+   different sizes pinned to percentages collide at some width, and the
+   width where they collide is always one nobody tested. Flow cannot
+   overlap, and the drift is small enough to stay inside its own gap. */
+
+.cloud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  /* Generous, because the drift has to live inside the gap. */
+  gap: 1.1rem 1.9rem;
+  margin-top: 2.5rem;
+  padding: 0.5rem 0;
+}
+
+.drop {
   color: var(--muted);
-  font-size: 0.875rem;
+  font-size: calc(var(--drop-size, 1) * 1rem);
+  line-height: 1.25;
+  /* A field is a phrase; broken across two lines it stops being one
+     drop and becomes two. */
+  white-space: nowrap;
+  /* Nearer things are brighter. It is the only depth cue here, and
+     without it six sizes read as six arbitrary sizes. */
+  opacity: calc(0.52 + var(--drop-size, 1) * 0.3);
+  animation:
+    drop-x var(--drop-tx, 21s) ease-in-out infinite alternate var(--drop-ox, 0s),
+    drop-y var(--drop-ty, 27s) ease-in-out infinite alternate var(--drop-oy, 0s),
+    drop-breathe var(--drop-tp, 17s) ease-in-out infinite alternate var(--drop-op, 0s);
+}
+
+@keyframes drop-x       { to { translate: var(--drop-dx, 8px) 0; } }
+@keyframes drop-y       { to { transform: translateY(var(--drop-dy, 6px)); } }
+@keyframes drop-breathe { to { scale: var(--drop-pulse, 1.05); } }
+
+/* Six sets, cycling, so a seventh field is a content change and not a
+   stylesheet change. The periods are deliberately unrelated to each
+   other — shared factors are what make a crowd march in step — and the
+   negative offsets start every word somewhere different in its own
+   cycle, so the field is already in motion the first time it is seen
+   rather than setting off together from rest. */
+.cloud .drop:nth-child(6n + 1) {
+  --drop-size: 1.45; --drop-dx:  11px; --drop-dy: -7px; --drop-pulse: 1.05;
+  --drop-tx: 23s; --drop-ty: 31s; --drop-tp: 19s;
+  --drop-ox: -4s; --drop-oy: -11s; --drop-op: -6s;
+}
+.cloud .drop:nth-child(6n + 2) {
+  --drop-size: 0.95; --drop-dx:  -8px; --drop-dy:  9px; --drop-pulse: 1.07;
+  --drop-tx: 29s; --drop-ty: 19s; --drop-tp: 23s;
+  --drop-ox: -13s; --drop-oy: -3s; --drop-op: -17s;
+}
+.cloud .drop:nth-child(6n + 3) {
+  --drop-size: 1.2; --drop-dx:  9px; --drop-dy:  7px; --drop-pulse: 1.04;
+  --drop-tx: 17s; --drop-ty: 37s; --drop-tp: 29s;
+  --drop-ox: -8s; --drop-oy: -21s; --drop-op: -2s;
+}
+.cloud .drop:nth-child(6n + 4) {
+  --drop-size: 0.88; --drop-dx: -12px; --drop-dy: -6px; --drop-pulse: 1.08;
+  --drop-tx: 37s; --drop-ty: 23s; --drop-tp: 13s;
+  --drop-ox: -19s; --drop-oy: -7s; --drop-op: -9s;
+}
+.cloud .drop:nth-child(6n + 5) {
+  --drop-size: 1.3; --drop-dx:  7px; --drop-dy: -10px; --drop-pulse: 1.03;
+  --drop-tx: 19s; --drop-ty: 29s; --drop-tp: 37s;
+  --drop-ox: -2s; --drop-oy: -17s; --drop-op: -23s;
+}
+.cloud .drop:nth-child(6n + 6) {
+  --drop-size: 1.05; --drop-dx: -9px; --drop-dy:  8px; --drop-pulse: 1.06;
+  --drop-tx: 31s; --drop-ty: 17s; --drop-tp: 23s;
+  --drop-ox: -11s; --drop-oy: -13s; --drop-op: -14s;
+}
+
+/* Still words, still different sizes, simply still. */
+@media (prefers-reduced-motion: reduce) {
+  .drop { animation: none; }
 }
 
 .about { display: grid; gap: 18px; }
@@ -1920,9 +2008,12 @@ html.js:has(.group[open]) { overflow: hidden; }
  * photograph half out of frame reads as a mistake rather than as a hint
  * that there is more; the overshoot is what tells you to keep going.
  *
- * Called `.reel` and not `.strip`: `.strip` is the row of pills in the
+ * Called `.reel` and not `.strip`: `.strip` was the row of pills in the
  * ecosystem section, and the duplicate-selector check caught the
- * collision before it could silently win over one of them.
+ * collision before it could silently win over one of them. The pills
+ * have since become `.cloud` / `.drop`, so the name is free again —
+ * kept as it is because the reason it was chosen still stands, and
+ * renaming a class to reclaim a word nobody is using is churn.
  */
 .reel {
   display: flex;
