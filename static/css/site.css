@@ -53,6 +53,8 @@
   --faint: #656d7a;
   --line:  #d7dbe2;
   --bg:    #f4f5f7;
+  --mark-for-light: inline;
+  --mark-for-dark: none;
   --panel: #e8eaee;
   --card:  transparent;
   --tint:  #e8eaee;
@@ -77,6 +79,8 @@
     --faint: #7d8694;
     --line:  #272c34;
     --bg:    #101317;
+    --mark-for-light: none;
+    --mark-for-dark: inline;
     --panel: #171b21;
     --tint:  #14181d;
     --accent:#eef1f5;
@@ -91,6 +95,8 @@
     --faint: #8a8375;
     --line:  #2b2720;
     --bg:    #14120e;
+    --mark-for-light: none;
+    --mark-for-dark: inline;
     --panel: #1d1a14;
     --tint:  #1a1712;
     --accent:#e4ddcd;
@@ -112,6 +118,8 @@
   --faint: #696e75;
   --line:  #ded5c3;
   --bg:    #f6f2e9;
+  --mark-for-light: inline;
+  --mark-for-dark: none;
   --panel: #ece7db;
   --card:  transparent;
   --tint:  #ece7db;
@@ -1433,6 +1441,8 @@ html.js [data-copy] { display: inline-flex; }
     --faint: #555;
     --line: #bbb;
     --bg: #fff;
+    --mark-for-light: inline;
+    --mark-for-dark: none;
     --panel: #eee;
     --tint: #fff;
     --accent: #000;
@@ -1479,6 +1489,17 @@ html.js [data-copy] { display: inline-flex; }
    square and LinkedIn's In Bug is not. Pinning both dimensions would
    stretch one of them, and a stretched mark is a modified mark. */
 .dock img { height: 20px; width: auto; }
+
+/* Which of the two shows. The value comes from the palette, never from
+   the operating system: `prefers-color-scheme` says what the reader's
+   machine prefers, not what colour THIS page's ground ended up, and the
+   two part company the moment a palette keeps its own mind in the dark.
+
+   The fallbacks are the pale-ground pair, so a palette that forgets to
+   choose still shows a mark rather than nothing — and the build fails
+   for forgetting. */
+.dock .for-light { display: var(--mark-for-light, inline); }
+.dock .for-dark  { display: var(--mark-for-dark, none); }
 
 .dock-name { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }
 

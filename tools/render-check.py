@@ -21,6 +21,7 @@ skips the check and says so, rather than failing for the wrong reason.
 """
 
 import http.server
+import json
 import re
 import shutil
 import socketserver
@@ -344,6 +345,93 @@ def check_menu(chrome: str, out: Path, url: str) -> "list[str]":
     if "ring=no" not in verdict:
         bad.append(f"form: the browser is drawing its own focus ring on the "
                    f"open form ({verdict})")
+    return bad
+
+
+# Every palette puts a mark its ground can show.
+#
+# The marks used to follow `prefers-color-scheme`, which answers a
+# different question: what the reader's MACHINE prefers, not what colour
+# this page's ground actually came out. The two part company on the
+# cream palette, which keeps its pale ground in the dark — measured at
+# ground luma 242 wearing a white mark, which is a mark nobody can see.
+MARKS_PROBE = """
+<meta charset=utf-8><body style=margin:0><p id=o>?</p><script>
+const f = document.createElement("iframe");
+f.width = 390; f.height = 700; f.style.border = 0; f.src = "/";
+document.body.appendChild(f);
+const luma = (s) => {
+  const m = (s.match(/[\\d.]+/g) || [0, 0, 0]).map(Number);
+  return 0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2];
+};
+f.addEventListener("load", () => setTimeout(() => {
+  const d = f.contentDocument, w = f.contentWindow;
+  const links = d.querySelectorAll(".dock a").length;
+  const out = [];
+  for (const p of __PALETTES__) {
+    if (p === "") delete d.documentElement.dataset.palette;
+    else d.documentElement.dataset.palette = p;
+    const pale = luma(w.getComputedStyle(d.body).backgroundColor) > 128;
+    const shown = [...d.querySelectorAll(".dock .mark")]
+      .filter((i) => w.getComputedStyle(i).display !== "none")
+      .map((i) => i.currentSrc);
+    // One mark per link, and its tone is the one the ground can show.
+    const wrong = shown.filter((u) => u.includes(pale ? "white" : "black")).length;
+    out.push((p || "default") + ":" + (shown.length === links ? "n" : "COUNT")
+      + (wrong === 0 ? "ok" : "WRONG"));
+  }
+  document.getElementById("o").textContent = "MARKS links=" + links
+    + " " + out.join(" ");
+}, 700));
+</script>"""
+
+
+def check_marks(chrome: str, out: Path, url: str, css: str) -> "list[str]":
+    """Measured: what shows, against the ground it shows on."""
+    names = sorted(set(re.findall(r'\[data-palette="([a-z]+)"\]', css)))
+    (out / "_marks.html").write_text(
+        MARKS_PROBE.replace("__PALETTES__", json.dumps([""] + names)),
+        encoding="utf-8")
+    said = dom(chrome, url + "/_marks.html", 500, 900)
+    found = re.search(r"MARKS links=(\d+) ([^<]*)", said)
+    if not found:
+        return ["marks: the probe returned no verdict"]
+    links, verdict = int(found.group(1)), found.group(2).strip()
+    bad = []
+    if links == 0:
+        return ["marks: there are no social links on the page to check"]
+    for word in verdict.split():
+        name, _, state = word.partition(":")
+        if "WRONG" in state:
+            bad.append(f"marks: the {name} palette shows a mark its own ground "
+                       f"cannot show — white on a pale ground, or black on a "
+                       f"dark one ({verdict})")
+        if "COUNT" in state:
+            bad.append(f"marks: the {name} palette shows the wrong NUMBER of "
+                       f"marks — both tones at once, or none ({verdict})")
+    return bad
+
+
+def check_marks_declared(css: str) -> "list[str]":
+    """Structural: choosing a ground means choosing the marks for it.
+
+    This is the whole reason the marks moved off `prefers-color-scheme`.
+    A palette is a block that sets `--bg`; if it may set a ground without
+    saying which marks go on it, the two can drift apart again — and the
+    drift is invisible until someone looks at that palette on a real
+    screen, which is how the last one was found."""
+    bad = []
+    for block in re.findall(r"\{([^{}]*)\}", css):
+        if "--bg:" not in block:
+            continue
+        for token in ("--mark-for-light", "--mark-for-dark"):
+            if token not in block:
+                ground = re.search(r"--bg:\s*([^;]+);", block)
+                bad.append(
+                    f"css: a palette sets a ground "
+                    f"({ground.group(1).strip() if ground else '?'}) without "
+                    f"setting `{token}`. Every block that chooses `--bg` must "
+                    f"choose the marks that go on it")
     return bad
 
 
@@ -848,8 +936,10 @@ def main() -> int:
             # Contact in the band ends at the form, and the shape that
             # says so is on both buttons that open it.
             problems += check_menu(chrome, out, url)
-            problems += check_shape_css(
-                (Path("static/css/site.css")).read_text(encoding="utf-8"))
+            site_css = Path("static/css/site.css").read_text(encoding="utf-8")
+            problems += check_shape_css(site_css)
+            problems += check_marks_declared(site_css)
+            problems += check_marks(chrome, out, url, site_css)
 
             for w, h, name, anchor in SIZES:
                 html = dom(chrome, url + anchor, w, h, shots / f"{name}.png")
