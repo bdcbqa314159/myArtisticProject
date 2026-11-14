@@ -42,6 +42,14 @@ node_modules/
 # where the client drops material before it is placed in content/
 /_client_input/
 
+# THE SHOWREEL. His film, and the largest single thing he will hand
+# over. The studio panel writes it here when it is run at the repository
+# root, so without this line a drop would leave a client's film sitting
+# untracked in a PUBLIC checkout, one `git add -A` from being published.
+# The tracked tree has never held one: the real film arrives through
+# _dropin/static/video/ and is assembled into _local/, both ignored.
+/static/video/
+
 # ---------------------------------------------------------------
 # THE REAL CONTENT, AND THE PREVIEW BUILT FROM IT.
 #

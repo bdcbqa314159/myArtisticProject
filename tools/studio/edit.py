@@ -73,6 +73,28 @@ CONFIG_FIELDS = {
     "extra.social.whatsapp": {
         "url": "https://wa.me/ and the business number",
     },
+    # The graphiste's decisions. Written into config.toml like any other
+    # launch field, and `set_config` regenerates static/css/theme.css
+    # afterwards — so the panel never writes CSS itself, it only ever
+    # changes a value that a tool then validates and renders.
+    "extra.theme": {
+        "serif": 'the display face, e.g. "Canela, Georgia, serif"',
+        "sans":  "everything else",
+    },
+    "extra.theme.cream": {
+        "ink": "body text", "muted": "secondary text",
+        "faint": "the quietest text", "line": "rules and borders",
+        "bg": "the ground", "panel": "cards and unloaded images",
+        "tint": "the faint fill behind a section",
+        "accent": "buttons and anything emphatic",
+    },
+    "extra.theme.cool": {
+        "ink": "body text", "muted": "secondary text",
+        "faint": "the quietest text", "line": "rules and borders",
+        "bg": "the ground", "panel": "cards and unloaded images",
+        "tint": "the faint fill behind a section",
+        "accent": "buttons and anything emphatic",
+    },
     "extra.legal": {
         "entity":       "the legal name of the publisher",
         "status":       "e.g. Entrepreneur individuel, SASU",
@@ -335,6 +357,17 @@ def set_text(key: str, value: str) -> str:
     if leak:
         raise Refused(leak)
 
+    return _write_front_field(key, value)
+
+
+def _write_front_field(key: str, value: str) -> str:
+    """Rewrite one `key = "value"` line in the front matter.
+
+    The surgery, without the gate. `set_text` guards which keys a
+    browser may reach before calling this; the only other caller is
+    `attach_showreel`, which passes constants of its own and never
+    anything a visitor typed.
+    """
     text = CONTENT.read_text(encoding="utf-8")
     parts = text.split("+++")
     if len(parts) < 3:
@@ -359,6 +392,37 @@ def set_text(key: str, value: str) -> str:
 
     return _commit("+++".join([parts[0], head + tail] + parts[2:]),
                    f"{key} updated")
+
+
+def _comments(text: str) -> int:
+    """How many comments config.toml has.
+
+    Counting `#` characters was close enough while every value was
+    prose — and then the theme arrived, where a value IS a `#`. Writing
+    `bg = "#f8f4ea"` raised the count and the guard read that as the
+    file having changed shape, so it undid every colour anyone set.
+
+    Quoted strings are taken out first, so what is counted is comments
+    and not content. The guard it serves is unchanged: a write may
+    leave the number the same or raise it, never lower it.
+    """
+    return re.sub(r'"(?:[^"\\]|\\.)*"', "", text).count("#")
+
+
+def _regenerate_theme() -> str:
+    """Render static/css/theme.css from what config.toml now says.
+
+    The panel does not write CSS. It writes a value, and this asks the
+    tool that knows how to validate one to produce the stylesheet — so
+    there is exactly one place that decides what may appear in it.
+    """
+    import subprocess
+    out = subprocess.run([sys.executable, str(ROOT / "tools" / "theme.py")],
+                         capture_output=True, text=True, timeout=30)
+    if out.returncode != 0:
+        return (out.stderr or out.stdout or "the theme could not be written"
+                ).strip().splitlines()[-1].strip()
+    return ""
 
 
 def set_config(section: str, key: str, value: str) -> str:
@@ -411,7 +475,7 @@ def set_config(section: str, key: str, value: str) -> str:
     original = text
     CONFIG.write_text(candidate, encoding="utf-8")
     try:
-        if original.count("#") != candidate.count("#"):
+        if _comments(candidate) < _comments(original):
             raise Refused("a comment was lost; the edit was undone")
         leaked = _protected_terms_leaked()
         if leaked:
@@ -422,6 +486,17 @@ def set_config(section: str, key: str, value: str) -> str:
     except Exception:
         CONFIG.write_text(original, encoding="utf-8")
         raise
+
+    if section.startswith("extra.theme"):
+        # The value is written; now the stylesheet it decides. If the
+        # tool refuses it, put the config back — a theme half applied
+        # is a page whose colours disagree with the file that chose
+        # them.
+        wrong = _regenerate_theme()
+        if wrong:
+            CONFIG.write_text(original, encoding="utf-8")
+            raise Refused(wrong)
+        return f"[{section}] {key} updated — the stylesheet was rewritten"
 
     return f"[{section}] {key} updated"
 
@@ -643,6 +718,69 @@ def attach_photo(project_id: str, filename: str, raw: bytes, alt: str) -> str:
         if dest.exists():
             dest.unlink()
         raise
+
+
+MAX_FILM = 120 * 1024 * 1024
+
+
+def _is_mp4(raw: bytes) -> bool:
+    """An MP4 by its box structure, never by its name.
+
+    The first box is a `ftyp` whose type sits at offset 4. That is the
+    signature; the four bytes before it are the box length. A `.mp4`
+    that does not begin this way is something else wearing the name.
+    """
+    return len(raw) > 12 and raw[4:8] == b"ftyp"
+
+
+def attach_showreel(filename: str, raw: bytes) -> str:
+    """The film, or its poster — whichever was dropped.
+
+    ONE VERB, because the file says which it is. The slot takes an MP4
+    and a still, and asking a person to tell the panel which of the two
+    they just chose is asking them to repeat what the file already
+    knows.
+
+    They are refused apart in the sense that matters: `content-check.py`
+    reports a film with no poster, because a video with no poster is a
+    black rectangle until it is pressed. Both can be dropped in either
+    order, and the message says what is still missing.
+    """
+    if not raw:
+        raise Refused("no file arrived")
+
+    video_dir = ROOT / "static" / "video"
+    video_dir.mkdir(parents=True, exist_ok=True)
+
+    if _is_mp4(raw):
+        if len(raw) > MAX_FILM:
+            raise Refused(f"{len(raw) // 1024 // 1024}MB; the limit is "
+                          f"{MAX_FILM // 1024 // 1024}MB. A showreel of 60 to "
+                          f"90 seconds should be well under it")
+        (video_dir / "showreel.mp4").write_bytes(raw)
+        message = _write_front_field("video", "video/showreel.mp4")
+        still = not (video_dir / "poster.jpg").exists()
+        return (f"{message} — now drop a poster image on the same slot"
+                if still else message)
+
+    kind = next((k for sig, k in MAGIC.items() if raw.startswith(sig)), None)
+    if kind is None and raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+        kind = "webp"
+    if kind is None:
+        raise Refused("that is neither an MP4 nor an image — whatever it is "
+                      "named. The slot takes the film and the still it shows "
+                      "before it is pressed")
+    if len(raw) > MAX_IMAGE:
+        raise Refused(f"{len(raw) // 1024 // 1024}MB; the limit is 12MB")
+
+    # Always .jpg on disk whatever arrived, because the front matter and
+    # `content-check.py` both name `video/poster.jpg`. The bytes are
+    # untouched — only the name is settled.
+    (video_dir / "poster.jpg").write_bytes(raw)
+    message = _write_front_field("poster", "video/poster.jpg")
+    missing = not (video_dir / "showreel.mp4").exists()
+    return (f"{message} — the film itself is still to come"
+            if missing else message)
 
 
 def attach_dossier(concept: int, filename: str, raw: bytes, alt: str) -> str:

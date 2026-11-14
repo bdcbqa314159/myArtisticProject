@@ -40,6 +40,7 @@ jobs:
       - run: node tools/cover-check.mjs      # the cover's floor, and clocks that misbehave
       - run: python3 tools/icons.py          # favicon, touch icon, share image
       - run: python3 tools/vcard.py          # the saveable contact, or nothing at all
+      - run: python3 tools/theme.py --check  # the stylesheet matches the decisions in config
       - run: python3 tools/objects.py        # every content object is well formed
       - run: python3 tools/content-check.py  # the client's publication rules hold
       - run: python3 tools/objects-check.py  # the object checker itself still bites
