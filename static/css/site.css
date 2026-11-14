@@ -2424,8 +2424,39 @@ html.js .group[open] > .group-front::before {
    one edge. A percentage is of the padding box, which is the box it is
    actually centred in. */
 html.js .group[open] > .group-front .fridge {
-  width: min(100%, 1100px);
-  max-height: 84vh;
+  /* AT THE FRONT IT TAKES THE SCREEN'S OWN SHAPE.
+     On the card the patchwork is 3:2, the shape of the photograph
+     behind it. Carried unchanged to the front, that put a landscape box
+     in a portrait screen and used a THIRD of the height on a phone —
+     measured: 343x229 inside 390x720, 88% wide and 32% tall. Filling
+     the frame instead lets the arrangement stretch to whatever screen
+     it is on, which is what the slots' percentage positions could
+     always do.
+
+     The cap is for a very wide monitor, where filling would pull the
+     composition past any shape a photograph has. */
+  width: min(100%, 1600px);
+  height: 100%;
+  max-height: none;
+  aspect-ratio: auto;
+}
+
+/* ...AND THE PHOTOGRAPH BEHIND THEM FILLS IT.
+   `.fridge > .slot-1 img { height: 100% }` works on the card, where the
+   slot is an <li> and the image is its child. At the front the slot is
+   a <details> with a <summary> in between, and a percentage height
+   resolves against that summary's auto height — so the photograph kept
+   its own 3:2 shape at the top of a full-height box and the four prints
+   scattered over empty ground below it. Every link in the chain has to
+   be told to stretch, not just the ends. */
+html.js .group[open] > .group-front .fridge > .slot-1,
+html.js .group[open] > .group-front .fridge > .slot-1 > summary {
+  height: 100%;
+}
+html.js .group[open] > .group-front .fridge > .slot-1 > summary > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* NO CLOSE BUTTON. The ground around the work is the way out.
