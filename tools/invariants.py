@@ -33,6 +33,30 @@ def read(rel: str) -> str:
 # (what it is, file, pattern, how many there must be, why)
 INVARIANTS = [
     (
+        "the cover's floor is actually applied before the page is shown",
+        "src/landing.ts",
+        r"owedBeforeShowing\(performance\.now\(\), COVER_FLOOR_MS\)",
+        1,
+        "The arithmetic is checked exactly in tools/cover-check.mjs, and "
+        "the browser is only asked whether the cover appeared and left — "
+        "timing it was flaky and has been taken out. This is what ties "
+        "the two together: without it the floor could be computed "
+        "perfectly and never used, and nothing would say so.",
+    ),
+    (
+        "no scroll is left to the stylesheet to interpret",
+        "src/landing.ts",
+        r"window\.scrollTo\(0,",
+        0,
+        "The two-argument form obeys `scroll-behavior`, and this page's "
+        "stylesheet says `smooth`. Every frame of our own easing then "
+        "asked the browser to smoothly scroll somewhere new, and the "
+        "journey reported itself finished while the page was still "
+        "moving — so the navigation band released its marker early. "
+        "Measured: `scrollTo(0, 500)` under smooth leaves scrollY at 0 "
+        "after 630ms. Say `behavior: \"instant\"` and mean it.",
+    ),
+    (
         "one place decides the page is ready",
         "src/landing.ts",
         r'readyState === "complete"',

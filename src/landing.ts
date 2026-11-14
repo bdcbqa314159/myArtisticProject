@@ -12,6 +12,7 @@
 
 import { splitWords } from "./words.js";
 import { shiftFor } from "./drift.js";
+import { owedBeforeShowing } from "./cover.js";
 import { animateScroll, type ScrollEnv } from "./scroll.js";
 
 /* Both failsafes in one place, so the ordering between them is visible.
@@ -627,7 +628,18 @@ const INTERRUPTIONS = ["wheel", "touchstart", "keydown"] as const;
 const browserScroll: ScrollEnv = {
   now: () => performance.now(),
   position: () => window.scrollY,
-  moveTo: (y) => window.scrollTo(0, y),
+  /* INSTANT, EVERY FRAME. The two-argument form obeys the stylesheet,
+   * and the stylesheet says `scroll-behavior: smooth` — so each frame of
+   * our own easing was asking the browser to *smoothly* scroll to a new
+   * target, which it then retargeted on the next frame. Measured in
+   * isolation: `scrollTo(0, 500)` under smooth leaves `scrollY` at 0
+   * after 630ms, where `behavior: "instant"` is there at once.
+   *
+   * The visible cost was at the END. `animateScroll` calls `finish()`
+   * when its own clock reaches 1 — and the page was still travelling,
+   * so the navigation band released its marker and the keyboard was
+   * sent on, before either had arrived. */
+  moveTo: (y) => window.scrollTo({ top: y, behavior: "instant" }),
   frame: (cb) => requestAnimationFrame(cb),
   cancelFrame: (h) => cancelAnimationFrame(h),
   whenInterrupted(give) {
@@ -666,7 +678,7 @@ function crossTo(top: number, onDone: () => void): void {
 
   // Nothing to hide behind: go straight there.
   if (reduced) {
-    window.scrollTo(0, top);
+    window.scrollTo({ top, behavior: "instant" });
     onDone();
     return;
   }
@@ -699,7 +711,9 @@ function scrollTo(top: number, onSettled?: () => void): void {
   stopScrolling?.();
 
   if (reduced) {
-    window.scrollTo(0, top);
+    // Explicit, rather than relying on the reduced-motion rule in the
+    // stylesheet also having turned `scroll-behavior` off.
+    window.scrollTo({ top, behavior: "instant" });
     onSettled?.();
     return;
   }
@@ -1298,7 +1312,9 @@ const COVER_FLOOR_MS = 450;
 function show(): void {
   // STILL THE ONLY PLACE THE PAGE IS SHOWN. The wait is in front of the
   // one reveal, not a second way of reaching it.
-  const owed = Math.max(0, COVER_FLOOR_MS - performance.now());
+  // The arithmetic lives in `cover.ts` so it can be checked exactly,
+  // rather than by timing the real cover against a virtual clock.
+  const owed = owedBeforeShowing(performance.now(), COVER_FLOOR_MS);
   window.setTimeout(() => {
     reveal();
     if (!reduced) startMotion();

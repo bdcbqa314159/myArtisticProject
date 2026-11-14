@@ -37,6 +37,7 @@ jobs:
       - run: node tools/words-check.mjs      # a headline survives being split
       - run: node tools/drift-check.mjs      # the parallax arithmetic holds
       - run: node tools/scroll-check.mjs     # the scroll is clamped and eased
+      - run: node tools/cover-check.mjs      # the cover's floor, and clocks that misbehave
       - run: python3 tools/icons.py          # favicon, touch icon, share image
       - run: python3 tools/vcard.py          # the saveable contact, or nothing at all
       - run: python3 tools/objects.py        # every content object is well formed
