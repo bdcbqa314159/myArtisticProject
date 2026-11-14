@@ -59,3 +59,8 @@
 setTimeout(function(){d.classList.remove("booting")},6000)})(document.documentElement)
 </script>
 <link rel="stylesheet" href="{{ get_url(path='css/site.css') }}">
+{# AFTER the stylesheet, so the graphiste's decisions win over its
+   defaults. Generated from [extra.theme] in config.toml by
+   tools/theme.py; empty until someone decides something, and then it
+   is nothing but custom properties. #}
+<link rel="stylesheet" href="{{ get_url(path='css/theme.css') }}">

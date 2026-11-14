@@ -37,8 +37,8 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from objects import LOCKED, SCHEMA, blocks, front_matter  # noqa: E402
 from edit import (CONFIG, CONFIG_FIELDS, MAX_IMAGE, Refused, add,  # noqa: E402
-                  add_project, attach, attach_dossier, attach_photo, remove,
-                  remove_photo,
+                  add_project, attach, attach_dossier, attach_photo,
+                  attach_showreel, remove, remove_photo,
                   remove_project, set_config, set_text, write)
 
 # A token in the path, as myBureau does. The panel binds to loopback, so
@@ -268,7 +268,12 @@ function arm() {
       box-shadow:0 0 0 4px color-mix(in oklch,currentColor 8%,transparent);cursor:text}
     [data-edit][contenteditable="true"]{background:color-mix(in oklch,currentColor 12%,transparent);
       box-shadow:0 0 0 4px color-mix(in oklch,currentColor 12%,transparent)}
-    [data-photo]{position:relative;cursor:copy}
+    [data-photo],[data-film]{position:relative;cursor:copy}
+    [data-film]::after{content:attr(data-hint);position:absolute;inset:auto 0 0 0;
+      padding:6px 8px;font:500 11px/1.3 system-ui;letter-spacing:.05em;
+      background:rgba(0,0,0,.72);color:#fff;opacity:0;transition:opacity 140ms}
+    [data-film]:hover::after,[data-film].over::after{opacity:1}
+    [data-film].over{outline:2px dashed currentColor;outline-offset:3px}
     [data-photo]::after{content:attr(data-hint);position:absolute;inset:auto 0 0 0;
       padding:.5rem .7rem;font:500 11px/1.3 system-ui;letter-spacing:.08em;
       text-transform:uppercase;text-align:center;
@@ -339,6 +344,20 @@ function arm() {
      the trailer, a real parser's verdict, and whether every page will
      actually rasterise. A text file renamed .pdf gets past this line
      and no further. */
+  /* ---- the showreel ---------------------------------------------------
+     The slot takes the film and the still it shows before it is
+     pressed. One target for both: the file says which it is, and
+     asking a person to repeat what the file already knows is a
+     question not worth posing. */
+  for (const slot of doc.querySelectorAll(".placeholder.video")) {
+    if (slot.hasAttribute("data-film")) continue;
+    slot.setAttribute("data-film", "");
+    const has = slot.querySelector("video");
+    slot.dataset.hint = has
+      ? "Drop a new film, or a poster image, to replace"
+      : "Drop the showreel (.mp4) here, or a poster image";
+  }
+
   doc.querySelectorAll("#concepts .card").forEach((card, i) => {
     if (card.querySelector("[data-dossier-drop]")) return;
     const zone = doc.createElement("div");
@@ -393,6 +412,38 @@ function arm() {
      no obvious way back. */
   doc.addEventListener("dragover", (ev) => ev.preventDefault());
   doc.addEventListener("drop", (ev) => ev.preventDefault());
+
+  for (const slot of doc.querySelectorAll("[data-film]")) {
+    const take = (file) => {
+      if (!file) return;
+      if (busy) { say("Still saving the last one.", true); return; }
+      /* No sheet. A film needs no description — the section already
+         says what it is — and a poster is not a photograph of its own.
+         Straight to the verb, which decides what arrived. */
+      const read = new FileReader();
+      read.onload = () => send("/showreel", {
+        filename: file.name,
+        file: read.result,
+      });
+      read.readAsDataURL(file);
+    };
+    slot.addEventListener("click", () => {
+      const pick = doc.createElement("input");
+      pick.type = "file";
+      pick.accept = "video/mp4,image/*";   // a dialog filter, not a check
+      pick.addEventListener("change", () => take(pick.files[0]));
+      pick.click();
+    });
+    slot.addEventListener("dragover", (ev) => {
+      ev.preventDefault(); ev.stopPropagation(); slot.classList.add("over");
+    });
+    slot.addEventListener("dragleave", () => slot.classList.remove("over"));
+    slot.addEventListener("drop", (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      slot.classList.remove("over");
+      take(ev.dataTransfer && ev.dataTransfer.files[0]);
+    });
+  }
 
   for (const zone of doc.querySelectorAll("[data-dossier-drop]")) {
     const take = (file) => {
@@ -964,7 +1015,7 @@ class Panel(http.server.BaseHTTPRequestHandler):
         route = self.path.rsplit("/", 1)[-1]
         if route not in {"edit", "add", "remove", "attach", "config", "text",
                          "photo", "project-add", "project-remove", "photo-remove",
-                         "dossier"}:
+                         "dossier", "showreel"}:
             self.send_error(404)
             return
 
@@ -974,7 +1025,11 @@ class Panel(http.server.BaseHTTPRequestHandler):
         # A document is bigger than a photograph, and the dossier tool
         # has its own 40MB ceiling — this only has to let one through to
         # the place that judges it.
-        cap = (56 * 1024 * 1024 if route == "dossier"
+        # A film is the largest thing this panel ever carries. The
+        # verb has its own 120MB ceiling; this only has to let one
+        # through to the place that judges it.
+        cap = (168 * 1024 * 1024 if route == "showreel"
+               else 56 * 1024 * 1024 if route == "dossier"
                else int(MAX_IMAGE * 1.4) if route in ("attach", "photo")
                else 8192)
         if length > cap:
@@ -1007,6 +1062,12 @@ class Panel(http.server.BaseHTTPRequestHandler):
                     str(body.get("key", "")),
                     str(body.get("value", "")),
                 )
+            elif route == "showreel":
+                message = attach_showreel(
+                    form.get("filename", ""),
+                    form.get("file", b""),
+                )
+
             elif route == "dossier":
                 message = attach_dossier(
                     int(form.get("concept", "0")),
