@@ -84,7 +84,16 @@
          button must keep working when there is none. #}
       <summary><span class="is-shut">Menu</span><span class="is-open">Close</span></summary>
       <nav class="links">
-        {% for item in e.nav %}<a href="{{ item.href }}">{{ item.label }}</a>{% endfor %}
+        {# Selected Work turns the light grey from here too, exactly as the
+           hero button does: going into the work is what changes it, and it
+           should not matter which door was used.
+
+           Matched on the href rather than carried as a field on the nav
+           item, because `#work` is already written in one other place —
+           the hero button's own `href`. A `tint` field in the content
+           would be a third place to keep in step, and the French page
+           would need it as well. #}
+        {% for item in e.nav %}<a href="{{ item.href }}"{% if item.href == "#work" %} data-tint="cool"{% endif %}>{{ item.label }}</a>{% endfor %}
       </nav>
     </details>
     {% endif %}

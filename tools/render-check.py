@@ -1135,8 +1135,12 @@ visit((d, w) => {
     w.scrollTo({ top: 2500, behavior: "instant" });
     setTimeout(() => {
       tag("scrolled");
-      const go = d.querySelector("[data-tint]");
-      if (!go) { say("no-trigger"); return; }
+      /* THE HERO BUTTON, named. `querySelector("[data-tint]")` used to
+       * mean this one and quietly started meaning the menu entry the
+       * moment that got a trigger too — the nav comes first in the
+       * document. Both doors are tested now, each by where it lives. */
+      const go = d.querySelector(".hero [data-tint]");
+      if (!go) { say("no-hero-trigger"); return; }
       go.click();
       setTimeout(() => {
         tag("clicked");
@@ -1147,11 +1151,30 @@ visit((d, w) => {
           visit((d2, w2) => {
             L.push("returned=" + (d2.documentElement.dataset.palette || "none")
                    + ":" + warmth(ground(d2, w2)));
-            d2.querySelector("[data-tint]").click();
+            /* THE OTHER DOOR. Selected Work in the menu does what the
+             * hero button does — it should not matter which was used.
+             * And a menu entry that is NOT Selected Work must leave the
+             * page cream, which is what keeps the meaning "going into
+             * the work changes the light" rather than "navigating
+             * does". */
+            const band = d2.querySelector(".links [data-tint]");
+            if (!band) { say("no-menu-trigger"); return; }
+            const elsewhere = [...d2.querySelectorAll(".links a")]
+              .find((a) => !a.hasAttribute("data-tint"));
+            // If every entry tints there is nothing left to prove the
+            // rule with, which is itself the failure — say so rather
+            // than throwing on `undefined` and returning no verdict.
+            if (!elsewhere) { say("every-menu-entry-tints"); return; }
+            elsewhere.click();
             setTimeout(() => {
-              L.push("reclicked=" + (d2.documentElement.dataset.palette || "none")
+              L.push("elsewhere=" + (d2.documentElement.dataset.palette || "none")
                      + ":" + warmth(ground(d2, w2)));
-              say(L.join(" "));
+              band.click();
+              setTimeout(() => {
+                L.push("viamenu=" + (d2.documentElement.dataset.palette || "none")
+                       + ":" + warmth(ground(d2, w2)));
+                say(L.join(" "));
+              }, 400);
             }, 400);
           });
         }, 400);
@@ -1197,9 +1220,90 @@ def check_tint(chrome: str, out: Path, url: str) -> "list[str]":
         bad.append(f"tint: coming back does not start again in cream "
                    f"({verdict}) — something was remembered that should not "
                    f"have been")
-    if f["reclicked"] != f["clicked"]:
-        bad.append(f"tint: on a second visit the button no longer works "
-                   f"({verdict}). Its count goes back to zero with the page")
+    if f["elsewhere"] != f["returned"]:
+        bad.append(f"tint: a menu entry that is not Selected Work changed the "
+                   f"light ({verdict}). Going into the WORK is what changes "
+                   f"it, not navigating")
+    if f["viamenu"] != f["clicked"]:
+        bad.append(f"tint: Selected Work in the menu does not do what the hero "
+                   f"button does ({verdict}). It should not matter which door "
+                   f"was used — and this is also the second visit, so it "
+                   f"proves the trigger works again after coming back")
+    return bad
+
+
+# The open patchwork takes the screen, and its photograph fills it.
+PATCH_PROBE = """
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+const out = []; let done = 0;
+const SIZES = [[390, 720], [1400, 900]];
+SIZES.forEach(([w, h]) => {
+  const f = document.createElement("iframe");
+  f.width = w; f.height = h; f.style.border = 0; f.src = "/";
+  document.body.appendChild(f);
+  f.addEventListener("load", () => setTimeout(() => {
+    try {
+      const d = f.contentDocument;
+      // The reveal released at once: its transform is the containing
+      // block for the fixed front, and mid-flight it reads as a box
+      // inside the card instead of the screen.
+      d.querySelectorAll(".reveal").forEach((e) => {
+        e.style.transition = "none";
+        e.classList.add("in");
+      });
+      const g = d.querySelector("details.group");
+      g.open = true;
+      setTimeout(() => {
+        const fr = g.querySelector(".fridge.front").getBoundingClientRect();
+        const im = g.querySelector(".fridge.front > .slot-1 img")
+                    .getBoundingClientRect();
+        out.push(w + ":wide=" + Math.round(100 * fr.width / w)
+          + ":tall=" + Math.round(100 * fr.height / h)
+          // The photograph must BE the patchwork's box. On the card the
+          // slot is an <li> with the image as its child; at the front a
+          // <summary> sits between them and a percentage height dies on
+          // it, leaving the photograph at its own 3:2 at the top.
+          + ":fills=" + ((Math.abs(im.width - fr.width) < 3
+                       && Math.abs(im.height - fr.height) < 3) ? "y" : "n")
+          + ":img=" + Math.round(im.width) + "x" + Math.round(im.height));
+        if (++done === SIZES.length) say(out.join(" "));
+      }, 400);
+    } catch (err) {
+      out.push(w + ":threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-"));
+      if (++done === SIZES.length) say(out.join(" "));
+    }
+  }, 1300));
+});
+function say(s) { document.getElementById("o").textContent = "PATCH " + s; }
+</script>"""
+
+
+def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
+    (out / "_patch.html").write_text(PATCH_PROBE, encoding="utf-8")
+    said = dom(chrome, url + "/_patch.html", 1450, 950, budget=25000)
+    found = re.search(r"PATCH ([^<]*)", said)
+    if not found:
+        return ["patch: the probe returned no verdict"]
+    bad = []
+    for word in found.group(1).split():
+        width, _, rest = word.partition(":")
+        if "=" not in rest:
+            bad.append(f"patch: at {width}px the probe could not run — {rest}")
+            continue
+        f = dict(kv.split("=") for kv in rest.split(":"))
+
+        # 80% of each side. A 3:2 box in a 390x720 screen manages 32% of
+        # the height — measured, before it was told to take the screen's
+        # own shape — so this is the assertion that tells the two apart.
+        if int(f["wide"]) < 80 or int(f["tall"]) < 80:
+            bad.append(f"patch: at {width}px the open patchwork is "
+                       f"{f['wide']}% wide and {f['tall']}% tall. It is meant "
+                       f"to take the screen, at the screen's own shape")
+        if f["fills"] != "y":
+            bad.append(f"patch: at {width}px the photograph behind the prints "
+                       f"does not fill the patchwork ({f['img']} inside it). "
+                       f"At the front a <summary> sits between the slot and "
+                       f"the image, and a percentage height dies on it")
     return bad
 
 
@@ -1718,6 +1822,7 @@ def main() -> int:
             problems += check_arc(chrome, out, url)
             problems += check_document(chrome, out, url)
             problems += check_tint(chrome, out, url)
+            problems += check_patchwork(chrome, out, url)
             problems += check_no_pdf_served(out)
             problems += check_crossing(chrome, out, url, False)
             problems += check_crossing(chrome, out, url, True)
