@@ -32,6 +32,21 @@ anything you put there wins.
     _dropin/config.toml              address, legal notice, social links
     _dropin/content/work-01.jpg      Reference 01's photograph
     _dropin/static/video/            the showreel and its poster
+    _dropin/documents/concept-2.pdf  the document behind concept 2
+    _dropin/documents/concept-2.txt  what that document is, one line
+
+THE ONE SLOT THAT IS NOT A MIRRORED PATH.
+
+A PDF has no place in the repository by design — everything under
+`content/` is copied into the built site, so a PDF left there would be
+published and downloadable, which is the one thing a dossier exists to
+prevent. It therefore cannot mirror a path, because there is no path to
+mirror.
+
+So `documents/` is named for the concept it belongs to, and the PDF
+never travels: `tools/dossier.py` checks it is really a PDF, turns it
+into page images in `_local/content/`, and the file itself stays here,
+ignored, where it was dropped.
 
 WHY A WHOLE COPY RATHER THAN A CLEVER OVERLAY.
 
@@ -43,6 +58,7 @@ overlay would have needed all of them taught about a second root, which
 is four more places to get it wrong.
 """
 
+import re
 import shutil
 import subprocess
 import sys
@@ -92,11 +108,121 @@ def assemble() -> list[str]:
             if not src.is_file() or src.name in {".DS_Store", "README.md"}:
                 continue
             rel = src.relative_to(DROPIN)
+            # `documents/` is not a mirrored path and must not be copied:
+            # the PDF stays here and only its pages travel. See
+            # `documents()` below.
+            if rel.parts and rel.parts[0] == "documents":
+                continue
             dest = LOCAL / rel
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dest)
             placed.append(str(rel))
     return placed
+
+
+DOCUMENTS = DROPIN / "documents"
+CONCEPT_PDF = re.compile(r"^concept-(\d+)\.pdf$", re.IGNORECASE)
+
+
+def _replace_dossier(concept: int, slug: str, pages: int, alt: str) -> str:
+    """Point one concept at its document, in `_local/content/_index.md`.
+
+    The entry is rewritten rather than added to, because a card shows one
+    document and the tracked page already carries a placeholder for
+    concept 2. Returns the id of whatever it replaced, or "".
+    """
+    page = LOCAL / "content" / "_index.md"
+    text = page.read_text(encoding="utf-8")
+
+    superseded = ""
+
+    # Each block by its bounds: from its header to whatever starts next.
+    blocks = []
+    i = 0
+    while True:
+        at = text.find("[[extra.dossier]]", i)
+        if at == -1:
+            break
+        end = len(text)
+        for marker in ("\n[[", "\n# ----"):
+            nxt = text.find(marker, at + 1)
+            if nxt != -1:
+                end = min(end, nxt + 1)
+        blocks.append((at, end, text[at:end]))
+        i = at + 1
+
+    for at, end, body in reversed(blocks):
+        if re.search(rf"^concept\s*=\s*{concept}\s*$", body, re.M):
+            found = re.search(r'^id\s*=\s*"([^"]*)"', body, re.M)
+            superseded = found.group(1) if found else ""
+            text = text[:at] + text[end:]
+
+    entry = (f"[[extra.dossier]]\n"
+             f"concept = {concept}\n"
+             f'id = "{slug}"\n'
+             f"pages = {pages}\n"
+             f'alt = "{alt}"\n\n')
+
+    # INSIDE the front matter, not at the end of the file. `_index.md` is
+    # `+++ TOML +++ body`, and appending to the end put the block in the
+    # markdown body where nothing reads it: the page built, every check
+    # passed, and the document simply was not there.
+    close = text.find("\n+++", text.find("+++") + 3)
+    if close == -1:
+        raise SystemExit("  _local/content/_index.md has no closing +++")
+    text = text[:close + 1] + entry + text[close + 1:]
+    page.write_text(text, encoding="utf-8")
+    return superseded
+
+
+def documents() -> "tuple[list[str], list[str]]":
+    """Each dropped PDF, checked and turned into the pages of a dossier.
+
+    Returns what was placed, and what was refused — refusals are
+    reported rather than raised, so one bad file does not stop the rest
+    of the site being assembled.
+    """
+    if not DOCUMENTS.is_dir():
+        return [], []
+
+    sys.path.insert(0, str(ROOT / "tools"))
+    import dossier                                        # noqa: E402
+
+    placed, refused = [], []
+    for src in sorted(DOCUMENTS.iterdir()):
+        if not src.is_file() or src.name in {".DS_Store", "README.md"}:
+            continue
+        if src.suffix.lower() == ".txt":
+            continue                                      # a description
+        match = CONCEPT_PDF.match(src.name)
+        if not match:
+            refused.append(f"{src.name} — name it concept-1.pdf, "
+                           f"concept-2.pdf or concept-3.pdf, for the concept "
+                           f"it belongs to")
+            continue
+
+        n = int(match.group(1))
+        slug = f"concept-{n}"
+        beside = src.with_suffix(".txt")
+        alt = (beside.read_text(encoding="utf-8").strip().replace('"', "'")
+               if beside.is_file() else "")
+        alt = " ".join(alt.split())[:400]
+        if not alt:
+            alt = f"Document du concept {n}"
+
+        try:
+            made = dossier.render(src, slug, LOCAL / "content")
+        except dossier.Rejected as no:
+            refused.append(f"{src.name} — {no}")
+            continue
+
+        old = _replace_dossier(n, slug, len(made), alt)
+        # The placeholder's pages, now that nothing points at them.
+        if old and old != slug:
+            for leaf in (LOCAL / "content").glob(f"dossier-{old}-p*.jpg"):
+                leaf.unlink()
+        placed.append(f"documents/{src.name} → {len(made)} page(s) on concept {n}")
+    return placed, refused
 
 
 def check() -> None:
@@ -148,6 +274,24 @@ def init(bare: bool = False) -> int:
     video = DROPIN / "static" / "video"
     content.mkdir(parents=True)
     video.mkdir(parents=True)
+    DOCUMENTS.mkdir(parents=True)
+    (DOCUMENTS / "README.md").write_text(
+        "# Les documents\n\n"
+        "Un PDF par concept, nommé d'après le concept qu'il accompagne :\n\n"
+        "    concept-1.pdf     le document du premier concept\n"
+        "    concept-2.pdf     celui du deuxième\n"
+        "    concept-3.pdf     celui du troisième\n\n"
+        "À côté de chacun, un fichier `.txt` du même nom peut dire en une\n"
+        "ligne ce qu'est le document — `concept-2.txt`. Sans lui le site\n"
+        "met une description provisoire, que tu peux changer dans le\n"
+        "panneau d'édition.\n\n"
+        "Le PDF lui-même ne part jamais en ligne : il est transformé en\n"
+        "images de pages, et ce sont elles seules qui vont sur le site. Il\n"
+        "n'y a donc rien à télécharger — c'est voulu.\n\n"
+        "Seulement de vrais PDF : renommer un fichier en `.pdf` ne suffit\n"
+        "pas, le site regarde ce qu'il y a dedans et refuse le reste en\n"
+        "disant pourquoi. Maximum 16 pages.\n",
+        encoding="utf-8")
 
     source_content = (ROOT / "content" / "_index.md").read_text(encoding="utf-8")
     source_config = (ROOT / "config.toml").read_text(encoding="utf-8")
@@ -350,11 +494,22 @@ def main(argv: list[str]) -> int:
         return 1
 
     placed = assemble()
+
+    # After the copy, because a document's pages are written into the
+    # assembled tree and its entry into the page that was just laid down.
+    docs, refused = documents()
+    placed += docs
+
     print(f"\n  _local/ assembled, {len(placed)} file(s) from _dropin/:")
     for rel in placed:
         print(f"    {rel}")
     if not placed:
         print("    (none — the preview is the placeholder site)")
+
+    if refused:
+        print("\n  documents REFUSED — the site was assembled without them:")
+        for why in refused:
+            print(f"    {why}")
 
     check()
 
