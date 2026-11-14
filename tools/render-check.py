@@ -1603,15 +1603,26 @@ def check_cover(chrome: str, out: Path, url: str) -> "list[str]":
     if not found:
         return ["cover: the probe returned no verdict"]
     verdict = found.group(1)
+
+    # NO LONGER A STOPWATCH.
+    #
+    # This asserted the cover was up for between 380ms and 2000ms, and
+    # it failed twice on a page that was behaving perfectly — 41ms on
+    # one run, 5026ms on another, each passing on the next try. A
+    # virtual clock on a loaded machine cannot be asked how long
+    # something took, and a check that fails at random is worse than
+    # none: it gets explained away, and then ignored.
+    #
+    # What a browser CAN say is whether the cover appeared and whether
+    # it left, which is what is asked here. How long it must stay is
+    # arithmetic, and `tools/cover-check.mjs` answers that exactly.
+    if verdict == "never-covered":
+        return ["cover: the page was never behind it. Nothing holds the "
+                "reader back from a half-built page"]
+    if verdict == "never-uncovered":
+        return ["cover: it never left — the page is stuck behind it"]
     if not verdict.isdigit():
         return [f"cover: {verdict}"]
-    held = int(verdict)
-    if held < 380:
-        return [f"cover: on screen for {held}ms — short enough to read as a "
-                "flicker rather than as a page arriving"]
-    if held > 2000:
-        return [f"cover: on screen for {held}ms with nothing to wait for, "
-                "which is a page being held back for no reason"]
     return []
 
 
