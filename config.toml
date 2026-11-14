@@ -141,6 +141,49 @@ vcard_url = ""         # optional
 # Everything the browser checks is a courtesy — an attacker POSTs
 # straight at the endpoint and none of our code runs.
 # ---------------------------------------------------------------
+# ---------------------------------------------------------------------
+# THE GRAPHISTE'S DECISIONS.
+#
+# Empty means "keep what site.css already has", which is how this ships:
+# an empty theme changes nothing. Fill a value in and run
+# `python3 tools/theme.py` — or set it in the studio panel, which runs
+# the tool itself — and it is written into static/css/theme.css, linked
+# after the stylesheet so it wins.
+#
+# Colours as #rgb, #rrggbb or #rrggbbaa. Fonts as a stack: names,
+# commas and quotes. Anything else is refused by name rather than
+# written into a stylesheet.
+#
+# NOT here: --max, --gutter, --band, --track-label. Those are layout and
+# typographic rhythm, decided once, and not a matter of taste per
+# client.
+# ---------------------------------------------------------------------
+[extra.theme]
+serif = ""             # the display face, e.g. "Canela, Georgia, serif"
+sans  = ""             # everything else
+
+# The palette the page arrives in, and stays in until Selected Work.
+[extra.theme.cream]
+ink    = ""            # body text
+muted  = ""            # secondary text
+faint  = ""            # the quietest text
+line   = ""            # rules and borders
+bg     = ""            # the ground
+panel  = ""            # cards, and the back of an unloaded image
+tint    = ""           # the faint fill behind a section
+accent = ""            # buttons, the marker, anything emphatic
+
+# And the one it changes to on the way into the work.
+[extra.theme.cool]
+ink    = ""
+muted  = ""
+faint  = ""
+line   = ""
+bg     = ""
+panel  = ""
+tint   = ""
+accent = ""
+
 [extra.contact_form]
 endpoint = "https://api.web3forms.com/submit"
 
