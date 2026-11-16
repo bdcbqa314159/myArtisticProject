@@ -34,6 +34,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: ./tools/js-is-current.sh        # the committed JS matches src/
+      - run: python3 tools/embedded-js-check.py  # the scripts written inside other files parse
       - run: node tools/words-check.mjs      # a headline survives being split
       - run: node tools/drift-check.mjs      # the parallax arithmetic holds
       - run: node tools/scroll-check.mjs     # the scroll is clamped and eased

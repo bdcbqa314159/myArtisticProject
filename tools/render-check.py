@@ -145,7 +145,15 @@ def check(html: str, where: str) -> "list[str]":
     # The cover. Both halves: the class that shows it, and the element.
     if "booting" in html[:400]:
         bad.append(f"{where}: still `booting` — the page was never shown")
-    if 'class="loader"' in html:
+    # THE CLASS AS A WORD, not as a whole attribute value.
+    #
+    # This read `'class="loader"' in html` and could never match. A
+    # cover is only ever LEFT BEHIND in its leaving state, so the thing
+    # on the page at that moment is `class="loader is-leaving"` — and
+    # the literal with its closing quote does not appear in it. The one
+    # fault this check exists for was the one it could not see.
+    # Measured: hiding the cover instead of removing it passed cleanly.
+    if re.search(r'class="[^"]*\bloader\b', html):
         bad.append(
             f"{where}: the cover is still in the document. It should be removed, "
             "not hidden — a cover that is merely hidden can come back, and did"
