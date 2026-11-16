@@ -21,6 +21,7 @@ skips the check and says so, rather than failing for the wrong reason.
 """
 
 import http.server
+import html as html_module
 import json
 import math
 import re
@@ -1315,6 +1316,54 @@ def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
     return bad
 
 
+def check_form_words(html: str, where: str) -> "list[str]":
+    """The form's messages survive the journey into the page.
+
+    They travel as JSON inside an HTML attribute, and they are the
+    client's prose — so sooner or later one of them will contain a
+    quote, an apostrophe or an ampersand.
+
+    They used to be pasted into the JSON by hand:
+
+        data-says='{"err_mail_missing":"{{ e.err_mail_missing }}", ...}'
+
+    One double quote in any single message broke the whole object.
+    `contact.ts` catches the parse failure and falls back to `{}`, so
+    EVERY message on the form then showed as its own key —
+    "err_mail_missing" where a sentence should be. The page built, and
+    content, objects, fr, contact and render all passed in silence.
+    Measured, with a quote in one message.
+    """
+    found = re.search(r"data-says='([^']*)'", html) \
+        or re.search(r'data-says="([^"]*)"', html)
+    if not found:
+        return [f"{where}: the form carries no words at all"]
+
+    raw = html_module.unescape(found.group(1))
+    try:
+        words = json.loads(raw)
+    except ValueError as broken:
+        return [f"{where}: the form's messages are not valid JSON "
+                f"({broken}). Every one of them will show as its key "
+                f"instead of its sentence, and nothing else will say so"]
+
+    # The keys `contact.ts` asks for by name. A missing one shows as the
+    # key; an extra one is harmless but means the two have drifted.
+    wanted = {"form_sending", "form_sent", "form_failed", "form_offline",
+              "err_mail_missing", "err_mail_invalid", "err_mail_long",
+              "err_mail_one", "err_subject", "err_message_missing",
+              "err_message_long", "err_message_bad", "err_message_links"}
+    missing = sorted(wanted - set(words))
+    if missing:
+        return [f"{where}: the form has no words for {', '.join(missing)} — "
+                f"the reader would be shown the key instead"]
+    empty = sorted(k for k, v in words.items() if not str(v).strip())
+    if empty:
+        return [f"{where}: {', '.join(empty)} is empty, which reads as "
+                f"nothing happening at all"]
+    return []
+
+
 def check_shape(html: str, where: str) -> "list[str]":
     """The two buttons that open the form look like the form.
 
@@ -1857,6 +1906,7 @@ def main() -> int:
                     continue
                 problems += check(html, name)
                 problems += check_shape(html, name)
+                problems += check_form_words(html, name)
 
                 # The bar, which is different at each size and has been
                 # wrong at both: inline links above 800px, a disclosure

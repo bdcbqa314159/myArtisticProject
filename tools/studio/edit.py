@@ -331,6 +331,35 @@ TEXT_FIELDS = {
     "form_send":        "the button that sends",
     "form_cancel":      "the button that does not",
     "form_privacy":     "what happens to a message, in one sentence",
+
+    # ---- the masthead ---------------------------------------------------
+    "issue":            "the issue line in the masthead",
+    "place":            "the places beside it",
+
+    # ---- the two contact buttons ----------------------------------------
+    "contact_copy":     "the button that copies an introduction",
+    "contact_save":     "the button that saves a contact card",
+
+    # ---- what the form says back ----------------------------------------
+    #
+    # Added late, and the reason is worth keeping. The form arrived long
+    # after this allowlist was written, and its thirteen replies were
+    # never added to it — so the one part of the page that talks back to
+    # a visitor was the one part nobody could reword, in either
+    # language. They are prose like everything else above.
+    "form_sending":        "while a message is going",
+    "form_sent":           "when it has gone",
+    "form_failed":         "when it has not",
+    "form_offline":        "when there is nowhere to send it yet",
+    "err_mail_missing":    "no address given",
+    "err_mail_invalid":    "an address that is not one",
+    "err_mail_long":       "an address longer than an address can be",
+    "err_mail_one":        "more than one address",
+    "err_subject":         "a subject that cannot be sent",
+    "err_message_missing": "no message given",
+    "err_message_long":    "a message past the limit",
+    "err_message_bad":     "a message that cannot be sent",
+    "err_message_links":   "too many links in a message",
 }
 
 

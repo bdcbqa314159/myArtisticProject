@@ -530,7 +530,7 @@
     <dialog class="talk" id="talk">
       <form class="contact-form" action="{{ config.extra.contact_form.endpoint }}"
             method="post" novalidate
-            data-says='{"form_sending":"{{ e.form_sending }}","form_sent":"{{ e.form_sent }}","form_failed":"{{ e.form_failed }}","form_offline":"{{ e.form_offline }}","err_mail_missing":"{{ e.err_mail_missing }}","err_mail_invalid":"{{ e.err_mail_invalid }}","err_mail_long":"{{ e.err_mail_long }}","err_mail_one":"{{ e.err_mail_one }}","err_subject":"{{ e.err_subject }}","err_message_missing":"{{ e.err_message_missing }}","err_message_long":"{{ e.err_message_long }}","err_message_bad":"{{ e.err_message_bad }}","err_message_links":"{{ e.err_message_links }}"}'>
+            data-says='{"form_sending":{{ e.form_sending | json_encode }},"form_sent":{{ e.form_sent | json_encode }},"form_failed":{{ e.form_failed | json_encode }},"form_offline":{{ e.form_offline | json_encode }},"err_mail_missing":{{ e.err_mail_missing | json_encode }},"err_mail_invalid":{{ e.err_mail_invalid | json_encode }},"err_mail_long":{{ e.err_mail_long | json_encode }},"err_mail_one":{{ e.err_mail_one | json_encode }},"err_subject":{{ e.err_subject | json_encode }},"err_message_missing":{{ e.err_message_missing | json_encode }},"err_message_long":{{ e.err_message_long | json_encode }},"err_message_bad":{{ e.err_message_bad | json_encode }},"err_message_links":{{ e.err_message_links | json_encode }}}'>
 
         {# Where it goes. Public by design — the browser has to send it. #}
         <input type="hidden" name="access_key" value="{{ contact_key }}">
