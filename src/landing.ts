@@ -1268,21 +1268,49 @@ function startMotion(): void {
   stillWhileScrolling();
 }
 
-if (!reduced) prepareMotion();
+/* ---- starting up, one piece at a time ---------------------------------
+ *
+ * These used to be thirteen bare calls in a row, and a module is one
+ * statement after another: the first that throws ends the whole of it.
+ * Measured, with a fault injected at the third of them — the page sat
+ * behind its cover for the full six seconds of the failsafe in the
+ * head, and then arrived with NO navigation at all. The menu did
+ * nothing, the palette never changed, the gallery never bound. Only
+ * the contact form survived, because it is a separate module.
+ *
+ * None of these needs the others. A page with no drifting photographs
+ * is a page with no drifting photographs; it is not a page whose menu
+ * is dead. So each stands on its own, and a failure is written where a
+ * developer will find it rather than taken out on the reader.
+ */
+function start(what: string, step: () => void): void {
+  try {
+    step();
+  } catch (err) {
+    // Deliberately not shown on the page. The reader cannot act on it,
+    // and a portfolio that explains its own faults to a visitor is
+    // worse than one quietly missing an effect.
+    console.error(`[landing] ${what} did not start`, err);
+  }
+}
 
-syncBar();
-WIDE.addEventListener("change", syncBar);
-markCurrentSection();
-closeMenuOnNavigate();
-copyButtons();
-tintOnTheWayIn();
-countTheWait();
-softWhileMoving();
-exchangePhrases();
-closeTheCarousel();
-keepOneAddress();
-photographsDrift();
-showTheRelease();
+if (!reduced) start("the motion", prepareMotion);
+
+start("the bar", () => {
+  syncBar();
+  WIDE.addEventListener("change", syncBar);
+});
+start("the section marker", markCurrentSection);
+start("closing the menu on a jump", closeMenuOnNavigate);
+start("the copy buttons", copyButtons);
+start("the tint on the way in", tintOnTheWayIn);
+start("counting the wait", countTheWait);
+start("softening while moving", softWhileMoving);
+start("the phrases exchanging", exchangePhrases);
+start("closing the carousel", closeTheCarousel);
+start("keeping one address", keepOneAddress);
+start("the photographs drifting", photographsDrift);
+start("the press and release", showTheRelease);
 
 /* LAST, and the ONLY place the page is shown.
  *
@@ -1316,8 +1344,12 @@ function show(): void {
   // rather than by timing the real cover against a virtual clock.
   const owed = owedBeforeShowing(performance.now(), COVER_FLOOR_MS);
   window.setTimeout(() => {
-    reveal();
-    if (!reduced) startMotion();
+    /* The reveal first, and on its own. Whatever else fails the
+     * page must appear — the alternative is a reader looking at a
+     * blank cover until the six-second failsafe in the head gives
+     * up on us. The motion after it is an ornament by comparison. */
+    start("the reveal", reveal);
+    if (!reduced) start("the motion on arrival", startMotion);
   }, owed);
 }
 
