@@ -1779,6 +1779,35 @@ def build_with_projects(out: Path) -> Path:
     return root
 
 
+def build_with_a_waiting_project(out: Path) -> Path:
+    """A site where one project exists and has no photograph yet.
+
+    The state the panel's "add a project" leaves behind, between
+    pressing the button and dropping the first image. It used to STOP
+    THE BUILD — `resize_image` was handed the empty path — and both
+    `objects.py` and `content-check.py` called the page sound, so the
+    first anyone knew was a failed deploy.
+    """
+    root = out.with_name(out.name + "-waiting")
+    if root.exists():
+        shutil.rmtree(root)
+    root.mkdir(parents=True)
+    for name in ("content", "templates", "static"):
+        shutil.copytree(ROOT / name, root / name,
+                        ignore=shutil.ignore_patterns("processed_images"))
+    shutil.copy2(ROOT / "config.toml", root / "config.toml")
+
+    page = root / "content" / "_index.md"
+    text = page.read_text(encoding="utf-8")
+    waiting = ('[[extra.project]]\n'
+               'id = "waiting-on-a-photograph"\n'
+               'reference = 1\n'
+               'name = "Added, not yet filled"\n\n')
+    at = text.index("[[extra.project]]")
+    page.write_text(text[:at] + waiting + text[at:], encoding="utf-8")
+    return root
+
+
 def build_live_config(out: Path) -> Path:
     """config.toml with `live = true`, for rendering only.
 
@@ -1918,6 +1947,31 @@ def main() -> int:
                     )
                 if name.startswith("narrow") and open_menu:
                     problems.append("narrow: the nav is open before anyone asked")
+            # --- a project added but not yet filled ----------------
+            #
+            # Between pressing "add a project" in the panel and dropping
+            # the first photograph, this is what the content looks like.
+            # It stopped the build, and nothing said so.
+            waiting_root = build_with_a_waiting_project(out)
+            waited = subprocess.run(
+                ["zola", "--root", str(waiting_root), "build",
+                 "--base-url", url, "-o", str(out), "-f"],
+                capture_output=True, text=True,
+            )
+            if waited.returncode != 0:
+                problems.append(
+                    "the site does not build when a project is waiting for "
+                    "its first photograph — which is every project, between "
+                    "the panel making it and anyone filling it:\n"
+                    + waited.stderr[-400:])
+            else:
+                shown = re.findall(r"patch-count[^>]*>([0-9]+) projects",
+                                   (out / "index.html").read_text(encoding="utf-8"))
+                if shown and shown[0] != "5":
+                    problems.append(
+                        f"waiting: reference 1 counts {shown[0]} projects with "
+                        f"an empty one added; it has five that can be shown")
+
             # And the configuration that will face the public.
             # --- a reference that has projects ---------------------
             probe_root = build_with_projects(out)

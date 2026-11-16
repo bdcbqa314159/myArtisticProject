@@ -221,6 +221,30 @@ def main() -> int:
                 "(python3 tools/placeholders.py --purge)"
             )
 
+    # --- a project still waiting for its first photograph -----------------
+    #
+    # The page does not show one, deliberately: the panel's "add a
+    # project" makes a project before there is anything to put in it,
+    # and a slot built for an empty one used to hand `resize_image` the
+    # empty path and stop the build outright. Not showing it is right.
+    # Not SAYING so is how one sits there for a month, named and
+    # invisible, with nobody able to tell whether the page is wrong or
+    # the work simply has not arrived.
+    have_photos = {m.group(1) for m in
+                   re.finditer(r'^project\s*=\s*"([^"]*)"', fm, re.M)}
+    waiting = []
+    for block in re.findall(r"\[\[extra\.project\]\](.*?)(?=\n\[\[|\Z)", fm, re.S):
+        got = re.search(r'^id\s*=\s*"([^"]*)"', block, re.M)
+        if got and got.group(1) not in have_photos:
+            name = re.search(r'^name\s*=\s*"([^"]*)"', block, re.M)
+            waiting.append(f"{got.group(1)}"
+                           + (f" ({name.group(1)})" if name else ""))
+    if waiting:
+        problems.append(
+            f"{len(waiting)} project(s) with no photograph yet, so the page "
+            f"does not show them: {', '.join(waiting)}"
+        )
+
     # --- concepts stay marked as in development ---------------------------
     for block in re.findall(r"\[\[extra\.concepts\]\](.*?)(?=\n\[\[|\Z)", fm, re.S):
         if not re.search(r"^status\s*=\s*\"", block, re.M):
