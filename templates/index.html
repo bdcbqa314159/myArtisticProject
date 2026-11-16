@@ -205,7 +205,18 @@
       <li class="card case">
         {% set ref = loop.index %}
         {% set_global pcount = 0 %}
-        {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{% set_global pcount = pcount + 1 %}{%- endif %}{% endfor %}
+        {#- A project counts once it HAS a photograph. The panel's "add a
+            project" makes one with an id, a reference and a name and
+            nothing else; a slot built for it handed `resize_image` the
+            empty path and stopped the build, while objects.py and
+            content-check both called the page sound. Waiting for a
+            first photograph is an ordinary state — the page just does
+            not show that project yet. #}
+        {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}
+          {%- set_global shown = false %}
+          {%- for ph in e.photo | default(value=[]) %}{% if ph.project == pr.id %}{% set_global shown = true %}{% endif %}{% endfor %}
+          {%- if shown %}{% set_global pcount = pcount + 1 %}{% endif %}
+        {%- endif %}{% endfor %}
 
         {% if pcount > 0 %}
         {# THREE LEVELS.
@@ -219,13 +230,13 @@
             <figure class="patch">
               <ol class="fridge" data-set="{{ ref }}">
                 {% set_global k = 0 %}
-                {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{% set_global k = k + 1 %}{%- set_global cov = "" %}{% set_global cova = "" %}{%- for ph in e.photo | default(value=[]) %}{%- if ph.project == pr.id and cov == "" %}{%- set_global cov = ph.file %}{% set_global cova = ph.alt %}{%- endif %}{% endfor %}
+                {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{%- set_global cov = "" %}{% set_global cova = "" %}{%- for ph in e.photo | default(value=[]) %}{%- if ph.project == pr.id and cov == "" %}{%- set_global cov = ph.file %}{% set_global cova = ph.alt %}{%- endif %}{% endfor %}{% if cov != "" %}{% set_global k = k + 1 %}
               {%- if k == 1 %}<li class="slot-1">{% set im = resize_image(path="@/" ~ cov, width=900, op="fit_width", format="webp", quality=72) %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ cova }}" decoding="async"></li>{% endif %}
               {%- if k == 2 %}<li class="slot-2">{% set im = resize_image(path="@/" ~ cov, width=360, height=480, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="360" height="480" alt="{{ cova }}" loading="lazy" decoding="async"></li>{% endif %}
               {%- if k == 3 %}<li class="slot-3">{% set im = resize_image(path="@/" ~ cov, width=480, height=360, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="480" height="360" alt="{{ cova }}" loading="lazy" decoding="async"></li>{% endif %}
               {%- if k == 4 %}<li class="slot-4">{% set im = resize_image(path="@/" ~ cov, width=400, height=400, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="400" height="400" alt="{{ cova }}" loading="lazy" decoding="async"></li>{% endif %}
               {%- if k == 5 %}<li class="slot-5">{% set im = resize_image(path="@/" ~ cov, width=480, height=320, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="480" height="320" alt="{{ cova }}" loading="lazy" decoding="async"></li>{% endif %}
-                {%- endif %}{% endfor %}
+                {%- endif %}{%- endif %}{% endfor %}
               </ol>
               {# A light on, rather than a button to find.
                  The whole card already opens; this is only there to say
@@ -244,7 +255,7 @@
           <div class="group-front">
             <div class="fridge front" data-set="{{ ref }}">
               {% set_global k = 0 %}
-              {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{% set_global k = k + 1 %}{%- set_global cov = "" %}{% set_global cova = "" %}{%- for ph in e.photo | default(value=[]) %}{%- if ph.project == pr.id and cov == "" %}{%- set_global cov = ph.file %}{% set_global cova = ph.alt %}{%- endif %}{% endfor %}
+              {%- for pr in e.project | default(value=[]) %}{% if pr.reference == ref %}{%- set_global cov = "" %}{% set_global cova = "" %}{%- for ph in e.photo | default(value=[]) %}{%- if ph.project == pr.id and cov == "" %}{%- set_global cov = ph.file %}{% set_global cova = ph.alt %}{%- endif %}{% endfor %}{% if cov != "" %}{% set_global k = k + 1 %}
               {%- if k == 1 %}
               <details class="shots slot-1" name="shots-{{ ref }}">
                 <summary>{% set im = resize_image(path="@/" ~ cov, width=900, op="fit_width", format="webp", quality=72) %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ cova }}" decoding="async"><span class="shots-name">{{ pr.name }}</span>{# A light on EVERY print once the group is at the front. This is
@@ -320,7 +331,7 @@
                   {%- endif %}{% endfor %}
                 </div>
               </details>{% endif %}
-              {%- endif %}{% endfor %}
+              {%- endif %}{%- endif %}{% endfor %}
             </div>
           </div>
         </details>
