@@ -373,6 +373,49 @@ def main() -> int:
                     "does not say that any more"
                 )
 
+    # ---- the allowlist has to keep up with the page --------------------
+    #
+    # TEXT_FIELDS decides what prose the panel may change. It fell a long
+    # way behind without anyone noticing: the contact form arrived with
+    # seventeen sentences of its own and not one was added, so the only
+    # part of the page that answers a visitor was the only part nobody
+    # could reword. Nothing said so, because an allowlist is silent
+    # about what is not on it.
+    #
+    # This compares it against what the template actually renders.
+    import re as _re
+    edit_src = (ROOT / "tools" / "studio" / "edit.py").read_text(encoding="utf-8")
+    allowed = set(_re.findall(
+        r'^\s*"([a-z_]+)":',
+        edit_src[edit_src.index("TEXT_FIELDS"):edit_src.index("def set_text")],
+        _re.M))
+    shown = set(_re.findall(r"\be\.([a-z_]+)",
+                           (ROOT / "templates" / "index.html").read_text(encoding="utf-8")))
+    # Only the scalars, which live BEFORE the first [[array]] — the same
+    # cut `set_text` makes. Without it `project = "r1-a"` inside a
+    # photograph counts as a page-level field and the check reports a
+    # name nobody can act on.
+    body = (ROOT / "content" / "_index.md").read_text(encoding="utf-8")
+    front = body.split("+++")[1] if body.count("+++") >= 2 else body
+    cut = front.find("\n[[")
+    prose = set(_re.findall(r'^([a-z_]+)\s*=\s*"',
+                           front if cut < 0 else front[:cut], _re.M))
+
+    # Written by a verb of their own, never typed: `attach_showreel`
+    # puts the film and its still in place and sets these to the paths
+    # it chose. A text box pointing at a file that is not there is a
+    # broken player.
+    BY_A_VERB = {"video", "poster"}
+
+    behind = sorted((shown & prose) - allowed - BY_A_VERB)
+    if behind:
+        bad.append(
+            f"the panel cannot change {len(behind)} piece(s) of prose the page "
+            f"shows: {', '.join(behind)}. Add them to TEXT_FIELDS in "
+            f"tools/studio/edit.py, or to BY_A_VERB here if something else "
+            f"writes them"
+        )
+
     if bad:
         print("\n  THE STUDIO PANEL\n")
         for b in bad:
