@@ -117,6 +117,16 @@ La page se reconstruit toute seule et se recharge avec ta modification.
 Elle attend que le site soit vraiment reconstruit avant de se recharger,
 donc une seconde ou deux peuvent passer : c'est normal.
 
+### Les mots du formulaire de contact
+
+Le formulaire s'ouvre dans une fenêtre, donc ses mots ne sont pas sur la
+page : en bas de la section **Contact**, le panneau ajoute un bouton
+*« Open the message box »*. Clique dessus — la fenêtre s'ouvre et son
+titre, ses étiquettes et ses deux boutons se modifient comme le reste.
+
+**Échap** referme la fenêtre. (Son bouton *Annuler* est devenu un mot à
+modifier : il ne referme plus rien tant que le panneau est ouvert.)
+
 ### Les photographies
 
 Les six emplacements de la section *Selected Work* acceptent une image.

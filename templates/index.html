@@ -134,7 +134,7 @@
     {# The masthead line, and nothing else: on a wide screen it sits
        against the headline, on a phone it closes the hero. #}
     <div class="hero-meta">
-      {% if e.issue %}<p class="eyebrow">{{ e.issue }}{% if e.place %}<span class="label-sep">·</span>{{ e.place }}{% endif %}</p>{% endif %}
+      {% if e.issue %}<p class="eyebrow"><span data-edit="issue">{{ e.issue }}</span>{% if e.place %}<span class="label-sep">·</span><span data-edit="place">{{ e.place }}</span>{% endif %}</p>{% endif %}
     </div>
   </div>
 </section>
@@ -524,9 +524,9 @@
          KEEPS him, not one that sends into a void. Built by
          tools/vcard.py, which writes nothing while no address is set. #}
       {% if config.extra.contact.vcard_name %}
-      <a class="btn" href="{{ get_url(path='contact.vcf') }}" download>{{ e.contact_save }}</a>
+      <a class="btn" href="{{ get_url(path='contact.vcf') }}" download data-edit="contact_save">{{ e.contact_save }}</a>
       {% endif %}
-      <button class="btn" type="button" data-copy="{{ config.extra.contact.email }}">{{ e.contact_copy }}</button>
+      <button class="btn" type="button" data-copy="{{ config.extra.contact.email }}" data-edit="contact_copy">{{ e.contact_copy }}</button>
       {% endif %}
     </div>
 
@@ -555,22 +555,22 @@
           <input id="_trap" name="_trap" type="text" tabindex="-1" autocomplete="off">
         </div>
 
-        <h3>{{ e.form_title }}</h3>
-        <p class="muted">{{ e.form_lead }}</p>
+        <h3 data-edit="form_title">{{ e.form_title }}</h3>
+        <p class="muted" data-edit="form_lead">{{ e.form_lead }}</p>
 
-        <label>{{ e.form_mail }}
+        <label><span data-edit="form_mail">{{ e.form_mail }}</span>
           <input type="email" name="email" maxlength="254" required autocomplete="email"></label>
-        <label>{{ e.form_subject }}
+        <label><span data-edit="form_subject">{{ e.form_subject }}</span>
           <input type="text" name="subject" maxlength="150"></label>
-        <label>{{ e.form_message }}
+        <label><span data-edit="form_message">{{ e.form_message }}</span>
           <textarea name="message" rows="5" maxlength="4000" required></textarea></label>
 
         <p class="says" data-says role="status" aria-live="polite"></p>
-        <p class="small muted">{{ e.form_privacy }}</p>
+        <p class="small muted" data-edit="form_privacy">{{ e.form_privacy }}</p>
 
         <div class="actions">
-          <button class="btn primary" type="submit">{{ e.form_send }}</button>
-          <button class="btn" type="button" data-talk-close>{{ e.form_cancel }}</button>
+          <button class="btn primary" type="submit" data-edit="form_send">{{ e.form_send }}</button>
+          <button class="btn" type="button" data-talk-close data-edit="form_cancel">{{ e.form_cancel }}</button>
         </div>
       </form>
     </dialog>
@@ -582,7 +582,7 @@
 
 <footer class="footer">
   <div class="wrap">
-    <span>{{ id.name }}{% if e.place %} <span class="muted">· {{ e.place }}</span>{% endif %}</span>
+    <span>{{ id.name }}{% if e.place %} <span class="muted">· <span data-edit="place">{{ e.place }}</span></span>{% endif %}</span>
     {# Elsewhere. A name alone until the client's own URL and the owner's
        own mark are both in — a mark pointed at a service's homepage is
        decoration, and the build refuses to publish one. #}

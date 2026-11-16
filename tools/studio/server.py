@@ -372,6 +372,29 @@ function arm() {
     }
   }
 
+  /* ---- the message box ------------------------------------------------
+     Its words are editable like any others, but it is a modal dialog
+     whose opener is itself a word to edit: the click is caught here and
+     never reaches the page's own handler, so the form would never be
+     seen. One control, added here rather than in the template for the
+     same reason as the others, opens it. Escape closes it again — its
+     Cancel button is a word now too, and a word does not close a box. */
+  const box = doc.querySelector("dialog.talk");
+  const band = doc.querySelector("#contact .actions");
+  if (box && band && !band.querySelector(".studio-talk")) {
+    const open = doc.createElement("button");
+    open.type = "button";
+    open.className = "studio-drop studio-talk";
+    open.style.position = "static";
+    open.textContent = "Open the message box";
+    open.addEventListener("click", (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      box.showModal();
+      say("Its words are editable in there. Escape closes it.");
+    });
+    band.appendChild(open);
+  }
+
   doc.querySelectorAll("#concepts .card").forEach((card, i) => {
     if (card.querySelector("[data-dossier-drop]")) return;
     const zone = doc.createElement("div");
