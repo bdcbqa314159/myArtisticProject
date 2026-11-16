@@ -1364,6 +1364,94 @@ def check_form_words(html: str, where: str) -> "list[str]":
     return []
 
 
+# Nothing above a fixed element may steal the viewport from it.
+#
+# `transform`, `filter`, `backdrop-filter`, `perspective`,
+# `contain: paint` and `will-change: transform` each make an element the
+# containing block for every `position: fixed` thing inside it. The
+# fixed thing then sits inside that box instead of the screen, which is
+# never what anyone meant by fixed.
+#
+# This page has been caught by it three times: a header's
+# backdrop-filter, a rotated print, and the reveal's own transform
+# holding the dossier at 343x757 in the corner of a card. Each was found
+# by hand, after the fact. This asks the browser about every fixed
+# element at once.
+FIXED_PROBE = """
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+const f = document.createElement("iframe");
+f.width = 390; f.height = 720; f.style.border = 0; f.src = "/";
+document.body.appendChild(f);
+f.addEventListener("load", () => setTimeout(() => {
+  try {
+    const d = f.contentDocument, w = f.contentWindow;
+    // The reveal landed at once: its transform is real but transient,
+    // and catching it mid-flight reports a fault that is not one.
+    d.querySelectorAll(".reveal").forEach((e) => {
+      e.style.transition = "none";
+      e.classList.add("in");
+    });
+    // Everything that is only fixed once it is open.
+    d.querySelectorAll("details.group, details.shots, details.dossier")
+      .forEach((e) => { e.open = true; });
+    setTimeout(() => {
+      const caught = [];
+      let seen = 0;
+      for (const el of d.querySelectorAll("*")) {
+        if (w.getComputedStyle(el).position !== "fixed") continue;
+        seen++;
+        const name = el.tagName.toLowerCase()
+          + (typeof el.className === "string" && el.className.trim()
+             ? "." + el.className.trim().split(/\\s+/)[0] : "");
+        let a = el.parentElement;
+        while (a && a !== d.documentElement) {
+          const cs = w.getComputedStyle(a);
+          if (cs.transform !== "none" || cs.filter !== "none"
+              || cs.backdropFilter !== "none" || cs.perspective !== "none"
+              || cs.contain.indexOf("paint") >= 0
+              || cs.willChange.indexOf("transform") >= 0) {
+            caught.push(name + "-inside-" + a.tagName.toLowerCase()
+              + (typeof a.className === "string" && a.className.trim()
+                 ? "." + a.className.trim().split(/\\s+/)[0] : ""));
+            break;
+          }
+          a = a.parentElement;
+        }
+      }
+      say("seen=" + seen + " caught=" + (caught.join(",") || "none"));
+    }, 500);
+  } catch (err) {
+    say("threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-"));
+  }
+}, 1400));
+function say(s) { document.getElementById("o").textContent = "FIXED " + s; }
+</script>"""
+
+
+def check_fixed(chrome: str, out: Path, url: str) -> "list[str]":
+    (out / "_fixed.html").write_text(FIXED_PROBE, encoding="utf-8")
+    said = dom(chrome, url + "/_fixed.html", 500, 900, budget=22000)
+    found = re.search(r"FIXED ([^<]*)", said)
+    if not found:
+        return ["fixed: the probe returned no verdict"]
+    verdict = found.group(1).strip()
+    if "=" not in verdict:
+        return [f"fixed: the probe could not run — {verdict}"]
+    f = dict(kv.split("=", 1) for kv in verdict.split())
+
+    bad = []
+    if int(f["seen"]) < 3:
+        bad.append(f"fixed: only {f['seen']} fixed element(s) found. The "
+                   f"overlays are fixed when open, so the probe is not "
+                   f"opening them and is checking almost nothing")
+    if f["caught"] != "none":
+        bad.append(f"fixed: {f['caught']} — an ancestor is the containing "
+                   f"block, so this is not fixed to the screen but to a box "
+                   f"inside the page. Look for a transform, a filter, a "
+                   f"backdrop-filter or a will-change above it")
+    return bad
+
+
 def check_shape(html: str, where: str) -> "list[str]":
     """The two buttons that open the form look like the form.
 
@@ -1919,6 +2007,7 @@ def main() -> int:
             problems += check_arc(chrome, out, url)
             problems += check_document(chrome, out, url)
             problems += check_tint(chrome, out, url)
+            problems += check_fixed(chrome, out, url)
             problems += check_patchwork(chrome, out, url)
             problems += check_no_pdf_served(out)
             problems += check_crossing(chrome, out, url, False)

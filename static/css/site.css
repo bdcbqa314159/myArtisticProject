@@ -38,7 +38,6 @@
   --mark-for-light: inline;
   --mark-for-dark: none;
   --panel: #ece7db;
-  --card:  transparent;
   --tint:  #ece7db;
   --accent:#3c4a57;
 
@@ -78,7 +77,6 @@
   --mark-for-light: inline;
   --mark-for-dark: none;
   --panel: #e8eaee;
-  --card:  transparent;
   --tint:  #e8eaee;
   --accent:#14171c;
 }
@@ -2638,7 +2636,7 @@ html.js:has(.group[open]) { overflow: hidden; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .project summary img { transition: none; }
+  .shots summary img { transition: none; }
 }
 
 /* AS LARGE AS FITS, and no larger.
