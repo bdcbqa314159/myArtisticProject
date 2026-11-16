@@ -389,8 +389,8 @@ def main() -> int:
         r'^\s*"([a-z_]+)":',
         edit_src[edit_src.index("TEXT_FIELDS"):edit_src.index("def set_text")],
         _re.M))
-    shown = set(_re.findall(r"\be\.([a-z_]+)",
-                           (ROOT / "templates" / "index.html").read_text(encoding="utf-8")))
+    template = (ROOT / "templates" / "index.html").read_text(encoding="utf-8")
+    shown = set(_re.findall(r"\be\.([a-z_]+)", template))
     # Only the scalars, which live BEFORE the first [[array]] — the same
     # cut `set_text` makes. Without it `project = "r1-a"` inside a
     # photograph counts as a page-level field and the check reports a
@@ -415,6 +415,41 @@ def main() -> int:
             f"tools/studio/edit.py, or to BY_A_VERB here if something else "
             f"writes them"
         )
+
+    # ---- and on the allowlist is not the same as reachable -------------
+    #
+    # The panel edits what is MARKED: a field that is allowed and
+    # rendered but carries no `data-edit` is a word nobody can click,
+    # and nothing said so either. Twenty-five were in that state at
+    # once, the whole contact form among them.
+    marked = set(_re.findall(r'data-edit="([a-z_]+)"', template))
+
+    # Except the replies the form speaks while a message is sent. They
+    # are never on the page as text — they live inside the `data-says`
+    # JSON and are put on screen by the script — so there is nothing to
+    # click, and they are reworded from the settings panel instead.
+    ONLY_AS_A_REPLY = {
+        "err_mail_invalid", "err_mail_long", "err_mail_missing",
+        "err_mail_one", "err_message_bad", "err_message_links",
+        "err_message_long", "err_message_missing", "err_subject",
+        "form_sending", "form_sent", "form_failed", "form_offline",
+    }
+    unreachable = sorted((allowed & shown & prose)
+                         - marked - ONLY_AS_A_REPLY - BY_A_VERB)
+    if unreachable:
+        bad.append(
+            f"{len(unreachable)} piece(s) of prose the panel is allowed to "
+            f"change cannot be clicked: {', '.join(unreachable)}. Mark them "
+            f"with data-edit in templates/index.html, or say here why there "
+            f"is nothing to click"
+        )
+
+    # The message box is a modal dialog and the button that opens it is
+    # itself a word to edit — so in the panel that click is caught and
+    # the form is never seen. The panel adds its own way in.
+    ok("box.showModal()" in SERVER,
+       "the panel no longer opens the message box, so the twelve words "
+       "inside it are marked and unreachable")
 
     if bad:
         print("\n  THE STUDIO PANEL\n")
