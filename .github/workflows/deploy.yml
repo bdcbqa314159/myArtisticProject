@@ -17,15 +17,23 @@ on:
 # it has no effect on what runs. To update one, resolve the tag to its
 # commit again rather than writing the tag back.
 
+# READ ONLY by default, and the two write permissions granted to the one
+# job that publishes.
+#
+# They used to sit here, which handed them to `build` as well — and
+# `build` runs `npm ci`, which executes whatever lifecycle scripts the
+# dependency tree brings with it. A compromised dev dependency would
+# have been running with permission to publish this site. `build` needs
+# to read the repository and nothing else.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   # runs on every PR and every push. The required status check.
   build:
     runs-on: ubuntu-latest
+    # A hung browser probe should not hold a runner for six hours.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -56,6 +64,7 @@ jobs:
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
       - run: python3 tools/dossier-check.py  # a PDF is judged by what is inside it
       - run: python3 tools/invariants.py     # nothing that must happen once happens twice
+      - run: python3 tools/studio/check.py   # the editor refuses what it must, and the guide still quotes it
       - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2
         with:
           tool: zola@0.23.6
@@ -91,6 +100,11 @@ jobs:
     needs: build
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     # scoped to this job, and never cancelled: killing a deploy
     # mid-flight leaves Pages serving stale output
     concurrency:
