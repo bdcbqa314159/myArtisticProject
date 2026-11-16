@@ -12,6 +12,7 @@ any language, as a matter of course. A surgical edit cannot: it never
 sees them.
 """
 
+import os
 import re
 import sys
 from pathlib import Path
@@ -393,9 +394,10 @@ def _write_front_field(key: str, value: str) -> str:
     """Rewrite one `key = "value"` line in the front matter.
 
     The surgery, without the gate. `set_text` guards which keys a
-    browser may reach before calling this; the only other caller is
-    `attach_showreel`, which passes constants of its own and never
-    anything a visitor typed.
+    browser may reach before calling this; the other callers are
+    `attach_showreel` and `remove_showreel`, which pass constants of
+    their own and never anything a visitor typed — including the empty
+    string, which `set_text` refuses and removal requires.
     """
     text = CONTENT.read_text(encoding="utf-8")
     parts = text.split("+++")
@@ -421,6 +423,19 @@ def _write_front_field(key: str, value: str) -> str:
 
     return _commit("+++".join([parts[0], head + tail] + parts[2:]),
                    f"{key} updated")
+
+
+def _put(path: Path, text: str) -> None:
+    """Replace a file's contents in one step.
+
+    `write_text` truncates and then writes, so a process that dies in
+    between leaves nothing at all — and this is the client's page. A
+    temporary file beside it and a rename is atomic on this filesystem:
+    either the old contents or the new, never half of either.
+    """
+    tmp = path.with_name(path.name + ".writing")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, path)
 
 
 def _comments(text: str) -> int:
@@ -502,7 +517,7 @@ def set_config(section: str, key: str, value: str) -> str:
     candidate = text[:start] + updated + text[end:]
 
     original = text
-    CONFIG.write_text(candidate, encoding="utf-8")
+    _put(CONFIG, candidate)
     try:
         if _comments(candidate) < _comments(original):
             raise Refused("a comment was lost; the edit was undone")
@@ -513,7 +528,7 @@ def set_config(section: str, key: str, value: str) -> str:
                 "See NOTICE; the real identity goes in at handover."
             )
     except Exception:
-        CONFIG.write_text(original, encoding="utf-8")
+        _put(CONFIG, original)
         raise
 
     if section.startswith("extra.theme"):
@@ -523,7 +538,7 @@ def set_config(section: str, key: str, value: str) -> str:
         # them.
         wrong = _regenerate_theme()
         if wrong:
-            CONFIG.write_text(original, encoding="utf-8")
+            _put(CONFIG, original)
             raise Refused(wrong)
         return f"[{section}] {key} updated — the stylesheet was rewritten"
 
@@ -901,6 +916,53 @@ def attach_dossier(concept: int, filename: str, raw: bytes, alt: str) -> str:
     return message
 
 
+def remove_dossier(concept: int) -> str:
+    """Take the document off a concept, pages and all.
+
+    The panel could put a document on a card and never take it off
+    again, which left the only way back a hand edit of the front matter
+    plus six stray images nobody would think to delete. Every other
+    thing the panel adds has a way out; this is that way.
+    """
+    text = CONTENT.read_text(encoding="utf-8")
+    head, fm, tail = _front(text)
+
+    for i, doc in enumerate(blocks(fm, "extra.dossier")):
+        if doc.get("concept", "").strip() != str(concept):
+            continue
+        slug = doc.get("id", "").strip()
+        start, end = _block_span(fm, "extra.dossier", i)
+        fm = fm[:start] + fm[end:]
+        message = _commit(head + "+++" + fm + tail,
+                          f"the document on concept {concept} removed")
+        # The pages only once the page itself no longer names them, so
+        # a refusal leaves a document that still works.
+        if slug:
+            for leaf in (ROOT / "content").glob(f"dossier-{slug}-p*.jpg"):
+                leaf.unlink()
+        return message
+
+    raise Refused(f"concept {concept} has no document")
+
+
+def remove_showreel() -> str:
+    """Take the film off, and its poster with it."""
+    _, fm, _ = _front(CONTENT.read_text(encoding="utf-8"))
+    current = re.search(r'^video\s*=\s*"([^"]*)"', fm, re.M)
+    poster = re.search(r'^poster\s*=\s*"([^"]*)"', fm, re.M)
+    if not (current and current.group(1)):
+        raise Refused("there is no showreel to remove")
+
+    _write_front_field("video", "")
+    message = _write_front_field("poster", "")
+    for rel in (current.group(1), poster.group(1) if poster else ""):
+        if rel:
+            f = ROOT / "static" / rel
+            if f.is_file():
+                f.unlink()
+    return message.replace("poster updated", "the showreel removed")
+
+
 def remove_photo(file: str) -> str:
     """One photograph out of a reel. The file stays — another may use it."""
     text = CONTENT.read_text(encoding="utf-8")
@@ -954,19 +1016,26 @@ def _commit(candidate: str, message: str) -> str:
     editing.
     """
     original = CONTENT.read_text(encoding="utf-8")
-    CONTENT.write_text(candidate, encoding="utf-8")
+    _put(CONTENT, candidate)
     try:
         import objects
 
         if objects.check() != 0:
             raise Refused("the result would not pass tools/objects.py")
     except Exception:
-        CONTENT.write_text(original, encoding="utf-8")
+        _put(CONTENT, original)
         raise
 
     # The comments are the reason this is a surgical edit. Prove it.
-    if original.count("#") != candidate.count("#"):
-        CONTENT.write_text(original, encoding="utf-8")
+    #
+    # COUNTED WITH THE VALUES TAKEN OUT. This compared raw `#` counts
+    # and asked for them to be EQUAL, which was fine while no value
+    # could contain one — and then the form's replies became editable
+    # and a message like "Dis-le en mots #1" raised the count. The edit
+    # was undone and the person was told a comment had been lost, which
+    # was neither true nor anything they could act on.
+    if _comments(candidate) < _comments(original):
+        _put(CONTENT, original)
         raise Refused("a comment was lost; the edit was undone")
 
     return message

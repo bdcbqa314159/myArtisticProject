@@ -28,6 +28,7 @@ import subprocess
 import http.server
 import json
 import secrets
+import traceback
 import sys
 import webbrowser
 from pathlib import Path
@@ -38,7 +39,8 @@ sys.path.insert(0, str(ROOT / "tools"))
 from objects import LOCKED, SCHEMA, blocks, front_matter  # noqa: E402
 from edit import (CONFIG, CONFIG_FIELDS, MAX_IMAGE, Refused, add,  # noqa: E402
                   add_project, attach, attach_dossier, attach_photo,
-                  attach_showreel, remove, remove_photo,
+                  attach_showreel, remove, remove_dossier, remove_photo,
+                  remove_showreel,
                   remove_project, set_config, set_text, write)
 
 # A token in the path, as myBureau does. The panel binds to loopback, so
@@ -352,10 +354,22 @@ function arm() {
   for (const slot of doc.querySelectorAll(".placeholder.video")) {
     if (slot.hasAttribute("data-film")) continue;
     slot.setAttribute("data-film", "");
-    const has = slot.querySelector("video");
-    slot.dataset.hint = has
+    const film = slot.querySelector("video");
+    slot.dataset.hint = film
       ? "Drop a new film, or a poster image, to replace"
       : "Drop the showreel (.mp4) here, or a poster image";
+    if (film && !slot.querySelector(".studio-drop")) {
+      const off = doc.createElement("button");
+      off.type = "button";
+      off.className = "studio-drop";
+      off.textContent = "Remove the showreel";
+      off.addEventListener("click", (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        if (busy) { say("Still saving the last one.", true); return; }
+        send("/showreel-remove", {});
+      });
+      slot.appendChild(off);
+    }
   }
 
   doc.querySelectorAll("#concepts .card").forEach((card, i) => {
@@ -363,9 +377,26 @@ function arm() {
     const zone = doc.createElement("div");
     zone.setAttribute("data-dossier-drop", String(i + 1));
     zone.className = "studio-doc";
-    zone.textContent = card.querySelector("details.dossier")
+    const has = card.querySelector("details.dossier");
+    zone.textContent = has
       ? "Drop a PDF to replace this document" : "Drop a PDF here, or click";
     card.appendChild(zone);
+
+    /* And a way back out. Everything else the panel adds can be taken
+       off again; a document could only ever be put on. */
+    if (has) {
+      const off = doc.createElement("button");
+      off.type = "button";
+      off.className = "studio-drop";
+      off.style.position = "static";
+      off.textContent = "Remove this document";
+      off.addEventListener("click", (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        if (busy) { say("Still saving the last one.", true); return; }
+        send("/dossier-remove", {concept: String(i + 1)});
+      });
+      card.appendChild(off);
+    }
   });
 
   /* The add and remove controls are the PANEL's, not the page's. They
@@ -1015,7 +1046,8 @@ class Panel(http.server.BaseHTTPRequestHandler):
         route = self.path.rsplit("/", 1)[-1]
         if route not in {"edit", "add", "remove", "attach", "config", "text",
                          "photo", "project-add", "project-remove", "photo-remove",
-                         "dossier", "showreel"}:
+                         "dossier", "showreel", "dossier-remove",
+                         "showreel-remove"}:
             self.send_error(404)
             return
 
@@ -1062,6 +1094,12 @@ class Panel(http.server.BaseHTTPRequestHandler):
                     str(body.get("key", "")),
                     str(body.get("value", "")),
                 )
+            elif route == "dossier-remove":
+                message = remove_dossier(int(form.get("concept", "0")))
+
+            elif route == "showreel-remove":
+                message = remove_showreel()
+
             elif route == "showreel":
                 message = attach_showreel(
                     form.get("filename", ""),
@@ -1099,8 +1137,27 @@ class Panel(http.server.BaseHTTPRequestHandler):
         except Refused as refused:
             # Expected: the edit was rejected and the file is untouched.
             self.reply({"ok": False, "message": str(refused)})
-        except Exception as exc:                       # noqa: BLE001
-            self.reply({"ok": False, "message": f"{type(exc).__name__}: {exc}"})
+        except Exception:                              # noqa: BLE001
+            # NOT THE SAME THING AS A REFUSAL, and it used to look
+            # identical. `Refused` means the edit was rejected and the
+            # file is untouched — a promise every writer here keeps.
+            # This branch is anything else: a bug, a missing file, a
+            # permission. It carried the exception's own words straight
+            # to the browser, so a fault read exactly like "you typed
+            # that wrong", and an absolute path could end up on screen
+            # or in a screenshot.
+            #
+            # Said plainly instead, and written in full to the panel's
+            # own terminal, which is where someone can use it.
+            print(f"\n  the panel hit a fault handling /{route}:",
+                  file=sys.stderr)
+            traceback.print_exc()
+            self.reply({
+                "ok": False,
+                "message": "Something went wrong in the panel, not in what "
+                           "you typed. Nothing was changed, and the details "
+                           "are in the terminal the panel is running in.",
+            })
 
     def reply(self, payload: object) -> None:
         body = json.dumps(payload).encode("utf-8")
