@@ -33,6 +33,19 @@ def read(rel: str) -> str:
 # (what it is, file, pattern, how many there must be, why)
 INVARIANTS = [
     (
+        "nothing starts the page without a net",
+        "src/landing.ts",
+        r"(?m)^[a-z][A-Za-z0-9_]*\(\);$",
+        0,
+        "A module is one statement after another: the first that throws "
+        "ends the whole of it. These were thirteen bare calls in a row, "
+        "and a fault injected at the third left the page behind its "
+        "cover for the full six seconds of the head's failsafe and then "
+        "arrived with no navigation at all — no menu, no palette, no "
+        "gallery. Every startup step goes through `start()` now, which "
+        "catches, names the step in the console, and lets the rest run.",
+    ),
+    (
         "the cover's floor is actually applied before the page is shown",
         "src/landing.ts",
         r"owedBeforeShowing\(performance\.now\(\), COVER_FLOOR_MS\)",
