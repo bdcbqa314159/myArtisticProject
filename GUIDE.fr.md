@@ -96,7 +96,10 @@ fenêtre ensuite.
 
 Tout se passe dans l'onglet **studio**, sur la page elle-même. Le bouton
 **Everything as a list** en haut à droite montre la même chose sous
-forme de liste — pratique pour ajouter ou supprimer un projet.
+forme de liste — pratique pour ajouter ou supprimer un projet. On y
+trouve aussi, plus bas, deux listes qui n'existent que là : **words**,
+toutes les phrases de la page, et **launch**, l'identité, les contacts,
+les couleurs et les mentions légales.
 
 ### Le texte
 
@@ -126,6 +129,13 @@ titre, ses étiquettes et ses deux boutons se modifient comme le reste.
 
 **Échap** referme la fenêtre. (Son bouton *Annuler* est devenu un mot à
 modifier : il ne referme plus rien tant que le panneau est ouvert.)
+
+Treize de ses phrases ne sont jamais à l'écran : ce que le formulaire
+répond pendant l'envoi — *Envoi…*, *Message envoyé*, et les messages
+d'erreur. Il n'y a rien à cliquer, donc elles se modifient
+dans **Everything as a list → words**, où toutes les phrases de la page
+sont rassemblées. Une modification s'enregistre dès que tu quittes le
+champ.
 
 ### Les photographies
 
