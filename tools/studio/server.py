@@ -37,7 +37,8 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 from objects import LOCKED, SCHEMA, blocks, front_matter  # noqa: E402
-from edit import (CONFIG, CONFIG_FIELDS, MAX_IMAGE, Refused, add,  # noqa: E402
+from edit import (CONFIG, CONFIG_FIELDS, CONTENT, MAX_IMAGE, TEXT_FIELDS,  # noqa: E402
+                  Refused, add,
                   add_project, attach, attach_dossier, attach_photo,
                   attach_showreel, remove, remove_dossier, remove_photo,
                   remove_showreel,
@@ -87,6 +88,53 @@ def config_value(section: str, key: str) -> str:
     block = rest[: nxt.start()] if nxt else rest
     found = re.search(rf'^{re.escape(key)}\s*=\s*"([^"]*)"', block, re.M)
     return found.group(1) if found else ""
+
+
+def text_values() -> "dict[str, str]":
+    """What each of the page's own sentences currently says.
+
+    The scalars only — everything before the first `[[array]]`, which
+    is the same cut `set_text` makes. Without it `name = "..."` inside
+    a reference would be read as a page-level field.
+    """
+    body = CONTENT.read_text(encoding="utf-8")
+    front = body.split("+++")[1] if body.count("+++") >= 2 else body
+    cut = front.find("\n[[")
+    return {
+        m.group(1): m.group(2)
+        for m in re.finditer(r'^([a-z_]+)\s*=\s*"((?:[^"\\]|\\.)*)"',
+                             front if cut < 0 else front[:cut], re.M)
+    }
+
+
+def words_section() -> str:
+    """Every sentence the page says, as a list.
+
+    Clicking a word on the page is the better way to change it and
+    stays the first way. It only reaches what is ON the page, though:
+    the thirteen replies the form speaks while a message is sent are
+    never rendered as text — they sit inside its `data-says` JSON and
+    are put on screen by the script — so until this list existed there
+    was no way to reword a single one of them.
+    """
+    now = text_values()
+    rows = "".join(
+        f"""
+        <tr class="{'missing' if not now.get(key, '') else ''}">
+          <th>{html.escape(key)}</th>
+          <td><input value="{html.escape(now.get(key, ''), quote=True)}"
+                     data-text="{key}" aria-label="{html.escape(key)}"></td>
+          <td class="what">{html.escape(what)}</td>
+        </tr>"""
+        for key, what in TEXT_FIELDS.items()
+    )
+    return (
+        f'<section><h2>words<span class="count">{len(TEXT_FIELDS)}</span></h2>'
+        '<p class="doc">The page\'s own sentences. Clicking one on the page is '
+        'quicker and is still the way to do it — this list is for the ones '
+        'with nothing to click: what the message box replies while it sends.</p>'
+        f'<table>{rows}</table></section>'
+    )
 
 
 def launch_section() -> str:
@@ -174,7 +222,8 @@ def page() -> str:
             f"</section>"
         )
 
-    return TEMPLATE.replace("<!--CONTENT-->", "".join(sections) + launch_section())
+    return TEMPLATE.replace("<!--CONTENT-->",
+                            "".join(sections) + words_section() + launch_section())
 
 
 def shell() -> str:
@@ -924,13 +973,16 @@ ul.gate li{margin:.2rem 0}
     var el = ev.target;
     if (el.tagName !== "INPUT") return;
     var isConfig = !!el.dataset.section;
-    if (!el.dataset.field && !isConfig) return;
+    var isText = !!el.dataset.text;
+    if (!el.dataset.field && !isConfig && !isText) return;
     var was = el.defaultValue;
     el.disabled = true;
-    fetch(location.pathname + (isConfig ? "/config" : "/edit"), {
+    fetch(location.pathname + (isText ? "/text" : isConfig ? "/config" : "/edit"), {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(isConfig
+      body: JSON.stringify(isText
+        ? {key: el.dataset.text, value: el.value}
+        : isConfig
         ? {section: el.dataset.section, key: el.dataset.key, value: el.value}
         : {kind: el.dataset.kind, index: +el.dataset.index,
            field: el.dataset.field, value: el.value})

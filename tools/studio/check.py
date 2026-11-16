@@ -31,6 +31,7 @@ import io                                                   # noqa: E402
 
 import edit                                                 # noqa: E402
 import objects                                              # noqa: E402
+import server                                               # noqa: E402
 
 SERVER = (ROOT / "tools" / "studio" / "server.py").read_text(encoding="utf-8")
 
@@ -58,8 +59,15 @@ def without_portfolio(page: str) -> str:
 
 def main() -> int:
     bad: "list[str]" = []
+    # Counted as they run, never written down. The number at the end was
+    # a literal, and a literal goes stale the first time a check is
+    # added without anyone remembering to raise it — so the line said 58
+    # while the file asserted something else.
+    points = 0
 
     def ok(condition: bool, what: str) -> None:
+        nonlocal points
+        points += 1
         if not condition:
             bad.append(what)
 
@@ -73,6 +81,8 @@ def main() -> int:
         where the MESSAGE is the thing a person acts on, the message is
         what gets asserted.
         """
+        nonlocal points
+        points += 1
         try:
             call()
         except edit.Refused as problem:
@@ -85,6 +95,8 @@ def main() -> int:
         bad.append(what)
 
     def refuses(call, what: str) -> None:
+        nonlocal points
+        points += 1
         try:
             call()
         except edit.Refused:
@@ -427,7 +439,8 @@ def main() -> int:
     # Except the replies the form speaks while a message is sent. They
     # are never on the page as text — they live inside the `data-says`
     # JSON and are put on screen by the script — so there is nothing to
-    # click, and they are reworded from the settings panel instead.
+    # click, and they are reworded from the words list on /form, which
+    # the next check holds to listing every one of them.
     ONLY_AS_A_REPLY = {
         "err_mail_invalid", "err_mail_long", "err_mail_missing",
         "err_mail_one", "err_message_bad", "err_message_links",
@@ -444,6 +457,25 @@ def main() -> int:
             f"is nothing to click"
         )
 
+    # ---- and every sentence has a second way in -------------------------
+    #
+    # Rendered, not grepped: the list is only useful if it actually
+    # holds every field the panel is allowed to change, and a mention
+    # of `words_section` in the source says nothing about that.
+    listed = set(_re.findall(r'data-text="([a-z_]+)"', server.words_section()))
+    absent = sorted(set(edit.TEXT_FIELDS) - listed)
+    if absent:
+        bad.append(
+            f"the words list on /form does not offer {len(absent)} field(s) "
+            f"the panel may change: {', '.join(absent)}. Add them to "
+            f"words_section in tools/studio/server.py, or take them off "
+            f"TEXT_FIELDS — for anything not rendered on the page, that "
+            f"list is the only way in"
+        )
+    ok(ONLY_AS_A_REPLY <= listed,
+       "the form's replies are on no page and now on no list either — "
+       "there is no way left to reword a single one of them")
+
     # The message box is a modal dialog and the button that opens it is
     # itself a word to edit — so in the panel that click is caught and
     # the form is never seen. The panel adds its own way in.
@@ -458,7 +490,8 @@ def main() -> int:
         print()
         return 1
 
-    print("\n  studio: the panel refuses what it must, at 58 points, and the guide still quotes it correctly\n")
+    print(f"\n  studio: the panel refuses what it must, at {points} points, "
+          f"and the guide still quotes it correctly\n")
     return 0
 
 
