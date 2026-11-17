@@ -413,6 +413,9 @@ same path in the preview — there is no manifest to keep up to date.
 | `static/logo.svg` | his mark, in the browser tab |
 | `static/logo.png` | the icon iOS puts on a home screen — square |
 | `static/share.png` | the picture under a pasted link — 1200x630 |
+| `static/fonts/display.woff2` | the display face |
+| `static/fonts/text.woff2` | the text face |
+| `static/fonts/text-bold.woff2` | the text face in bold |
 
 ### His mark
 
@@ -422,6 +425,15 @@ have and guessing a crop of someone's logo is worse than asking for the
 export. Whatever is not dropped keeps the mark `tools/icons.py` draws —
 a point on a circle, no letterform. `tools/logo.py` says what each one
 must be, and refuses anything that would ship broken.
+
+### Her typeface
+
+woff2, and two halves: the file goes in `static/fonts/`, and the name
+goes in `config.toml` as the FIRST family of the stack —
+`serif = "Canela, Georgia, serif"` loads `display.woff2` as Canela, and
+the rest of the stack stays the fallback. A name with no file is the
+one failure that used to be silent: the browser draws the next family
+and says nothing, so `tools/content-check.py` now says it instead.
 
 ### Photographs
 

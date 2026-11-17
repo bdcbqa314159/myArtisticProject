@@ -38,7 +38,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from objects import LOCKED, SCHEMA, blocks, front_matter  # noqa: E402
 from edit import (CONFIG, CONFIG_FIELDS, CONTENT, MAX_IMAGE, TEXT_FIELDS,  # noqa: E402
-                  Refused, add, remove_logo, set_logo,
+                  Refused, add, remove_font, remove_logo, set_font, set_logo,
                   add_project, attach, attach_dossier, attach_photo,
                   attach_showreel, remove, remove_dossier, remove_photo,
                   remove_showreel,
@@ -105,6 +105,57 @@ def text_values() -> "dict[str, str]":
         for m in re.finditer(r'^([a-z_]+)\s*=\s*"((?:[^"\\]|\\.)*)"',
                              front if cut < 0 else front[:cut], re.M)
     }
+
+
+def faces_section() -> str:
+    """Her typeface, and whether a visitor will actually see it.
+
+    The two halves are shown together on purpose. A stack naming a face
+    with no file loaded is the state this whole section exists to make
+    visible: the panel used to accept `Canela, Georgia, serif` and say
+    nothing, and every visitor read Georgia.
+    """
+    import fonts
+
+    have = fonts.installed()
+    rows = []
+    for slot, (name, which, weight, what) in fonts.SLOTS.items():
+        here = slot in have
+        try:
+            named = fonts.family(which)
+            trouble = ""
+        except fonts.Rejected as no:
+            named, trouble = "", str(no)
+
+        if trouble:
+            state = trouble
+        elif here:
+            state = f"loaded as {named!r} at {weight}"
+        else:
+            after = ", ".join(p.strip() for p in
+                              fonts.stack(which).split(",")[1:])
+            state = (f"{named!r} is named but no file is in place — a visitor "
+                     f"sees {after or 'whatever they have'}")
+        off = (f'<button class="unface" data-slot="{slot}">remove</button>'
+               if here else "")
+        rows.append(f"""
+        <tr class="{'' if here else 'missing'}">
+          <th>{html.escape(name)}</th>
+          <td><input type="file" accept=".woff2,font/woff2" data-face="{slot}"
+                     aria-label="{html.escape(name)}">{off}</td>
+          <td class="what">{html.escape(what)} — {html.escape(state)}</td>
+        </tr>""")
+
+    return (
+        f'<section><h2>her typeface<span class="count">{len(have)} of '
+        f'{len(fonts.SLOTS)}</span></h2>'
+        '<p class="doc">Two halves, and neither works alone: the name goes in '
+        'launch below (theme.serif and theme.sans), and the file goes here. '
+        'Naming a face nobody has installed changes nothing by itself — the '
+        'browser quietly draws the next one in the stack, which is what it '
+        'did before this section existed. woff2 only.</p>'
+        f'<table>{"".join(rows)}</table></section>'
+    )
 
 
 def marks_section() -> str:
@@ -266,7 +317,8 @@ def page() -> str:
 
     return TEMPLATE.replace(
         "<!--CONTENT-->",
-        "".join(sections) + words_section() + marks_section() + launch_section())
+        "".join(sections) + words_section() + marks_section()
+        + faces_section() + launch_section())
 
 
 def shell() -> str:
@@ -969,14 +1021,16 @@ ul.gate li{margin:.2rem 0}
     var el = ev.target;
     if (el.type !== "file" || !el.files || !el.files[0]) return;
 
-    /* A mark, not a photograph: no description to ask for — what it is
-       for is the slot it was dropped in. */
-    if (el.dataset.slot) {
+    /* A mark or a typeface, not a photograph: no description to ask
+       for — what it is for is the slot it was dropped in. */
+    if (el.dataset.slot || el.dataset.face) {
+      var where = el.dataset.face ? "/font" : "/logo";
+      var which = el.dataset.face || el.dataset.slot;
       var mark = el.files[0];
       tell("reading " + mark.name + "…", false);
       var look = new FileReader();
       look.onload = function(){
-        send("/logo", {slot: el.dataset.slot, data: look.result.split(",")[1]},
+        send(where, {slot: which, data: look.result.split(",")[1]},
           function(d){
             if (!d.ok) { el.value = ""; return tell(d.message, true); }
             location.reload();
@@ -1017,6 +1071,13 @@ ul.gate li{margin:.2rem 0}
         /* Reload rather than build the new object in the page. The file
            is the truth; showing anything assembled here would be a
            second opinion about what it now contains. */
+        location.reload();
+      });
+    }
+    if (el.classList.contains("unface")) {
+      el.disabled = true;
+      send("/font-remove", {slot: el.dataset.slot}, function(d){
+        if (!d.ok) { el.disabled = false; return tell(d.message, true); }
         location.reload();
       });
     }
@@ -1188,7 +1249,7 @@ class Panel(http.server.BaseHTTPRequestHandler):
             return
         route = self.path.rsplit("/", 1)[-1]
         if route not in {"edit", "add", "remove", "attach", "config", "text",
-                         "logo", "logo-remove",
+                         "logo", "logo-remove", "font", "font-remove",
                          "photo", "project-add", "project-remove", "photo-remove",
                          "dossier", "showreel", "dossier-remove",
                          "showreel-remove"}:
@@ -1212,7 +1273,7 @@ class Panel(http.server.BaseHTTPRequestHandler):
         cap = (168 * 1024 * 1024 if route == "showreel"
                else 56 * 1024 * 1024 if route == "dossier"
                else int(MAX_IMAGE * 1.4) if route in ("attach", "photo")
-               else 6 * 1024 * 1024 if route == "logo"
+               else 6 * 1024 * 1024 if route in ("logo", "font")
                else 8192)
         if length > cap:
             self.reply({"ok": False, "message": "that is more than this accepts"})
@@ -1243,6 +1304,13 @@ class Panel(http.server.BaseHTTPRequestHandler):
                     str(body.get("slot", "")),
                     base64.b64decode(str(body.get("data", "")), validate=True),
                 )
+            elif route == "font":
+                message = set_font(
+                    str(body.get("slot", "")),
+                    base64.b64decode(str(body.get("data", "")), validate=True),
+                )
+            elif route == "font-remove":
+                message = remove_font(str(body.get("slot", "")))
             elif route == "logo-remove":
                 message = remove_logo(str(body.get("slot", "")))
             elif route == "config":

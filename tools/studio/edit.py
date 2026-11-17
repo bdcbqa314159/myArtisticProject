@@ -519,6 +519,56 @@ def remove_logo(slot: str) -> str:
     return f"{name} removed; the drawn mark is back"
 
 
+def set_font(slot: str, raw: bytes) -> str:
+    """Put one webfont in place, and regenerate the stylesheet it feeds.
+
+    Validation lives in `tools/fonts.py` for the same reason the logo's
+    lives in `tools/logo.py`: the tool that writes the stylesheet has
+    to agree with whatever accepted the file, or a face would be in
+    place with no rule loading it.
+    """
+    import fonts
+
+    if len(raw) > fonts.MAX_FACE:
+        raise Refused(f"{len(raw) // 1024}KB; the limit is "
+                      f"{fonts.MAX_FACE // 1024}KB")
+    try:
+        placed = fonts.accept(slot, raw)
+    except fonts.Rejected as no:
+        raise Refused(str(no)) from None
+
+    import subprocess
+    out = subprocess.run([sys.executable, str(ROOT / "tools" / "fonts.py")],
+                         capture_output=True, text=True, timeout=30)
+    if out.returncode != 0:
+        why = (out.stderr or out.stdout or "the stylesheet could not be written")
+        raise Refused(f"{placed}, but the stylesheet could not be written: "
+                      f"{why.strip().splitlines()[-1].strip()}")
+    return f"{placed}; the stylesheet was rebuilt"
+
+
+def remove_font(slot: str) -> str:
+    """Take one face away, and leave the stack to its fallback."""
+    import fonts
+
+    if slot not in fonts.SLOTS:
+        raise Refused(f"{slot!r} is not one of {', '.join(fonts.SLOTS)}")
+    name = fonts.SLOTS[slot][0]
+    path = ROOT / "static" / "fonts" / name
+    if not path.exists():
+        raise Refused(f"there is no {name} to remove")
+    path.unlink()
+
+    import subprocess
+    out = subprocess.run([sys.executable, str(ROOT / "tools" / "fonts.py")],
+                         capture_output=True, text=True, timeout=30)
+    if out.returncode != 0:
+        why = (out.stderr or out.stdout or "the stylesheet could not be written")
+        raise Refused(f"{name} was removed, but the stylesheet could not be "
+                      f"rewritten: {why.strip().splitlines()[-1].strip()}")
+    return f"{name} removed; the rest of the stack takes over"
+
+
 def set_config(section: str, key: str, value: str) -> str:
     """Change one launch field in config.toml.
 

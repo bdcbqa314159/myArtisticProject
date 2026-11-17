@@ -482,6 +482,12 @@ def main() -> int:
        "replace it")
     ok('"/logo-remove"' in SERVER,
        "a logo can be put in place and not taken back off")
+    ok('"/font"' in SERVER and "faces_section" in SERVER,
+       "the panel can no longer put her typeface in place, so a font stack "
+       "can be named with nothing loading it — which is the state the "
+       "section exists to make visible")
+    ok('"/font-remove"' in SERVER,
+       "a typeface can be put in place and not taken back off")
 
     # The message box is a modal dialog and the button that opens it is
     # itself a word to edit — so in the panel that click is caught and

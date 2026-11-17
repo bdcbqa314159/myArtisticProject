@@ -198,6 +198,27 @@ def main() -> int:
         if not (ROOT / "static" / f).exists():
             problems.append(f"static/{f} is missing (python3 tools/icons.py)")
 
+    # A typeface named and not loaded. This is the one that hid for a
+    # whole release: the panel takes a font stack, and naming a face
+    # nobody has installed changes nothing — the browser draws the next
+    # family in the stack and says nothing. A decision that silently did
+    # not happen is worse than one not yet taken.
+    import fonts as _fonts
+    faces = _fonts.installed()
+    for slot, (file, which, _weight, what) in _fonts.SLOTS.items():
+        try:
+            named = _fonts.family(which)
+        except _fonts.Rejected:
+            continue                    # nothing decided; nothing to contradict
+        if slot not in faces:
+            after = ", ".join(p.strip() for p in
+                              _fonts.stack(which).split(",")[1:])
+            problems.append(
+                f"theme.{which} names {named!r} and static/fonts/{file} is not "
+                f"there, so every visitor sees {after or 'their own font'} "
+                f"instead of {what}"
+            )
+
     # The drawn mark is a stand-in like the stand-in photographs, and
     # for the same reason it blocks `live`: a point on a circle is an
     # honest placeholder on a demo and a studio shipping someone else's
