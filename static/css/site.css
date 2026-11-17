@@ -2307,16 +2307,40 @@ html.js [data-copy] { display: inline-flex; }
   border-radius: 50%;
   background: var(--bg);
   pointer-events: none;
+  /* Out until its turn comes round — see "ONE AT A TIME" below. */
+  opacity: 0;
+  animation: turn var(--look-cycle, 6s) var(--look-delay, 0s) infinite both;
 }
 
-/* The lit centre. */
+/* ---- ONE AT A TIME, which is the fifth attempt at this ----------------
+ * Five lights pulsing in step read as five notifications sitting on
+ * someone's photographs — the complaint behind "still not great".
+ *
+ * So the section has exactly one moving thing again: a light appears on
+ * a print, rings once, goes out, and the next print takes its turn. The
+ * eye is led around the focus instead of being split five ways, and at
+ * any instant there is one mark on the work rather than five.
+ *
+ * Two knobs, both one line: --look-cycle is how long a full round takes,
+ * and the per-slot delays below are the order. A sixth attempt is a
+ * number change, not a rewrite.
+ */
+.shots { --look-cycle: 6s; }
+.shots.slot-1 { --look-delay: 0s; }
+.shots.slot-2 { --look-delay: 1.2s; }
+.shots.slot-3 { --look-delay: 2.4s; }
+.shots.slot-4 { --look-delay: 3.6s; }
+.shots.slot-5 { --look-delay: 4.8s; }
+
+/* The lit centre. Static now: the appearance IS the motion, and a pulse
+   inside a mark that is already fading in and out was two gestures
+   arguing. */
 .look::after {
   content: "";
   position: absolute;
   inset: 5.5px;
   border-radius: 50%;
   background: var(--ink);
-  animation: lit 3.4s ease-in-out infinite;
 }
 
 /* The halo, as a ring that opens and fades rather than a shadow — this
@@ -2328,7 +2352,7 @@ html.js [data-copy] { display: inline-flex; }
   inset: -1px;
   border-radius: 50%;
   border: 1px solid var(--ink);
-  animation: halo 3.4s ease-out infinite;
+  animation: halo var(--look-cycle) var(--look-delay, 0s) ease-out infinite both;
 }
 
 /* The one underneath has no edge to hang off — it IS the frame, and
@@ -2348,23 +2372,37 @@ html.js [data-copy] { display: inline-flex; }
    Found by asking the browser instead of doing the arithmetic. */
 .fridge[data-set="4"] > .slot-2 .look { --look-x: 8%; }
 
-@keyframes lit {
-  0%, 100% { transform: scale(0.55); opacity: 0.5; }
-  40%      { transform: scale(1);    opacity: 1; }
+/* A turn: in, held, out. The held part is what gives the eye time to
+   arrive; the rest of the round it is not there at all. */
+@keyframes turn {
+  0%        { opacity: 0; scale: 0.7; }
+  3%        { opacity: 1; scale: 1; }
+  15%       { opacity: 1; scale: 1; }
+  21%, 100% { opacity: 0; scale: 1; }
 }
 
+/* The ring opens once, inside that window — light, not depth. This page
+   has no shadows anywhere. */
 @keyframes halo {
-  0%       { transform: scale(1);   opacity: 0.45; }
-  70%, 100% { transform: scale(2.1); opacity: 0; }
+  0%, 2%    { transform: scale(1);   opacity: 0.45; }
+  17%, 100% { transform: scale(2.1); opacity: 0; }
 }
 
 @media (hover: hover) {
-  /* Quicker under a pointer — the small reward for having noticed it. */
-  .shots > summary:hover .look::after,
-  .shots > summary:hover .look::before { animation-duration: 1.5s; }
+  /* A hand over a print lights ITS light at once, rather than waiting
+     for the round to come back to it. The small reward for having
+     noticed. */
+  .shots > summary:hover .look {
+    animation: none;
+    opacity: 1;
+  }
+  .shots > summary:hover .look::before { animation: none; opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* All of them, still, and all visible: with nothing taking turns,
+     one light would say "this print" instead of "each of these". */
+  .look { animation: none; opacity: 1; }
   .look::after { animation: none; transform: scale(0.8); opacity: 0.9; }
   .look::before { animation: none; opacity: 0; }
 }

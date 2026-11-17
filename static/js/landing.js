@@ -1194,6 +1194,35 @@ function startMotion() {
  * is dead. So each stands on its own, and a failure is written where a
  * developer will find it rather than taken out on the reader.
  */
+/* ---- where each light sits ------------------------------------------
+ * The prints overlap, so a light fixed at the foot of every one of them
+ * disappears under its neighbour in a few arrangements. A project can
+ * therefore name its own spot — `look = "33 77"` — and this puts it
+ * there.
+ *
+ * WRITTEN HERE, NOT IN THE MARKUP. It was a `style` attribute on the
+ * element, and the policy on this page is `style-src 'self'` with no
+ * `unsafe-hashes`: a style ATTRIBUTE is inline style, so the browser
+ * dropped it. Measured under the page's own policy — the custom
+ * property read back EMPTY — which means the escape hatch for the
+ * three arrangements that need it had never once applied. A CSSOM
+ * write is not inline style and is allowed, so the same two numbers
+ * now arrive the way the policy permits.
+ *
+ * Without script the default stands, which is where the light was for
+ * every reader until now anyway. */
+function placeTheLights() {
+    for (const light of document.querySelectorAll("[data-look]")) {
+        const spot = (light.dataset["look"] || "").trim().split(/\s+/);
+        if (spot.length !== 2)
+            continue;
+        const [x, y] = spot.map(Number);
+        if (!Number.isFinite(x) || !Number.isFinite(y))
+            continue;
+        light.style.setProperty("--look-x", `${x}%`);
+        light.style.setProperty("--look-y", `${y}%`);
+    }
+}
 function start(what, step) {
     try {
         step();
@@ -1222,6 +1251,7 @@ start("closing the carousel", closeTheCarousel);
 start("keeping one address", keepOneAddress);
 start("the photographs drifting", photographsDrift);
 start("the press and release", showTheRelease);
+start("placing the lights", placeTheLights);
 /* LAST, and the ONLY place the page is shown.
  *
  * There must be exactly one of these. There were briefly two — an older
