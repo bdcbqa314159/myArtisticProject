@@ -137,6 +137,30 @@ dans **Everything as a list → words**, où toutes les phrases de la page
 sont rassemblées. Une modification s'enregistre dès que tu quittes le
 champ.
 
+### Le logo (l'icône de l'onglet)
+
+Pour l'instant l'onglet du navigateur porte une marque dessinée par le
+studio — un point sur un cercle, sans lettre, parce qu'une lettre serait
+déjà un logo et que c'est à la graphiste de le dessiner.
+
+Quand il existe, va dans **Everything as a list → his mark** et dépose
+trois fichiers :
+
+| fichier | pour quoi | format |
+|---|---|---|
+| `logo.svg` | l'onglet du navigateur | SVG |
+| `logo.png` | l'icône sur un écran d'accueil iPhone | PNG **carré**, 180px minimum |
+| `share.png` | l'image sous un lien partagé | PNG **exactement 1200x630** |
+
+Rien n'est converti d'un format à l'autre : demande les trois exports à
+la graphiste, c'est ce qu'elle livre de toute façon. Ce qui n'est pas
+déposé garde la marque dessinée — tu peux donc commencer par l'onglet
+seul.
+
+Un fichier au mauvais format est refusé avec la raison, et rien n'est
+remplacé tant qu'il n'est pas accepté. **remove** remet la marque
+dessinée.
+
 ### Les photographies
 
 Les six emplacements de la section *Selected Work* acceptent une image.

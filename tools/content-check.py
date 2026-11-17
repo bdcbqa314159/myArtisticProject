@@ -198,6 +198,21 @@ def main() -> int:
         if not (ROOT / "static" / f).exists():
             problems.append(f"static/{f} is missing (python3 tools/icons.py)")
 
+    # The drawn mark is a stand-in like the stand-in photographs, and
+    # for the same reason it blocks `live`: a point on a circle is an
+    # honest placeholder on a demo and a studio shipping someone else's
+    # geometry as his logo on the day it goes out.
+    import sys as _sys
+    _sys.path.insert(0, str(ROOT / "tools"))
+    from logo import SLOTS, installed as marks_installed
+    have = marks_installed()
+    absent = [name for slot, (name, _j, _w) in SLOTS.items() if slot not in have]
+    if absent:
+        problems.append(
+            f"the drawn mark still stands in for his logo: "
+            f"{', '.join(absent)} not dropped (python3 tools/logo.py)"
+        )
+
     # --- the saveable contact ---------------------------------------------
     # Offered on the page only when a name is configured, so the failure
     # being guarded is the opposite one: a card promised and missing.

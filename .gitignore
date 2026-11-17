@@ -42,6 +42,18 @@ node_modules/
 # where the client drops material before it is placed in content/
 /_client_input/
 
+# HIS MARK. The real logo is the brand itself, and the brand in this
+# repository is a stand-in — so a committed logo.svg would say in one
+# file what every other file is careful not to. The panel writes these
+# three when it is run at the repository root, and `tools/icons.py`
+# turns them into the published favicon, touch icon and share image, so
+# without these lines a drop would leave the client's mark untracked in
+# a PUBLIC checkout, one `git add -A` from being published. The real
+# ones arrive through _dropin/static/ and are assembled into _local/.
+/static/logo.svg
+/static/logo.png
+/static/share.png
+
 # THE SHOWREEL. His film, and the largest single thing he will hand
 # over. The studio panel writes it here when it is run at the repository
 # root, so without this line a drop would leave a client's film sitting
