@@ -328,6 +328,145 @@ f.addEventListener("load", () => setTimeout(() => {
 </script>"""
 
 
+REACH_PROBE = """
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+/* Can the page be reached without a mouse, and does it hold still when
+ * someone has asked it to?
+ *
+ * Framed, like every probe here, because a frame is where this browser
+ * will render a real page without running animation frames. Focus and
+ * accessible names do not need frames; the animation count does not
+ * need them either — an animation registers the moment it is applied,
+ * whether or not anything is painted. */
+function visit(then) {
+  const f = document.createElement("iframe");
+  f.width = 390; f.height = 900; f.style.border = 0; f.src = "/";
+  document.body.appendChild(f);
+  f.addEventListener("load", () => setTimeout(() => then(f.contentDocument,
+                                                         f.contentWindow), 1500));
+}
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),'
+                + 'textarea:not([disabled]),select:not([disabled]),summary,'
+                + '[tabindex]:not([tabindex="-1"])';
+const named = (el) => {
+  const text = (el.textContent || "").replace(/\\s+/g, " ").trim();
+  return !!(text || el.getAttribute("aria-label")
+            || el.getAttribute("aria-labelledby") || el.getAttribute("title")
+            || (el.querySelector("img") && el.querySelector("img").alt));
+};
+visit((d, w) => {
+  const say = (o) => { document.getElementById("o").textContent =
+    "REACH " + JSON.stringify(o); };
+  try {
+    const running = (d.getAnimations ? d.getAnimations() : [])
+      .filter(a => a.playState === "running").length;
+
+    const positive = [...d.querySelectorAll("[tabindex]")]
+      .filter(e => Number(e.getAttribute("tabindex")) > 0)
+      .map(e => e.tagName.toLowerCase());
+
+    /* The skip link only works if it is the FIRST thing a keyboard
+     * reaches, and if what it points at exists. */
+    const first = d.querySelector(FOCUSABLE);
+    const skip = d.querySelector("a.skip");
+    const target = skip && d.querySelector(skip.getAttribute("href"));
+
+    /* The honeypot is focusable on purpose — tabindex="-1" does not
+     * stop showModal() choosing it, which it once did, putting the
+     * cursor in the trap field and sending the visitor's own message
+     * to the bin. */
+    const box = d.querySelector("dialog.talk");
+    const opener = d.querySelector("[data-talk]");
+    let landed = "no box";
+    if (box && opener) {
+      /* CLICKED, not opened by hand. Calling showModal() here measures
+       * the browser's own choice of first focusable and nothing else —
+       * which is the honeypot, and is exactly why the page does not
+       * leave it to the browser. The thing worth checking is what a
+       * visitor gets, so the probe does what a visitor does. */
+      opener.click();
+      landed = (d.activeElement && (d.activeElement.name
+                || d.activeElement.id
+                || d.activeElement.tagName.toLowerCase())) || "nothing";
+      box.close();
+    }
+
+    const anonymous = [...d.querySelectorAll("a[href],button,summary")]
+      .filter(e => !named(e))
+      .map(e => e.tagName.toLowerCase() + "." + String(e.className || "")
+                 .split(" ")[0]);
+
+    say({running: running, positive: positive,
+         firstIsSkip: !!(first && skip && first === skip),
+         skipTarget: !!target, landed: landed,
+         anonymous: [...new Set(anonymous)].slice(0, 6)});
+  } catch (e) { say({error: String(e)}); }
+});
+</script>
+"""
+
+
+def check_reach(chrome: str, out: Path, url: str) -> "list[str]":
+    """Keyboard reach, accessible names, and holding still when asked.
+
+    Two runs of the same probe, which is the point: the second asks the
+    browser for reduced motion, and the pair separates "nothing is
+    animating" from "this browser never animates anything". Without the
+    first run as a control, the second would pass on a page whose
+    motion had been deleted outright.
+    """
+    (out / "_reach.html").write_text(REACH_PROBE, encoding="utf-8")
+
+    def verdict(reduced: bool) -> dict:
+        said = dom(chrome, url + "/_reach.html", 500, 900, reduced=reduced)
+        found = re.search(r"REACH (\{[^<]*\})", said)
+        return json.loads(found.group(1)) if found else {}
+
+    moving, still = verdict(False), verdict(True)
+    if not moving or not still:
+        return ["reach: the probe returned no verdict"]
+    for which, said in (("moving", moving), ("still", still)):
+        if "error" in said:
+            return [f"reach: the probe threw in the {which} run: {said['error']}"]
+
+    bad = []
+    if said_positive := moving.get("positive"):
+        bad.append(f"reach: {len(said_positive)} element(s) carry a positive "
+                   f"tabindex ({', '.join(said_positive)}). It takes them out "
+                   f"of document order and nobody maintaining the page can "
+                   f"predict where the keyboard goes next")
+    if not moving.get("firstIsSkip"):
+        bad.append("reach: the skip link is not the first thing a keyboard "
+                   "reaches, so it skips nothing")
+    if not moving.get("skipTarget"):
+        bad.append("reach: the skip link points at an id that is not on the "
+                   "page")
+    if moving.get("landed") == "_trap":
+        bad.append("reach: opening the form puts the cursor in the honeypot. "
+                   "tabindex=\"-1\" does not stop showModal() choosing it — "
+                   "anyone typing straight away fills the trap field and "
+                   "their message is refused as a robot's")
+    elif moving.get("landed") in ("nothing", "no box"):
+        bad.append(f"reach: opening the form focuses {moving.get('landed')} — "
+                   f"a keyboard is left outside a modal it cannot leave")
+    if anonymous := moving.get("anonymous"):
+        bad.append(f"reach: {len(anonymous)} control(s) have no accessible "
+                   f"name ({', '.join(anonymous)}) — a screen reader reads "
+                   f"them as \"link\" and \"button\"")
+
+    # The control, and then the thing being checked.
+    if not moving.get("running"):
+        bad.append("reach: nothing is animating even without reduced motion, "
+                   "so the stillness below proves nothing. Either the page "
+                   "lost its motion or this probe can no longer see it")
+    elif still.get("running"):
+        bad.append(f"reach: {still['running']} animation(s) are still running "
+                   f"under prefers-reduced-motion, out of "
+                   f"{moving['running']} — the stylesheet has 17 blocks "
+                   f"promising otherwise")
+    return bad
+
+
 def check_menu(chrome: str, out: Path, url: str) -> "list[str]":
     (out / "_menu.html").write_text(MENU_PROBE, encoding="utf-8")
     # NOT under reduced motion, deliberately. The page's scroll runs on
@@ -2000,6 +2139,7 @@ def main() -> int:
             # Contact in the band ends at the form, and the shape that
             # says so is on both buttons that open it.
             problems += check_menu(chrome, out, url)
+            problems += check_reach(chrome, out, url)
             site_css = Path("static/css/site.css").read_text(encoding="utf-8")
             problems += check_shape_css(site_css)
             problems += check_marks_declared(site_css)
