@@ -95,7 +95,7 @@ version that gets published.
 and showreel go in `_dropin/`, which is git-ignored; the script lays them
 over a copy of the tree in `_local/`, which is also ignored, and serves
 that. **Nothing it does touches a tracked file, and there is no flag to
-make it.** That is the mechanism keeping his material out of a public
+make it.** That is the mechanism keeping their material out of a public
 repository — not a habit, and not a reviewer noticing.
 
 `_local/` is an ordinary checkout, so every tool already here works
@@ -118,7 +118,7 @@ no network. `--init --bare` gives empty slots instead.
 ## The French page
 
 It is not a translation of the English one — it is the second version of
-the same site, for the readers the client actually speaks to, and he
+the same site, for the readers the client actually speaks to, and they
 writes it. `tools/fr-check.py` guarantees the two pages have the same
 **fields**, never the same words, and fails the build if either side
 gains or loses one. That comparison exists because its absence let the

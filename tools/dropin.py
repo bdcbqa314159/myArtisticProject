@@ -9,8 +9,8 @@
 WHY THERE ARE TWO COPIES OF THE SITE.
 
 This repository is public. The client's brand is an established
-trademark, his references are unverified until he says otherwise, and
-his photographs are his. None of that may ever be committed — see
+trademark, their references are unverified until they say otherwise,
+and their photographs are theirs. None of that may ever be committed — see
 NOTICE — and the surest way to keep a file out of a commit is for it to
 live somewhere git was told to ignore.
 
@@ -32,7 +32,7 @@ anything you put there wins.
     _dropin/config.toml              address, legal notice, social links
     _dropin/content/work-01.jpg      Reference 01's photograph
     _dropin/static/video/            the showreel and its poster
-    _dropin/static/logo.svg          his mark, for the browser tab
+    _dropin/static/logo.svg          their mark, for the browser tab
     _dropin/documents/concept-2.pdf  the document behind concept 2
     _dropin/documents/concept-2.txt  what that document is, one line
 
@@ -410,14 +410,14 @@ same path in the preview — there is no manifest to keep up to date.
 | `content/work-01.jpg` … `work-06.jpg` | the six photographs |
 | `static/video/showreel.mp4` | the film |
 | `static/video/poster.jpg` | the still shown before it plays |
-| `static/logo.svg` | his mark, in the browser tab |
+| `static/logo.svg` | their mark, in the browser tab |
 | `static/logo.png` | the icon iOS puts on a home screen — square |
 | `static/share.png` | the picture under a pasted link — 1200x630 |
 | `static/fonts/display.woff2` | the display face |
 | `static/fonts/text.woff2` | the text face |
 | `static/fonts/text-bold.woff2` | the text face in bold |
 
-### His mark
+### Their mark
 
 Three files, each used exactly as given: nothing here converts an SVG
 into a PNG, because that needs a rasteriser this repository does not
@@ -426,7 +426,7 @@ export. Whatever is not dropped keeps the mark `tools/icons.py` draws —
 a point on a circle, no letterform. `tools/logo.py` says what each one
 must be, and refuses anything that would ship broken.
 
-### Her typeface
+### Their typeface
 
 woff2, and two halves: the file goes in `static/fonts/`, and the name
 goes in `config.toml` as the FIRST family of the stack —

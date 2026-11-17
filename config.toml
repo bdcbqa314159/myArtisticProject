@@ -63,8 +63,8 @@ studio = "deLapatadaSoftware"
 # THE BRAND ON THIS DEMO IS A STAND-IN.
 #
 # The client's brand is an established trademark. A public repository
-# and a public Pages URL carrying it would compete with his own
-# referencing for his own name — so nothing here uses it, and that
+# and a public Pages URL carrying it would compete with their own
+# referencing for their own name — so nothing here uses it, and that
 # includes the content files, which are readable on GitHub whatever the
 # page renders.
 #
@@ -100,7 +100,7 @@ email = ""
 
 # The saveable contact. In the moment this page is actually used — handed
 # across a table at an event — the useful action is not a form that sends
-# into a void, it is one that KEEPS him: a card the visitor saves to their
+# into a void, it is one that KEEPS them: a card the visitor saves to their
 # phone before they put it down.
 #
 # Filled in at handover, like the address. While `email` is empty nothing
@@ -131,7 +131,7 @@ vcard_url = ""         # optional
 #
 # TWO KEYS, picked by `live`, for the same reason the identity and the
 # robots policy are. A single key would mean flipping `live = true` puts
-# the client's name up while his enquiries still arrive in the studio's
+# the client's name up while their enquiries still arrive in the studio's
 # inbox — silently, until somebody says they never heard back.
 #
 # An empty key makes the form say it is not connected rather than
@@ -191,7 +191,7 @@ endpoint = "https://api.web3forms.com/submit"
 access_key = ""        # the studio's own, while live = false
 
 [extra.contact_form.real]
-access_key = ""        # the client's own, registered by him, to his address
+access_key = ""        # the client's own, registered by them, to their address
 
 [extra.legal]
 entity = ""            # the legal name of the publisher
@@ -207,8 +207,8 @@ host_url = "https://github.com"
 # ELSEWHERE — the two the client named: LinkedIn and WhatsApp Business.
 #
 # `url` points at each service's own page for now — the client's call,
-# and enough to show the footer working. When his LinkedIn profile and
-# his WhatsApp Business number arrive, each is a one-line swap here or
+# and enough to show the footer working. When their LinkedIn profile and
+# their WhatsApp Business number arrive, each is a one-line swap here or
 # a paste into the studio panel, which can edit `url` and nothing else:
 # `name` and the mark filenames are ours and are not reachable from a
 # browser.
@@ -224,7 +224,7 @@ host_url = "https://github.com"
 # ---------------------------------------------------------------
 [extra.social.linkedin]
 name = "LinkedIn"
-url = "https://www.linkedin.com"   # his profile when we have it
+url = "https://www.linkedin.com"   # their profile when we have it
 mark = "linkedin-black.png"      # in: the In Bug, unmodified
 mark_dark = "linkedin-white.png"
 

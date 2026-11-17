@@ -3,7 +3,7 @@
 {% else %}{% set_global id = config.extra.demo %}{% endif %}
 {# The form's destination follows the identity, for the same reason the
    name and the robots policy do: one key would mean the client's name
-   goes up while his enquiries still arrive in the studio's inbox. #}
+   goes up while their enquiries still arrive in the studio's inbox. #}
 {% if config.extra.live %}{% set_global contact_key = config.extra.contact_form.real.access_key %}
 {% else %}{% set_global contact_key = config.extra.contact_form.demo.access_key %}{% endif %}
 {% set e = section.extra %}
@@ -349,7 +349,7 @@
             {# Only on the demo. The badge is tied to the presence of an
                IMAGE, not to whether that image is a placeholder — so at
                `live = true` it would have sat on the client's own
-               photographs, labelling his work as a stand-in. #}
+               photographs, labelling their work as a stand-in. #}
             {% if not config.extra.live %}<figcaption class="stand-in">stand-in</figcaption>{% endif %}
           {% else %}
             <figcaption>Image / case study</figcaption>
@@ -515,13 +515,13 @@
     <div class="actions">
       {# The way through, whether or not an address is ever configured.
          It replaces the "to configure" line, which told a visitor
-         nothing and a client that his own site was unfinished. #}
+         nothing and a client that their own site was unfinished. #}
       <a class="btn primary bubble" href="#talk" data-talk>{{ e.cta_contact }}</a>
       {% if config.extra.contact.email %}
       <a class="btn" href="mailto:{{ config.extra.contact.email }}">{{ config.extra.contact.email }}</a>
       {# The saveable card. In the moment this page is actually used — a
          phone handed across a table — the useful action is the one that
-         KEEPS him, not one that sends into a void. Built by
+         KEEPS them, not one that sends into a void. Built by
          tools/vcard.py, which writes nothing while no address is set. #}
       {% if config.extra.contact.vcard_name %}
       <a class="btn" href="{{ get_url(path='contact.vcf') }}" download data-edit="contact_save">{{ e.contact_save }}</a>

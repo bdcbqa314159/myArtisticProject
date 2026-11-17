@@ -143,7 +143,7 @@ Pour l'instant l'onglet du navigateur porte une marque dessinée par le
 studio — un point sur un cercle, sans lettre, parce qu'une lettre serait
 déjà un logo et que c'est à la graphiste de le dessiner.
 
-Quand il existe, va dans **Everything as a list → his mark** et dépose
+Quand il existe, va dans **Everything as a list → the mark** et dépose
 trois fichiers :
 
 | fichier | pour quoi | format |
@@ -168,7 +168,7 @@ Deux moitiés, et aucune ne suffit seule.
 1. **Le nom** : dans **Everything as a list → launch → extra.theme**,
    écris la pile de polices, la vraie en premier —
    `serif = "Canela, Georgia, serif"`.
-2. **Le fichier** : dans **Everything as a list → her typeface**, dépose
+2. **Le fichier** : dans **Everything as a list → the typeface**, dépose
    le `.woff2` correspondant.
 
 Écrire le nom sans déposer le fichier ne change **rien** : le navigateur

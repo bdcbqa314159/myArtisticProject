@@ -43,7 +43,7 @@ no(checkEmail("a@b"), "err_mail_invalid", "no dot in the domain");
 no(checkEmail("a @b.co"), "err_mail_invalid", "a space inside");
 
 /* THE ONE THAT MATTERS. A newline in a field that becomes a mail header
- * lets an attacker append their own, and the mail goes out in his name. */
+ * lets an attacker append their own, and the mail goes out in their name. */
 no(checkEmail("a@b.co\nBcc: everyone@example.com"), "err_mail_invalid",
    "a header smuggled into the address");
 no(checkEmail("a@b.co\r\nTo: someone@example.com"), "err_mail_invalid",

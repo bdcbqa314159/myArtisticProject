@@ -10,8 +10,8 @@ WHAT THIS IS FOR, AND WHAT IT IS NOT FOR.
 
 The French page is not a translation of the English one. It is the
 second version of the same site, for readers the client actually speaks
-to, and he will write most of it himself — he is francophone and it is
-his voice.
+to, and they will write most of it themselves — they are francophone
+and it is their voice.
 
 What a blank page costs is the reason this exists anyway: reacting to a
 draft is far easier than starting from nothing, even in your own
@@ -107,7 +107,7 @@ def translate(texts: "list[str]", api_key: str, formality: str) -> "list[str]":
 
     `formality` is passed through rather than chosen here. French makes
     a register decision English does not — how close to the reader you
-    stand — and that is the client's call about his own voice, not a
+    stand — and that is the client's call about their own voice, not a
     default buried in a tool.
     """
     form: "list[tuple[str, str]]" = [

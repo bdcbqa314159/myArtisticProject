@@ -9,11 +9,11 @@ those archives are overwhelmingly unlicensed re-uploads, and a mark on a
 client's site is the last place to find out.
 
 PLACEHOLDERS. The graphiste authors the real logo and iconography; this
-is what stands in the browser tab until she does, so that the tab is not
+is what stands in the browser tab until they do, so that the tab is not
 a blank page icon and a pasted link is not a grey rectangle. The mark is
 deliberately generic — a point on a circle, a distance travelled — and
 carries no letterform, because a letterform would be a logo and that is
-hers to design.
+theirs to design.
 """
 
 import struct
@@ -125,21 +125,21 @@ FAVICON = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
 def main() -> int:
     STATIC.mkdir(exist_ok=True)
 
-    # His own mark wins wherever it has been dropped. Each of the three
+    # Their own mark wins wherever it has been dropped. Each of the three
     # is independent: the tab can carry the real logo while the share
     # image is still the drawn one. `tools/logo.py` has already refused
     # anything that would ship broken, so what arrives here is usable.
-    his = installed()
+    theirs = installed()
     drawn = []
 
-    if "logo" in his:
-        (STATIC / "favicon.svg").write_bytes(his["logo"])
+    if "logo" in theirs:
+        (STATIC / "favicon.svg").write_bytes(theirs["logo"])
     else:
         (STATIC / "favicon.svg").write_text(FAVICON, encoding="utf-8")
         drawn.append("favicon.svg")
 
-    if "touch" in his:
-        (STATIC / "icon-180.png").write_bytes(his["touch"])
+    if "touch" in theirs:
+        (STATIC / "icon-180.png").write_bytes(theirs["touch"])
     else:
         # iOS ignores SVG favicons and has no dark variant for a touch
         # icon, so this one is light-ground only, which is what it is
@@ -147,8 +147,8 @@ def main() -> int:
         png(STATIC / "icon-180.png", 180, 180, mark(180, 180, 0.30))
         drawn.append("icon-180.png")
 
-    if "share" in his:
-        (STATIC / "og.png").write_bytes(his["share"])
+    if "share" in theirs:
+        (STATIC / "og.png").write_bytes(theirs["share"])
     else:
         # 1200x630 is what the social cards expect. No text: we cannot
         # rasterise a typeface without a dependency, and a wrong typeface
@@ -158,7 +158,7 @@ def main() -> int:
 
     for f in ("favicon.svg", "icon-180.png", "og.png"):
         p = STATIC / f
-        whose = "drawn here" if f in drawn else "his own mark"
+        whose = "drawn here" if f in drawn else "their own mark"
         print(f"  {f:<16} {p.stat().st_size:>7,} bytes   {whose}")
     print()
     return 0

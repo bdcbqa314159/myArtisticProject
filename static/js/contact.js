@@ -22,7 +22,7 @@ const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
 const NEWLINE = /[\r\n]/;
 /* The shape that turns a contact form into a spam relay: a newline in a
  * field that lands in a mail header lets an attacker append their own —
- * "Bcc: <five thousand addresses>" — and the mail goes out in his name. */
+ * "Bcc: <five thousand addresses>" — and the mail goes out in their name. */
 const HEADERISH = /(^|[\r\n])\s*(bcc|cc|to|from|reply-to|content-type|content-transfer-encoding|mime-version|x-mailer)\s*:/i;
 export const LIMITS = { email: 254, subject: 150, message: 4000 };
 /** Strip control characters. Never a substitute for refusing — only to
