@@ -241,7 +241,11 @@ def installed() -> "dict[str, bytes]":
         try:
             judge(raw)
         except Rejected as no:
-            print(f"  static/{name} is not usable: {no}", file=sys.stderr)
+            # The real path, not an assumed one: these checks point
+            # STATIC at a temporary directory, and a message naming a
+            # file that does not exist sends someone looking in the
+            # wrong place.
+            print(f"  {path} is not usable: {no}", file=sys.stderr)
             continue
         out[slot] = raw
     return out

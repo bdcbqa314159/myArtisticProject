@@ -225,6 +225,34 @@ INVARIANTS = [
 ]
 
 
+def unrun_checks() -> "list[str]":
+    """Checks the workflow runs that `npm test` does not.
+
+    The two lists were written separately and drifted: CI grew to
+    twenty-two steps while `npm test` still ran fifteen, so seven
+    checks — the embedded scripts, the cover's floor, a PDF, a logo, a
+    typeface and both generated stylesheets — existed and ran NOWHERE
+    anyone would see before pushing. A green run locally meant nothing
+    about the run that decides whether the site deploys.
+
+    Compared rather than unified, because the two cannot be one list:
+    CI runs each step separately so a failure says which one, installs
+    poppler for the PDF, and splits across two jobs.
+    """
+    ci = [
+        re.sub(r"\s*#.*$", "", step).strip()
+        for step in re.findall(r"^\s*- run: (.+)$",
+                               read(".github/workflows/deploy.yml"), re.M)
+    ]
+    # Not checks: one installs the dependencies, the other a system
+    # package. Nothing to run locally for either.
+    ci = [c for c in ci if not c.startswith(("npm ci", "sudo apt-get"))]
+
+    said = re.search(r'"test":\s*"(.*?)"', read("package.json"))
+    locally = [c.strip() for c in (said.group(1) if said else "").split("&&")]
+    return [c for c in ci if c not in locally]
+
+
 def duplicate_rules() -> "list[str]":
     """Selectors defined twice at the top level of the stylesheet.
 
@@ -270,14 +298,23 @@ def duplicate_rules() -> "list[str]":
 def main() -> int:
     problems = []
     dupes = duplicate_rules()
+    unrun = unrun_checks()
     for name, rel, pattern, expected, why in INVARIANTS:
         found = len(re.findall(pattern, read(rel)))
         if found != expected:
             problems.append((name, rel, found, expected, why))
 
-    if not problems and not dupes:
-        print(f"\n  invariants: {len(INVARIANTS)} hold, no selector defined twice\n")
+    if not problems and not dupes and not unrun:
+        print(f"\n  invariants: {len(INVARIANTS)} hold, no selector defined "
+              f"twice, and npm test runs what the workflow runs\n")
         return 0
+
+    if unrun:
+        print("\n  THE WORKFLOW RUNS CHECKS THAT npm test DOES NOT\n")
+        for c in unrun:
+            print(f"    {c}")
+        print("      So a clean run here can still fail in CI. Add them to")
+        print('      the "test" script in package.json.\n')
 
     if dupes:
         print("\n  THE SAME SELECTOR IS DEFINED TWICE\n")
@@ -287,7 +324,7 @@ def main() -> int:
         print("      how an edit stops applying and nobody can say why.\n")
 
     if not problems:
-        return 1
+        return 1 if (dupes or unrun) else 0
 
     print("\n  INVARIANT BROKEN\n")
     for name, rel, found, expected, why in problems:

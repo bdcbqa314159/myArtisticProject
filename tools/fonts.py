@@ -201,7 +201,8 @@ def installed() -> "dict[str, bytes]":
         try:
             check_woff2(raw)
         except Rejected as no:
-            print(f"  static/fonts/{name} is not usable: {no}", file=sys.stderr)
+            # The real path — see the same note in tools/logo.py.
+            print(f"  {path} is not usable: {no}", file=sys.stderr)
             continue
         out[slot] = raw
     return out
