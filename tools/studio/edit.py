@@ -469,6 +469,56 @@ def _regenerate_theme() -> str:
     return ""
 
 
+def set_logo(slot: str, raw: bytes) -> str:
+    """Put one of his three marks in place, and rebuild what it feeds.
+
+    The validation is not here: `tools/logo.py` owns what a usable mark
+    is, because `tools/icons.py` has to agree with it — a file this
+    accepted and that one then refused would leave the tab showing the
+    placeholder with nothing saying why.
+    """
+    import logo
+
+    if len(raw) > MAX_IMAGE:
+        raise Refused(f"{len(raw) // 1024 // 1024}MB; the limit is "
+                      f"{MAX_IMAGE // 1024 // 1024}MB")
+    try:
+        placed = logo.accept(slot, raw)
+    except logo.Rejected as no:
+        raise Refused(str(no)) from None
+
+    import subprocess
+    out = subprocess.run([sys.executable, str(ROOT / "tools" / "icons.py")],
+                         capture_output=True, text=True, timeout=60)
+    if out.returncode != 0:
+        why = (out.stderr or out.stdout or "the icons could not be built")
+        raise Refused(f"{placed}, but the icons could not be rebuilt: "
+                      f"{why.strip().splitlines()[-1].strip()}")
+    return f"{placed}; the tab, the touch icon and the share image were rebuilt"
+
+
+def remove_logo(slot: str) -> str:
+    """Take one of his marks away again, and draw the stand-in back."""
+    import logo
+
+    if slot not in logo.SLOTS:
+        raise Refused(f"{slot!r} is not one of {', '.join(logo.SLOTS)}")
+    name = logo.SLOTS[slot][0]
+    path = ROOT / "static" / name
+    if not path.exists():
+        raise Refused(f"there is no {name} to remove")
+    path.unlink()
+
+    import subprocess
+    out = subprocess.run([sys.executable, str(ROOT / "tools" / "icons.py")],
+                         capture_output=True, text=True, timeout=60)
+    if out.returncode != 0:
+        why = (out.stderr or out.stdout or "the icons could not be built")
+        raise Refused(f"{name} was removed, but the icons could not be "
+                      f"redrawn: {why.strip().splitlines()[-1].strip()}")
+    return f"{name} removed; the drawn mark is back"
+
+
 def set_config(section: str, key: str, value: str) -> str:
     """Change one launch field in config.toml.
 

@@ -38,7 +38,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from objects import LOCKED, SCHEMA, blocks, front_matter  # noqa: E402
 from edit import (CONFIG, CONFIG_FIELDS, CONTENT, MAX_IMAGE, TEXT_FIELDS,  # noqa: E402
-                  Refused, add,
+                  Refused, add, remove_logo, set_logo,
                   add_project, attach, attach_dossier, attach_photo,
                   attach_showreel, remove, remove_dossier, remove_photo,
                   remove_showreel,
@@ -105,6 +105,48 @@ def text_values() -> "dict[str, str]":
         for m in re.finditer(r'^([a-z_]+)\s*=\s*"((?:[^"\\]|\\.)*)"',
                              front if cut < 0 else front[:cut], re.M)
     }
+
+
+def marks_section() -> str:
+    """His own logo, in the three places a browser asks for one.
+
+    Three slots rather than one, and nothing converted between them:
+    there is no rasteriser here, so an SVG cannot become the two PNGs.
+    The alternative would be a dependency, or guessing a crop of
+    someone's mark — and the three files are what a handover gives you
+    anyway. `tools/logo.py` says what each one must be.
+    """
+    import logo
+
+    have = logo.installed()
+    rows = []
+    for slot, (name, _judge, what) in logo.SLOTS.items():
+        here = slot in have
+        state = (f"{len(have[slot]) // 1024 or 1}KB in place" if here
+                 else "the drawn mark stands")
+        off = (f'<button class="unmark" data-slot="{slot}">remove</button>'
+               if here else "")
+        accept = "image/svg+xml" if slot == "logo" else "image/png"
+        rows.append(f"""
+        <tr class="{'' if here else 'missing'}">
+          <th>{html.escape(name)}</th>
+          <td><input type="file" accept="{accept}" data-slot="{slot}"
+                     aria-label="{html.escape(name)}">{off}</td>
+          <td class="what">{html.escape(what)} — {html.escape(state)}</td>
+        </tr>""")
+
+    return (
+        f'<section><h2>his mark<span class="count">{len(have)} of '
+        f'{len(logo.SLOTS)}</span></h2>'
+        '<p class="doc">Until the logo exists, the tab carries a mark drawn by '
+        'the studio — a point on a circle, no letterform. Drop the real one '
+        'here and it replaces that everywhere: the tab, the icon iOS puts on '
+        'a home screen, and the picture under a pasted link. An SVG for the '
+        'tab, a square PNG for the icon, and 1200x630 for the link. Nothing '
+        'is converted between them, so whatever is not dropped keeps the '
+        'drawn mark.</p>'
+        f'<table>{"".join(rows)}</table></section>'
+    )
 
 
 def words_section() -> str:
@@ -222,8 +264,9 @@ def page() -> str:
             f"</section>"
         )
 
-    return TEMPLATE.replace("<!--CONTENT-->",
-                            "".join(sections) + words_section() + launch_section())
+    return TEMPLATE.replace(
+        "<!--CONTENT-->",
+        "".join(sections) + words_section() + marks_section() + launch_section())
 
 
 def shell() -> str:
@@ -925,6 +968,24 @@ ul.gate li{margin:.2rem 0}
   document.addEventListener("change", function(ev){
     var el = ev.target;
     if (el.type !== "file" || !el.files || !el.files[0]) return;
+
+    /* A mark, not a photograph: no description to ask for — what it is
+       for is the slot it was dropped in. */
+    if (el.dataset.slot) {
+      var mark = el.files[0];
+      tell("reading " + mark.name + "…", false);
+      var look = new FileReader();
+      look.onload = function(){
+        send("/logo", {slot: el.dataset.slot, data: look.result.split(",")[1]},
+          function(d){
+            if (!d.ok) { el.value = ""; return tell(d.message, true); }
+            location.reload();
+          });
+      };
+      look.readAsDataURL(mark);
+      return;
+    }
+
     var alt = document.querySelector('.alt[data-for="' + el.dataset.index + '"]');
     if (!alt || !alt.value.trim()) {
       el.value = "";
@@ -956,6 +1017,13 @@ ul.gate li{margin:.2rem 0}
         /* Reload rather than build the new object in the page. The file
            is the truth; showing anything assembled here would be a
            second opinion about what it now contains. */
+        location.reload();
+      });
+    }
+    if (el.classList.contains("unmark")) {
+      el.disabled = true;
+      send("/logo-remove", {slot: el.dataset.slot}, function(d){
+        if (!d.ok) { el.disabled = false; return tell(d.message, true); }
         location.reload();
       });
     }
@@ -1120,6 +1188,7 @@ class Panel(http.server.BaseHTTPRequestHandler):
             return
         route = self.path.rsplit("/", 1)[-1]
         if route not in {"edit", "add", "remove", "attach", "config", "text",
+                         "logo", "logo-remove",
                          "photo", "project-add", "project-remove", "photo-remove",
                          "dossier", "showreel", "dossier-remove",
                          "showreel-remove"}:
@@ -1135,9 +1204,15 @@ class Panel(http.server.BaseHTTPRequestHandler):
         # A film is the largest thing this panel ever carries. The
         # verb has its own 120MB ceiling; this only has to let one
         # through to the place that judges it.
+        # A mark is kilobytes of geometry, and `tools/logo.py` holds it
+        # to 512KB of SVG or 4MB of PNG. This only has to let one
+        # through to the place that judges it — and the 8KB floor
+        # below, which is right for a line of TOML, refused a 13KB
+        # share image with a message about nothing a person can act on.
         cap = (168 * 1024 * 1024 if route == "showreel"
                else 56 * 1024 * 1024 if route == "dossier"
                else int(MAX_IMAGE * 1.4) if route in ("attach", "photo")
+               else 6 * 1024 * 1024 if route == "logo"
                else 8192)
         if length > cap:
             self.reply({"ok": False, "message": "that is more than this accepts"})
@@ -1163,6 +1238,13 @@ class Panel(http.server.BaseHTTPRequestHandler):
             elif route == "text":
                 message = set_text(str(body.get("key", "")),
                                    str(body.get("value", "")))
+            elif route == "logo":
+                message = set_logo(
+                    str(body.get("slot", "")),
+                    base64.b64decode(str(body.get("data", "")), validate=True),
+                )
+            elif route == "logo-remove":
+                message = remove_logo(str(body.get("slot", "")))
             elif route == "config":
                 message = set_config(
                     str(body.get("section", "")),

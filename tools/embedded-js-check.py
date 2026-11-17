@@ -30,9 +30,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 # Where to look, and how to get the script out of it.
+# The second pattern named SHELL alone, and the panel has two pages: the
+# form page's own two hundred lines of JavaScript were never parsed. The
+# tell was this tool reporting an unchanged line count after that script
+# had just been edited — so it matches any such string now rather than
+# the names someone remembered.
 SOURCES = (
     ("tools/render-check.py", r'^([A-Z_]+_PROBE)\s*=\s*"""(.*?)"""'),
-    ("tools/studio/server.py", r'^(SHELL)\s*=\s*r?"""(.*?)"""'),
+    ("tools/studio/server.py", r'^(SHELL|TEMPLATE)\s*=\s*r?"""(.*?)"""'),
 )
 
 

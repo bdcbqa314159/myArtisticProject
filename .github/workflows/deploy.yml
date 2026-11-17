@@ -63,6 +63,7 @@ jobs:
       # refused.
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
       - run: python3 tools/dossier-check.py  # a PDF is judged by what is inside it
+      - run: python3 tools/logo-check.py     # and so is a logo
       - run: python3 tools/invariants.py     # nothing that must happen once happens twice
       - run: python3 tools/studio/check.py   # the editor refuses what it must, and the guide still quotes it
       - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2

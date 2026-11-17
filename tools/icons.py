@@ -21,6 +21,9 @@ import sys
 import zlib
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from logo import installed  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 STATIC = ROOT / "static"
 
@@ -122,20 +125,41 @@ FAVICON = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
 def main() -> int:
     STATIC.mkdir(exist_ok=True)
 
-    (STATIC / "favicon.svg").write_text(FAVICON, encoding="utf-8")
+    # His own mark wins wherever it has been dropped. Each of the three
+    # is independent: the tab can carry the real logo while the share
+    # image is still the drawn one. `tools/logo.py` has already refused
+    # anything that would ship broken, so what arrives here is usable.
+    his = installed()
+    drawn = []
 
-    # iOS ignores SVG favicons and has no dark variant for a touch icon,
-    # so this one is light-ground only, which is what it is placed on.
-    png(STATIC / "icon-180.png", 180, 180, mark(180, 180, 0.30))
+    if "logo" in his:
+        (STATIC / "favicon.svg").write_bytes(his["logo"])
+    else:
+        (STATIC / "favicon.svg").write_text(FAVICON, encoding="utf-8")
+        drawn.append("favicon.svg")
 
-    # 1200x630 is what the social cards expect. No text: we cannot
-    # rasterise a typeface without a dependency, and a wrong typeface
-    # would be a worse answer than none.
-    png(STATIC / "og.png", 1200, 630, mark(1200, 630, 0.26))
+    if "touch" in his:
+        (STATIC / "icon-180.png").write_bytes(his["touch"])
+    else:
+        # iOS ignores SVG favicons and has no dark variant for a touch
+        # icon, so this one is light-ground only, which is what it is
+        # placed on.
+        png(STATIC / "icon-180.png", 180, 180, mark(180, 180, 0.30))
+        drawn.append("icon-180.png")
+
+    if "share" in his:
+        (STATIC / "og.png").write_bytes(his["share"])
+    else:
+        # 1200x630 is what the social cards expect. No text: we cannot
+        # rasterise a typeface without a dependency, and a wrong typeface
+        # would be a worse answer than none.
+        png(STATIC / "og.png", 1200, 630, mark(1200, 630, 0.26))
+        drawn.append("og.png")
 
     for f in ("favicon.svg", "icon-180.png", "og.png"):
         p = STATIC / f
-        print(f"  {f:<16} {p.stat().st_size:>7,} bytes")
+        whose = "drawn here" if f in drawn else "his own mark"
+        print(f"  {f:<16} {p.stat().st_size:>7,} bytes   {whose}")
     print()
     return 0
 

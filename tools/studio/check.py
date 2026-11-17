@@ -476,6 +476,13 @@ def main() -> int:
        "the form's replies are on no page and now on no list either — "
        "there is no way left to reword a single one of them")
 
+    ok('"/logo"' in SERVER and "marks_section" in SERVER,
+       "the panel can no longer put the client's own logo in place, so the "
+       "browser tab keeps the drawn stand-in with nothing saying how to "
+       "replace it")
+    ok('"/logo-remove"' in SERVER,
+       "a logo can be put in place and not taken back off")
+
     # The message box is a modal dialog and the button that opens it is
     # itself a word to edit — so in the panel that click is caught and
     # the form is never seen. The panel adds its own way in.
