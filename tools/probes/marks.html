@@ -1,0 +1,28 @@
+<meta charset=utf-8><body style=margin:0><p id=o>?</p><script>
+const f = document.createElement("iframe");
+f.width = 390; f.height = 700; f.style.border = 0; f.src = "/";
+document.body.appendChild(f);
+const luma = (s) => {
+  const m = (s.match(/[\d.]+/g) || [0, 0, 0]).map(Number);
+  return 0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2];
+};
+f.addEventListener("load", () => setTimeout(() => {
+  const d = f.contentDocument, w = f.contentWindow;
+  const links = d.querySelectorAll(".dock a").length;
+  const out = [];
+  for (const p of __PALETTES__) {
+    if (p === "") delete d.documentElement.dataset.palette;
+    else d.documentElement.dataset.palette = p;
+    const pale = luma(w.getComputedStyle(d.body).backgroundColor) > 128;
+    const shown = [...d.querySelectorAll(".dock .mark")]
+      .filter((i) => w.getComputedStyle(i).display !== "none")
+      .map((i) => i.currentSrc);
+    // One mark per link, and its tone is the one the ground can show.
+    const wrong = shown.filter((u) => u.includes(pale ? "white" : "black")).length;
+    out.push((p || "default") + ":" + (shown.length === links ? "n" : "COUNT")
+      + (wrong === 0 ? "ok" : "WRONG"));
+  }
+  document.getElementById("o").textContent = "MARKS links=" + links
+    + " " + out.join(" ");
+}, 700));
+</script>

@@ -1,0 +1,74 @@
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+/* Can the page be reached without a mouse, and does it hold still when
+ * someone has asked it to?
+ *
+ * Framed, like every probe here, because a frame is where this browser
+ * will render a real page without running animation frames. Focus and
+ * accessible names do not need frames; the animation count does not
+ * need them either — an animation registers the moment it is applied,
+ * whether or not anything is painted. */
+function visit(then) {
+  const f = document.createElement("iframe");
+  f.width = 390; f.height = 900; f.style.border = 0; f.src = "/";
+  document.body.appendChild(f);
+  f.addEventListener("load", () => setTimeout(() => then(f.contentDocument,
+                                                         f.contentWindow), 1500));
+}
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),'
+                + 'textarea:not([disabled]),select:not([disabled]),summary,'
+                + '[tabindex]:not([tabindex="-1"])';
+const named = (el) => {
+  const text = (el.textContent || "").replace(/\s+/g, " ").trim();
+  return !!(text || el.getAttribute("aria-label")
+            || el.getAttribute("aria-labelledby") || el.getAttribute("title")
+            || (el.querySelector("img") && el.querySelector("img").alt));
+};
+visit((d, w) => {
+  const say = (o) => { document.getElementById("o").textContent =
+    "REACH " + JSON.stringify(o); };
+  try {
+    const running = (d.getAnimations ? d.getAnimations() : [])
+      .filter(a => a.playState === "running").length;
+
+    const positive = [...d.querySelectorAll("[tabindex]")]
+      .filter(e => Number(e.getAttribute("tabindex")) > 0)
+      .map(e => e.tagName.toLowerCase());
+
+    /* The skip link only works if it is the FIRST thing a keyboard
+     * reaches, and if what it points at exists. */
+    const first = d.querySelector(FOCUSABLE);
+    const skip = d.querySelector("a.skip");
+    const target = skip && d.querySelector(skip.getAttribute("href"));
+
+    /* The honeypot is focusable on purpose — tabindex="-1" does not
+     * stop showModal() choosing it, which it once did, putting the
+     * cursor in the trap field and sending the visitor's own message
+     * to the bin. */
+    const box = d.querySelector("dialog.talk");
+    const opener = d.querySelector("[data-talk]");
+    let landed = "no box";
+    if (box && opener) {
+      /* CLICKED, not opened by hand. Calling showModal() here measures
+       * the browser's own choice of first focusable and nothing else —
+       * which is the honeypot, and is exactly why the page does not
+       * leave it to the browser. The thing worth checking is what a
+       * visitor gets, so the probe does what a visitor does. */
+      opener.click();
+      landed = (d.activeElement && (d.activeElement.name
+                || d.activeElement.id
+                || d.activeElement.tagName.toLowerCase())) || "nothing";
+      box.close();
+    }
+
+    const anonymous = [...d.querySelectorAll("a[href],button,summary")]
+      .filter(e => !named(e))
+      .map(e => e.tagName.toLowerCase() + "." + String(e.className || "")
+                 .split(" ")[0]);
+
+    say({running: running, positive: positive,
+         firstIsSkip: !!(first && skip && first === skip),
+         skipTarget: !!target, landed: landed,
+         anonymous: [...new Set(anonymous)].slice(0, 6)});
+  } catch (e) { say({error: String(e)}); }
+});
+</script>

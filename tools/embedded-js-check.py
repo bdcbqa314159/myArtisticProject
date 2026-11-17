@@ -30,27 +30,46 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 # Where to look, and how to get the script out of it.
-# The second pattern named SHELL alone, and the panel has two pages: the
-# form page's own two hundred lines of JavaScript were never parsed. The
-# tell was this tool reporting an unchanged line count after that script
-# had just been edited — so it matches any such string now rather than
-# the names someone remembered.
-SOURCES = (
-    ("tools/render-check.py", r'^([A-Z_]+_PROBE)\s*=\s*"""(.*?)"""'),
+# Where a script hides inside another language. The panel's two pages
+# are HTML documents inside Python strings; the probe pages used to be
+# too, and are real files now — parsed here as well, because a tool
+# that says "all parse" while quietly covering a fifth of what it did
+# is worse than one that fails.
+EMBEDDED = (
     ("tools/studio/server.py", r'^(SHELL|TEMPLATE)\s*=\s*r?"""(.*?)"""'),
 )
+
+# And the probe pages, which are HTML on disk. A directory rather than
+# a list: a probe added without being mentioned anywhere is the normal
+# way coverage goes backwards.
+PROBES = ROOT / "tools" / "probes"
+
+
+def tags(label: str, body: str) -> "list[tuple[str, str]]":
+    return [
+        (label + (f" #{i}" if i > 1 else ""), tag.group(1))
+        for i, tag in enumerate(
+            re.finditer(r"<script[^>]*>(.*?)</script>", body, re.S), 1)
+    ]
 
 
 def scripts() -> "list[tuple[str, str]]":
     out = []
-    for rel, pattern in SOURCES:
+    for rel, pattern in EMBEDDED:
         text = (ROOT / rel).read_text(encoding="utf-8")
         for block in re.finditer(pattern, text, re.S | re.M):
-            name, body = block.group(1), block.group(2)
-            for i, tag in enumerate(re.finditer(r"<script[^>]*>(.*?)</script>",
-                                                body, re.S), 1):
-                label = f"{rel}:{name}" + (f" #{i}" if i > 1 else "")
-                out.append((label, tag.group(1)))
+            out += tags(f"{rel}:{block.group(1)}", block.group(2))
+
+    pages = sorted(PROBES.glob("*.html")) if PROBES.exists() else []
+    if not pages:
+        print(f"\n  no probe pages in {PROBES.relative_to(ROOT)}. They hold "
+              f"the browser programs the render check runs — if they have "
+              f"moved, point this at them rather than letting it pass over "
+              f"an empty directory.\n", file=sys.stderr)
+        raise SystemExit(1)
+    for page in pages:
+        out += tags(f"tools/probes/{page.name}",
+                    page.read_text(encoding="utf-8"))
     return out
 
 

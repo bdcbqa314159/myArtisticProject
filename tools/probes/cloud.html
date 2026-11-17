@@ -1,0 +1,95 @@
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+const out = []; let done = 0;
+const SIZES = [[390, 700], [900, 800]];
+SIZES.forEach(([w, h]) => {
+  const f = document.createElement("iframe");
+  f.width = w; f.height = h; f.style.border = 0; f.src = "/";
+  document.body.appendChild(f);
+  f.addEventListener("load", () => setTimeout(() => {
+    try {
+      const d = f.contentDocument, win = f.contentWindow;
+      const drops = [...d.querySelectorAll(".cloud .drop")];
+      if (!drops.length) { out.push(w + ":none"); }
+      else {
+        const anims = drops.flatMap((p) => p.getAnimations());
+
+        /* Scroll-driven animation has a ScrollTimeline instead of the
+         * document's. This is the assertion for "they do not move when
+         * the page moves". */
+        const scrolly = anims.filter(
+          (a) => a.timeline && a.timeline !== d.timeline).length;
+
+        // Six words swinging on the same clock is a metronome.
+        const periods = new Set(anims.map(
+          (a) => String(a.effect.getTiming().duration)));
+
+        /* Held while the page moves, moving again once it settles.
+         * A real `scroll` event is dispatched; what is read back is the
+         * computed `animation-play-state`, which is the browser's own
+         * answer rather than the class the page sets. */
+        win.dispatchEvent(new Event("scroll"));
+        const whileScrolling = win.getComputedStyle(drops[0]).animationPlayState;
+
+        // Button-ness, which is what was wrong with them before.
+        const boxed = drops.filter((p) => {
+          const cs = win.getComputedStyle(p);
+          return parseFloat(cs.borderTopWidth) > 0.5
+              || (cs.backgroundColor !== "rgba(0, 0, 0, 0)"
+                  && cs.backgroundColor !== "transparent");
+        }).length;
+
+        const fonts = new Set(drops.map(
+          (p) => win.getComputedStyle(p).fontSize));
+
+        /* Every drift driven to both of its ends at once — the widest
+         * the field can ever be. A page that only fits while the words
+         * happen to be centred is a page that overflows later. */
+        /* Where the words can get to, sampled.
+         *
+         * Driving every drift to the SAME end is not the worst case —
+         * the three clocks on each word are independent, so over a few
+         * minutes every combination of phases happens. A deterministic
+         * pseudo-random walk over 64 of them is a fair picture of what
+         * the field actually does; driving them all to one end only
+         * tests the one arrangement that never occurs.
+         *
+         * `scrollWidth` is no witness here either: the page sets
+         * `overflow-x: clip`, so a word pushed past the edge is
+         * silently cut rather than scrolled to. The words' own rectangles
+         * are what gets measured. */
+        let over = 0, collide = 0;
+        if (scrolly === 0) {
+          anims.forEach((a) => a.pause());
+          let seed = 20261108;
+          const next = () => (seed = (seed * 1103515245 + 12345) % 2147483648)
+                             / 2147483648;
+          for (let sample = 0; sample < 200; sample++) {
+            anims.forEach((a) => {
+              a.currentTime = next() * a.effect.getTiming().duration;
+            });
+            const r = drops.map((p) => p.getBoundingClientRect());
+            for (let i = 0; i < r.length; i++) {
+              if (r[i].left < 0 || r[i].right > d.documentElement.clientWidth) over++;
+              for (let j = i + 1; j < r.length; j++) {
+                if (!(r[i].right <= r[j].left || r[j].right <= r[i].left
+                   || r[i].bottom <= r[j].top || r[j].bottom <= r[i].top)) collide++;
+              }
+            }
+          }
+        }
+        out.push(w + ":held=" + whileScrolling
+          + ":n=" + drops.length + ":anims=" + anims.length
+          + ":scrolly=" + scrolly + ":periods=" + periods.size
+          + ":boxed=" + boxed + ":fonts=" + fonts.size + ":over=" + over
+          + ":collide=" + collide + ":layer=" + (win.getComputedStyle(drops[0])
+              .willChange.includes("transform") ? "yes" : "no"));
+      }
+    } catch (err) {
+      out.push(w + ":threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-"));
+    }
+    if (++done === SIZES.length) {
+      document.getElementById("o").textContent = "CLOUD " + out.join(" ");
+    }
+  }, 900));
+});
+</script>

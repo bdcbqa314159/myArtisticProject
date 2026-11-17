@@ -1,0 +1,77 @@
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+const L = [];
+const ground = (d, w) => w.getComputedStyle(d.body).backgroundColor;
+/* Not brightness — WARMTH. Cream (#f6f2e9) and the cool palette's light
+ * ground (#f4f5f7) are both pale, within two points of the same
+ * luminance, so a brightness test cannot tell them apart: swapping the
+ * default from one to the other passed a check that only asked whether
+ * the page was light. Red against blue separates them at a glance —
+ * cream is +13, cool light is -3, cool dark is -7. */
+const warmth = (s) => {
+  const m = (s.match(/[\d.]+/g) || [0, 0, 0]).map(Number);
+  return Math.round(m[0] - m[2]);
+};
+function visit(then) {
+  const f = document.createElement("iframe");
+  f.width = 390; f.height = 720; f.style.border = 0; f.src = "/";
+  document.body.appendChild(f);
+  f.addEventListener("load", () => setTimeout(() => then(f.contentDocument,
+                                                         f.contentWindow), 1400));
+}
+visit((d, w) => {
+  try {
+    const tag = (name) => L.push(name + "=" + (d.documentElement.dataset.palette
+                                               || "none") + ":" + warmth(ground(d, w)));
+    tag("arrive");
+    w.scrollTo({ top: 2500, behavior: "instant" });
+    setTimeout(() => {
+      tag("scrolled");
+      /* THE HERO BUTTON, named. `querySelector("[data-tint]")` used to
+       * mean this one and quietly started meaning the menu entry the
+       * moment that got a trigger too — the nav comes first in the
+       * document. Both doors are tested now, each by where it lives. */
+      const go = d.querySelector(".hero [data-tint]");
+      if (!go) { say("no-hero-trigger"); return; }
+      go.click();
+      setTimeout(() => {
+        tag("clicked");
+        go.click();
+        setTimeout(() => {
+          tag("again");
+          // Quitting and coming back: a second visit, with nothing kept.
+          visit((d2, w2) => {
+            L.push("returned=" + (d2.documentElement.dataset.palette || "none")
+                   + ":" + warmth(ground(d2, w2)));
+            /* THE OTHER DOOR. Selected Work in the menu does what the
+             * hero button does — it should not matter which was used.
+             * And a menu entry that is NOT Selected Work must leave the
+             * page cream, which is what keeps the meaning "going into
+             * the work changes the light" rather than "navigating
+             * does". */
+            const band = d2.querySelector(".links [data-tint]");
+            if (!band) { say("no-menu-trigger"); return; }
+            const elsewhere = [...d2.querySelectorAll(".links a")]
+              .find((a) => !a.hasAttribute("data-tint"));
+            // If every entry tints there is nothing left to prove the
+            // rule with, which is itself the failure — say so rather
+            // than throwing on `undefined` and returning no verdict.
+            if (!elsewhere) { say("every-menu-entry-tints"); return; }
+            elsewhere.click();
+            setTimeout(() => {
+              L.push("elsewhere=" + (d2.documentElement.dataset.palette || "none")
+                     + ":" + warmth(ground(d2, w2)));
+              band.click();
+              setTimeout(() => {
+                L.push("viamenu=" + (d2.documentElement.dataset.palette || "none")
+                       + ":" + warmth(ground(d2, w2)));
+                say(L.join(" "));
+              }, 400);
+            }, 400);
+          });
+        }, 400);
+      }, 400);
+    }, 400);
+  } catch (err) { say("threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-")); }
+});
+function say(s) { document.getElementById("o").textContent = "TINT " + s; }
+</script>

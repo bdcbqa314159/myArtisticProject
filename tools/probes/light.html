@@ -1,0 +1,29 @@
+<script>
+const slotOf = (el) => {
+  const s = el && el.closest(".shots");
+  if (!s) return 0;
+  const m = s.className.match(/slot-(\d)/);
+  return m ? Number(m[1]) : 0;
+};
+addEventListener("load", () => setTimeout(() => {
+  const hidden = [];
+  let seen = 0;
+  document.querySelectorAll(".group").forEach((g, gi) => {
+    g.open = true;
+    g.querySelectorAll(".look").forEach((look) => {
+      seen++;
+      const mine = slotOf(look);
+      const r = look.getBoundingClientRect();
+      const pts = [[r.left + r.width/2, r.top + r.height/2],
+                   [r.left + 3, r.top + 3], [r.right - 3, r.top + 3],
+                   [r.left + 3, r.bottom - 3], [r.right - 3, r.bottom - 3]];
+      const over = pts.filter(([x, y]) =>
+        slotOf(document.elementFromPoint(x, y)) > mine).length;
+      if (over > 1) hidden.push("set" + (gi+1) + " slot" + mine + " (" + over + "/5)");
+    });
+    g.open = false;
+  });
+  document.getElementById("out").textContent =
+    "LIGHTS seen=" + seen + " hidden=" + (hidden.join(", ") || "none");
+}, 60));
+</script>

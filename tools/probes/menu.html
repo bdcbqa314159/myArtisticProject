@@ -1,0 +1,70 @@
+<meta charset=utf-8><body><p id=o>?</p><script>
+const f = document.createElement("iframe");
+f.width = 390; f.height = 700; f.style.border = 0; f.src = "/";
+document.body.appendChild(f);
+const say = (s) => { document.getElementById("o").textContent = "MENU " + s; };
+f.addEventListener("load", () => setTimeout(() => {
+  const d = f.contentDocument;
+  const box = d.querySelector("dialog.talk");
+  if (!box) return say("no-form");
+  if (box.open) return say("form-already-open");
+
+  // Any link into Contact. There is exactly one, and it is the band's.
+  const link = d.querySelector('.links a[href="#contact"], .links a[href$="#contact"]');
+  if (!link) return say("no-contact-link");
+
+  // A control: something else in the band must NOT open it.
+  const other = [...d.querySelectorAll(".links a")]
+    .find((a) => !a.getAttribute("href").endsWith("#contact"));
+  if (!other) return say("no-control-link");
+  other.click();
+
+  /* Read AFTER a turn, not before one. The page defers the whole chain
+   * through a `setTimeout`, so reading `open` on the same tick as the
+   * click says "closed" no matter what the code does — which is how
+   * this control first passed against a page that opened the form for
+   * every link in the band. */
+  setTimeout(() => {
+    const afterOther = box.open;
+    link.click();
+    setTimeout(() => {
+      /* Read the band's result into its own variable HERE, before
+       * anything else is clicked. It was reported from `box.open` at the
+       * very end, after the probe had opened the form itself to look at
+       * the focus — so it said "the band works" no matter what the band
+       * did, and a mutation that opened the form only when the scroll
+       * landed passed cleanly. */
+      const fromTheBand = box.open;
+      /* And the two openers are still BUTTONS.
+       *
+       * The shape class was first called `.talk`, which is the dialog's
+       * class — it carries `border: 0; padding: 0; width: 100%`, so both
+       * buttons went full-width with no outline, and every check passed.
+       * A border and a padding of zero cannot be right for a button on
+       * this page whatever its label says, so those are what is read. */
+      const flat = [...d.querySelectorAll("[data-talk]")].filter((b) => {
+        const cs = f.contentWindow.getComputedStyle(b);
+        return parseFloat(cs.borderTopWidth) < 0.5
+            || parseFloat(cs.paddingLeft) < 1;
+      }).length;
+
+      /* Where the cursor lands, and whether the browser drew its own
+       * ring. Both have been wrong: the ring appeared around the whole
+       * window because the page focused the dialog as if it were a
+       * section, and the cursor landed in the honeypot because
+       * `showModal` takes the first focusable element and `tabindex=-1`
+       * still qualifies. */
+      box.close();
+      d.querySelector("[data-talk]").click();
+      setTimeout(() => {
+        const a = d.activeElement;
+        const cs = f.contentWindow.getComputedStyle(a);
+        say("contact=" + fromTheBand + " control=" + afterOther
+          + " flat=" + flat
+          + " lands=" + (a.getAttribute("name") || a.tagName.toLowerCase())
+          + " ring=" + (cs.outlineStyle === "none" ? "no" : cs.outlineStyle));
+      }, 150);
+    }, 120);
+  }, 120);
+}, 400));
+</script>

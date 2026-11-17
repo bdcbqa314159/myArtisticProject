@@ -1,0 +1,43 @@
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+const f = document.createElement("iframe");
+f.width = 390; f.height = 700; f.style.border = 0; f.src = "/";
+document.body.appendChild(f);
+f.addEventListener("load", () => setTimeout(() => {
+  try {
+    const d = f.contentDocument, w = f.contentWindow;
+    const root = d.documentElement;
+    const bar = d.querySelector("header");
+    const veil = d.querySelector(".veil");
+    const link = d.querySelector('.links a[href$="#about"]');
+    const btn = d.querySelector(".hero .btn.primary");
+    if (!veil || !link || !btn) { say("missing"); return; }
+
+    const inert = w.getComputedStyle(veil).pointerEvents === "none" ? "y" : "n";
+    const about = d.getElementById("about");
+    const want = Math.round(w.scrollY + about.getBoundingClientRect().top
+                            - bar.getBoundingClientRect().height);
+    link.click();
+    setTimeout(() => {
+      const during = root.classList.contains("crossing") ? "y" : "n";
+      const landed = Math.abs(w.scrollY - want) <= 2 ? "y" : "n";
+      setTimeout(() => {
+        const after = root.classList.contains("crossing") ? "y" : "n";
+        const held = Math.abs(w.scrollY - want) <= 2 ? "y" : "n";
+        w.scrollTo({ top: 0, behavior: "instant" });
+        setTimeout(() => {
+          btn.click();
+          setTimeout(() => {
+            // A travelling link cannot arrive here. A crossing one would.
+            const btnCrossed = root.classList.contains("crossing")
+                               || w.scrollY > 2 ? "y" : "n";
+            say("inert=" + inert + " during=" + during + " landed=" + landed
+              + " after=" + after + " held=" + held + " btn=" + btnCrossed
+              + " want=" + want);
+          }, 500);
+        }, 100);
+      }, 640);
+    }, 330);
+  } catch (err) { say("threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-")); }
+}, 900));
+function say(s) { document.getElementById("o").textContent = "CROSS " + s; }
+</script>

@@ -1,0 +1,34 @@
+<script>
+addEventListener("load", () => setTimeout(() => {
+  const out = document.getElementById("verdict");
+  const group = document.querySelector(".group");
+  const shots = group && group.querySelector(".shots");
+  if (!group || !shots) { out.textContent = "RESULT no-gallery"; return; }
+  group.open = true;
+  shots.open = true;
+  const both = group.open && shots.open;
+  group.open = false;
+  setTimeout(() => {
+    const left = shots.open;
+    group.open = true;
+    setTimeout(() => {
+      // THE GROUND IS THE WAY OUT, one level at a time.
+      // A carousel closes back to the group it came from, not out of
+      // both — so the reader lands where they were, not at the start.
+      const front = group.querySelector(".group-front");
+      const reel = shots.querySelector(".reel");
+      shots.open = true;
+      reel.dispatchEvent(new MouseEvent("click", {bubbles: true}));
+      setTimeout(() => {
+        const afterReel = "carousel=" + shots.open + " group=" + group.open;
+        front.dispatchEvent(new MouseEvent("click", {bubbles: true}));
+        setTimeout(() => {
+          out.textContent = "RESULT both=" + both + " left=" + left
+            + " reopened=" + shots.open + " " + afterReel
+            + " afterFront=" + group.open;
+        }, 20);
+      }, 20);
+    }, 20);
+  }, 20);
+}, 0));
+</script>

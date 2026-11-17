@@ -35,16 +35,15 @@ import threading
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+
+# What was here: the browser harness and the site variants. This file is
+# the checks now — one function per thing that must be true of the page
+# someone actually receives, and `main` at the end running them.
+from browser import dom, find_chrome                        # noqa: E402
+from variants import (build_live_config, build_with_a_waiting_project,  # noqa: E402
+                      build_with_projects)
 PORT = 8731
 
-CHROMES = [
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "/Applications/Chromium.app/Contents/MacOS/Chromium",
-    "google-chrome",
-    "google-chrome-stable",
-    "chromium",
-    "chromium-browser",
-]
 
 # (width, height, name, anchor)
 #
@@ -75,65 +74,32 @@ SIZES = [
 ]
 
 
-def find_chrome() -> Optional[str]:
-    for c in CHROMES:
-        if Path(c).exists():
-            return c
-        found = shutil.which(c)
-        if found:
-            return found
-    return None
+PROBES = Path(__file__).resolve().parent / "probes"
 
 
-def dom(chrome: str, url: str, width: int, height: int, shot: Path = None,
-        no_js: bool = False, reduced: bool = False, budget: int = 0) -> str:
-    """Render the page and return the DOM. With `shot`, also save a picture.
+def probe(name: str) -> str:
+    """One probe page, from `tools/probes/`.
 
-    The picture is the point of running a browser at all: the DOM says
-    whether the page is broken, and only an image says whether it looks
-    right. In CI it is uploaded as an artifact, which is how a layout
-    can be reviewed by someone who cannot run a browser locally."""
-    off = ["--disable-javascript"] if no_js else []
-    return subprocess.run(
-        [
-            chrome,
-            "--headless=new",
-            "--disable-gpu",
-            "--no-sandbox",
-            f"--window-size={width},{height}",
-            *( [f"--screenshot={shot}"] if shot else [] ),
-            # Pictures only. `scroll-behavior: smooth` never finishes
-            # under a virtual clock, so an anchored view photographed the
-            # hero instead of the section asked for — six shots of the
-            # same screen. Reduced motion makes the jump instant, and
-            # settles the reveals, so each picture is the page at rest.
-            # Also asked for explicitly by probes that drive the page:
-            # the scroll runs on animation frames this browser does
-            # not run, and under reduced motion it is a jump that
-            # reports its end, so a chain hanging off that end
-            # becomes observable.
-            *( ["--force-prefers-reduced-motion"] if shot or reduced else [] ),
-            # Let the page's own JavaScript run to completion — the whole
-            # point. Three simulated seconds is past `load`, past the
-            # cover's fade, and past every failsafe that matters.
-            # Longer for a picture than for an assertion. The virtual
-            # clock can run out before the photographs have finished
-            # downloading, and a screenshot with empty image slots looks
-            # exactly like a page whose images are broken — it has twice
-            # nearly had a non-bug reported.
-            *off,
-            # A probe that waits for the page to be READY rather than for
-            # a fixed delay needs longer than the default: the cover has
-            # its own floor, and the clock stopping mid-probe looks
-            # exactly like a probe that found nothing.
-            f"--virtual-time-budget={budget or (10000 if shot else 3000)}",
-            "--dump-dom",
-            url,
-        ],
-        capture_output=True,
-        text=True,
-        timeout=90,
-    ).stdout
+    These were fourteen triple-quoted strings in this file — 831 of its
+    2345 lines, and not one of them Python. An editor highlighted a
+    browser program as text, nothing could parse it without being told
+    how to cut it out of a string first, and reading this file meant
+    scrolling past the probes to reach the next check.
+
+    They are ordinary HTML files now, and `tools/embedded-js-check.py`
+    parses them where they lie.
+
+    One thing to know if you move them again: the escaping is the
+    trap. `\\s` inside a Python string is `\s` by the time the
+    browser sees it, so copying the SOURCE characters writes the
+    escaping twice — which it did, and two probes came back reporting
+    a broken page. Extracted through `ast`, which knows the difference.
+    """
+    page = PROBES / f"{name}.html"
+    if not page.exists():
+        raise SystemExit(f"\n  no probe called {name!r} in "
+                         f"{PROBES.relative_to(ROOT)}\n")
+    return page.read_text(encoding="utf-8")
 
 
 def check(html: str, where: str) -> "list[str]":
@@ -176,74 +142,6 @@ def check(html: str, where: str) -> "list[str]":
     return bad
 
 
-# A reference with a full fridge on it, rendered for real.
-#
-# The probe REPLACES the page's portfolio rather than adding to it: a
-# reference takes five projects and the real page already has five on
-# some of them, so appending pushed it over the cap and the extra
-# projects were on no page — the check then reported its own
-# photographs missing.
-WITH_PROJECTS = """
-[[extra.project]]
-id = "probe-a"
-reference = 1
-name = "Probe A"
-
-[[extra.project]]
-id = "probe-b"
-reference = 1
-name = "Probe B"
-# A named spot, so check_named_spot has something to measure. The
-# mechanism carrying these two numbers was dead for weeks.
-look = "33 77"
-
-[[extra.project]]
-id = "probe-c"
-reference = 1
-name = "Probe C"
-
-[[extra.project]]
-id = "probe-d"
-reference = 1
-name = "Probe D"
-
-[[extra.project]]
-id = "probe-e"
-reference = 1
-name = "Probe E"
-
-[[extra.photo]]
-project = "probe-a"
-file = "fragment-01.jpg"
-alt = "Probe photograph one"
-
-[[extra.photo]]
-project = "probe-a"
-file = "fragment-02.jpg"
-alt = "Probe photograph two"
-
-[[extra.photo]]
-project = "probe-b"
-file = "fragment-03.jpg"
-alt = "Probe photograph three"
-
-[[extra.photo]]
-project = "probe-c"
-file = "fragment-02.jpg"
-alt = "Probe cover c"
-
-[[extra.photo]]
-project = "probe-d"
-file = "fragment-03.jpg"
-alt = "Probe cover d"
-
-[[extra.photo]]
-project = "probe-e"
-file = "fragment-04.jpg"
-alt = "Probe cover e"
-"""
-
-
 TALK_BTN = re.compile(r'class="btn(?: primary)? bubble"')
 ANY_BTN = re.compile(r'class="?btn[^">]*"?')
 
@@ -258,192 +156,11 @@ ANY_BTN = re.compile(r'class="?btn[^">]*"?')
 #
 # An iframe because the parent needs to click inside a page it did not
 # render, and read a dialog's `open` afterwards. Same origin, so it can.
-MENU_PROBE = """
-<meta charset=utf-8><body><p id=o>?</p><script>
-const f = document.createElement("iframe");
-f.width = 390; f.height = 700; f.style.border = 0; f.src = "/";
-document.body.appendChild(f);
-const say = (s) => { document.getElementById("o").textContent = "MENU " + s; };
-f.addEventListener("load", () => setTimeout(() => {
-  const d = f.contentDocument;
-  const box = d.querySelector("dialog.talk");
-  if (!box) return say("no-form");
-  if (box.open) return say("form-already-open");
-
-  // Any link into Contact. There is exactly one, and it is the band's.
-  const link = d.querySelector('.links a[href="#contact"], .links a[href$="#contact"]');
-  if (!link) return say("no-contact-link");
-
-  // A control: something else in the band must NOT open it.
-  const other = [...d.querySelectorAll(".links a")]
-    .find((a) => !a.getAttribute("href").endsWith("#contact"));
-  if (!other) return say("no-control-link");
-  other.click();
-
-  /* Read AFTER a turn, not before one. The page defers the whole chain
-   * through a `setTimeout`, so reading `open` on the same tick as the
-   * click says "closed" no matter what the code does — which is how
-   * this control first passed against a page that opened the form for
-   * every link in the band. */
-  setTimeout(() => {
-    const afterOther = box.open;
-    link.click();
-    setTimeout(() => {
-      /* Read the band's result into its own variable HERE, before
-       * anything else is clicked. It was reported from `box.open` at the
-       * very end, after the probe had opened the form itself to look at
-       * the focus — so it said "the band works" no matter what the band
-       * did, and a mutation that opened the form only when the scroll
-       * landed passed cleanly. */
-      const fromTheBand = box.open;
-      /* And the two openers are still BUTTONS.
-       *
-       * The shape class was first called `.talk`, which is the dialog's
-       * class — it carries `border: 0; padding: 0; width: 100%`, so both
-       * buttons went full-width with no outline, and every check passed.
-       * A border and a padding of zero cannot be right for a button on
-       * this page whatever its label says, so those are what is read. */
-      const flat = [...d.querySelectorAll("[data-talk]")].filter((b) => {
-        const cs = f.contentWindow.getComputedStyle(b);
-        return parseFloat(cs.borderTopWidth) < 0.5
-            || parseFloat(cs.paddingLeft) < 1;
-      }).length;
-
-      /* Where the cursor lands, and whether the browser drew its own
-       * ring. Both have been wrong: the ring appeared around the whole
-       * window because the page focused the dialog as if it were a
-       * section, and the cursor landed in the honeypot because
-       * `showModal` takes the first focusable element and `tabindex=-1`
-       * still qualifies. */
-      box.close();
-      d.querySelector("[data-talk]").click();
-      setTimeout(() => {
-        const a = d.activeElement;
-        const cs = f.contentWindow.getComputedStyle(a);
-        say("contact=" + fromTheBand + " control=" + afterOther
-          + " flat=" + flat
-          + " lands=" + (a.getAttribute("name") || a.tagName.toLowerCase())
-          + " ring=" + (cs.outlineStyle === "none" ? "no" : cs.outlineStyle));
-      }, 150);
-    }, 120);
-  }, 120);
-}, 400));
-</script>"""
-
-
-REACH_PROBE = """
-<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
-/* Can the page be reached without a mouse, and does it hold still when
- * someone has asked it to?
- *
- * Framed, like every probe here, because a frame is where this browser
- * will render a real page without running animation frames. Focus and
- * accessible names do not need frames; the animation count does not
- * need them either — an animation registers the moment it is applied,
- * whether or not anything is painted. */
-function visit(then) {
-  const f = document.createElement("iframe");
-  f.width = 390; f.height = 900; f.style.border = 0; f.src = "/";
-  document.body.appendChild(f);
-  f.addEventListener("load", () => setTimeout(() => then(f.contentDocument,
-                                                         f.contentWindow), 1500));
-}
-const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),'
-                + 'textarea:not([disabled]),select:not([disabled]),summary,'
-                + '[tabindex]:not([tabindex="-1"])';
-const named = (el) => {
-  const text = (el.textContent || "").replace(/\\s+/g, " ").trim();
-  return !!(text || el.getAttribute("aria-label")
-            || el.getAttribute("aria-labelledby") || el.getAttribute("title")
-            || (el.querySelector("img") && el.querySelector("img").alt));
-};
-visit((d, w) => {
-  const say = (o) => { document.getElementById("o").textContent =
-    "REACH " + JSON.stringify(o); };
-  try {
-    const running = (d.getAnimations ? d.getAnimations() : [])
-      .filter(a => a.playState === "running").length;
-
-    const positive = [...d.querySelectorAll("[tabindex]")]
-      .filter(e => Number(e.getAttribute("tabindex")) > 0)
-      .map(e => e.tagName.toLowerCase());
-
-    /* The skip link only works if it is the FIRST thing a keyboard
-     * reaches, and if what it points at exists. */
-    const first = d.querySelector(FOCUSABLE);
-    const skip = d.querySelector("a.skip");
-    const target = skip && d.querySelector(skip.getAttribute("href"));
-
-    /* The honeypot is focusable on purpose — tabindex="-1" does not
-     * stop showModal() choosing it, which it once did, putting the
-     * cursor in the trap field and sending the visitor's own message
-     * to the bin. */
-    const box = d.querySelector("dialog.talk");
-    const opener = d.querySelector("[data-talk]");
-    let landed = "no box";
-    if (box && opener) {
-      /* CLICKED, not opened by hand. Calling showModal() here measures
-       * the browser's own choice of first focusable and nothing else —
-       * which is the honeypot, and is exactly why the page does not
-       * leave it to the browser. The thing worth checking is what a
-       * visitor gets, so the probe does what a visitor does. */
-      opener.click();
-      landed = (d.activeElement && (d.activeElement.name
-                || d.activeElement.id
-                || d.activeElement.tagName.toLowerCase())) || "nothing";
-      box.close();
-    }
-
-    const anonymous = [...d.querySelectorAll("a[href],button,summary")]
-      .filter(e => !named(e))
-      .map(e => e.tagName.toLowerCase() + "." + String(e.className || "")
-                 .split(" ")[0]);
-
-    say({running: running, positive: positive,
-         firstIsSkip: !!(first && skip && first === skip),
-         skipTarget: !!target, landed: landed,
-         anonymous: [...new Set(anonymous)].slice(0, 6)});
-  } catch (e) { say({error: String(e)}); }
-});
-</script>
-"""
-
-
-NAMED_SPOT_PROBE = """
-<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
-/* Does a project's own spot for its light actually arrive?
- *
- * It did not, and nothing noticed. The two numbers were written into a
- * `style` attribute, and the policy on this page is `style-src 'self'`
- * with no `unsafe-hashes` — so the browser dropped the attribute and
- * every light sat at its default, including in the arrangements where
- * the default disappears under a neighbouring print. The hatch existed
- * on paper only.
- *
- * So this reads the custom property back from the computed style. A
- * value that is EMPTY means the write never happened; the number means
- * it did. */
-const f = document.createElement("iframe");
-f.width = 1100; f.height = 900; f.style.border = 0; f.src = "/";
-document.body.appendChild(f);
-f.addEventListener("load", () => setTimeout(() => {
-  const d = f.contentDocument, w = f.contentWindow;
-  const named = d.querySelector(".look[data-look]");
-  const plain = d.querySelector(".look:not([data-look])");
-  const read = (el, prop) => el ? (w.getComputedStyle(el).getPropertyValue(prop).trim() || "EMPTY") : "MISSING";
-  document.getElementById("o").textContent = "SPOT asked=" + (named ? named.dataset.look : "MISSING")
-    + " x=" + read(named, "--look-x")
-    + " y=" + read(named, "--look-y")
-    + " left=" + (named ? w.getComputedStyle(named).left : "MISSING")
-    + " untouched=" + read(plain, "--look-x");
-}, 1500));
-</script>
-"""
 
 
 def check_named_spot(chrome: str, out: Path, url: str) -> "list[str]":
     """A light where its project asked for it, not where it is tidy."""
-    (out / "_spot.html").write_text(NAMED_SPOT_PROBE, encoding="utf-8")
+    (out / "_spot.html").write_text(probe("named-spot"), encoding="utf-8")
     said = dom(chrome, url + "/_spot.html", 1100, 900)
     found = re.search(r"SPOT ([^<]*)", said)
     if not found:
@@ -477,7 +194,7 @@ def check_reach(chrome: str, out: Path, url: str) -> "list[str]":
     first run as a control, the second would pass on a page whose
     motion had been deleted outright.
     """
-    (out / "_reach.html").write_text(REACH_PROBE, encoding="utf-8")
+    (out / "_reach.html").write_text(probe("reach"), encoding="utf-8")
 
     def verdict(reduced: bool) -> dict:
         said = dom(chrome, url + "/_reach.html", 500, 900, reduced=reduced)
@@ -530,7 +247,7 @@ def check_reach(chrome: str, out: Path, url: str) -> "list[str]":
 
 
 def check_menu(chrome: str, out: Path, url: str) -> "list[str]":
-    (out / "_menu.html").write_text(MENU_PROBE, encoding="utf-8")
+    (out / "_menu.html").write_text(probe("menu"), encoding="utf-8")
     # NOT under reduced motion, deliberately. The page's scroll runs on
     # animation frames this browser does not run, so a journey started
     # here never settles — which makes this the distinguishing
@@ -570,42 +287,13 @@ def check_menu(chrome: str, out: Path, url: str) -> "list[str]":
 # this page's ground actually came out. The two part company on the
 # cream palette, which keeps its pale ground in the dark — measured at
 # ground luma 242 wearing a white mark, which is a mark nobody can see.
-MARKS_PROBE = """
-<meta charset=utf-8><body style=margin:0><p id=o>?</p><script>
-const f = document.createElement("iframe");
-f.width = 390; f.height = 700; f.style.border = 0; f.src = "/";
-document.body.appendChild(f);
-const luma = (s) => {
-  const m = (s.match(/[\\d.]+/g) || [0, 0, 0]).map(Number);
-  return 0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2];
-};
-f.addEventListener("load", () => setTimeout(() => {
-  const d = f.contentDocument, w = f.contentWindow;
-  const links = d.querySelectorAll(".dock a").length;
-  const out = [];
-  for (const p of __PALETTES__) {
-    if (p === "") delete d.documentElement.dataset.palette;
-    else d.documentElement.dataset.palette = p;
-    const pale = luma(w.getComputedStyle(d.body).backgroundColor) > 128;
-    const shown = [...d.querySelectorAll(".dock .mark")]
-      .filter((i) => w.getComputedStyle(i).display !== "none")
-      .map((i) => i.currentSrc);
-    // One mark per link, and its tone is the one the ground can show.
-    const wrong = shown.filter((u) => u.includes(pale ? "white" : "black")).length;
-    out.push((p || "default") + ":" + (shown.length === links ? "n" : "COUNT")
-      + (wrong === 0 ? "ok" : "WRONG"));
-  }
-  document.getElementById("o").textContent = "MARKS links=" + links
-    + " " + out.join(" ");
-}, 700));
-</script>"""
 
 
 def check_marks(chrome: str, out: Path, url: str, css: str) -> "list[str]":
     """Measured: what shows, against the ground it shows on."""
     names = sorted(set(re.findall(r'\[data-palette="([a-z]+)"\]', css)))
     (out / "_marks.html").write_text(
-        MARKS_PROBE.replace("__PALETTES__", json.dumps([""] + names)),
+        probe("marks").replace("__PALETTES__", json.dumps([""] + names)),
         encoding="utf-8")
     said = dom(chrome, url + "/_marks.html", 500, 900)
     found = re.search(r"MARKS links=(\d+) ([^<]*)", said)
@@ -661,85 +349,10 @@ def check_marks_declared(css: str) -> "list[str]":
 # arc and the straight diagonal it replaced. A straight line between the
 # same two points has no sideways excursion at all, so the depth of the
 # bow against the length of the travel is the whole measurement.
-ARC_PROBE = """
-<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
-const out = []; let done = 0;
-const SIZES = [[390, 700], [900, 800]];
-SIZES.forEach(([w, h]) => {
-  const f = document.createElement("iframe");
-  f.width = w; f.height = h; f.style.border = 0; f.src = "/";
-  document.body.appendChild(f);
-  f.addEventListener("load", () => setTimeout(() => {
-    try {
-      const d = f.contentDocument;
-      const sw = d.querySelector(".swap");
-      const ph = [...d.querySelectorAll(".swap .phrase")];
-      if (!sw || ph.length !== 2) { out.push(w + ":no-heading"); }
-      else {
-        sw.classList.add("swapping");
-        const a = ph.map((p) => p.getAnimations()[0]);
-        if (a.some((x) => !x)) { out.push(w + ":no-animation"); }
-        else {
-          a.forEach((x) => x.pause());
-          /* The INK, not the block. The heading is centred, so the
-           * block reaches the gutter with empty margin on both sides
-           * and its own left edge may cross the viewport without a
-           * single letter doing so. Measuring the block failed a sweep
-           * that was comfortably inside the page. */
-          const inkOf = (p) => {
-            const r = d.createRange();
-            r.selectNodeContents(p);
-            const box = r.getBoundingClientRect();
-            return box.width > 0 ? box : p.getBoundingClientRect();
-          };
-          const at = (t) => { a.forEach((x) => { x.currentTime = t; });
-                              return ph.map(inkOf); };
-
-          /* Home is where the phrases rest with NO animation and no
-           * waiting offset — read before any of this starts. Taking it
-           * from the animation's own last frame instead made "did they
-           * land home" compare the end against itself, so a version
-           * that finished six pixels off passed. */
-          sw.classList.remove("swapping");
-          ph.forEach((p) => { p.style.transform = ""; });
-          const home = ph.map(inkOf);
-          sw.classList.add("swapping");
-          a.length = 0;
-          ph.forEach((p) => a.push(p.getAnimations()[0]));
-          a.forEach((x) => x.pause());
-          let bow = 0, edge = 1e9, travel = 0, cross = 1e9, crossGap = 0, rightward = 0;
-          for (let i = 0; i <= 24; i++) {
-            const r = at(480 + 820 * i / 24);
-            for (let k = 0; k < 2; k++) {
-              const dx = r[k].left - home[k].left;
-              if (dx > 0.5) rightward++;            // a C never goes right
-              bow = Math.max(bow, -dx);
-              travel = Math.max(travel, Math.abs(r[k].top - home[k].top));
-            }
-            edge = Math.min(edge, r[0].left, r[1].left);
-            const dy = Math.abs(r[0].top - r[1].top);
-            if (dy < cross) { cross = dy; crossGap = Math.abs(r[0].left - r[1].left); }
-          }
-          const end = at(1300);
-          const landed = ph.every((p, k) =>
-            Math.abs(end[k].left - home[k].left) < 0.5
-            && Math.abs(end[k].top - home[k].top) < 0.5);
-          out.push(w + ":bow=" + Math.round(bow) + ":travel=" + Math.round(travel)
-            + ":edge=" + Math.round(edge) + ":gap=" + Math.round(crossGap)
-            + ":right=" + rightward + ":home=" + landed);
-        }
-      }
-    } catch (err) { out.push(w + ":threw-" + err.message); }
-    if (++done === SIZES.length) {
-      document.getElementById("o").textContent = "ARC " + out.join(" ");
-    }
-  }, 900));
-});
-</script>"""
 
 
 def check_arc(chrome: str, out: Path, url: str) -> "list[str]":
-    (out / "_arc.html").write_text(ARC_PROBE, encoding="utf-8")
+    (out / "_arc.html").write_text(probe("arc"), encoding="utf-8")
     said = dom(chrome, url + "/_arc.html", 1000, 900)
     found = re.search(r"ARC ([^<]*)", said)
     if not found:
@@ -790,102 +403,6 @@ def check_arc(chrome: str, out: Path, url: str) -> "list[str]":
 
 # The fields drift; they do not look like buttons and they do not move
 # with the page.
-CLOUD_PROBE = """
-<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
-const out = []; let done = 0;
-const SIZES = [[390, 700], [900, 800]];
-SIZES.forEach(([w, h]) => {
-  const f = document.createElement("iframe");
-  f.width = w; f.height = h; f.style.border = 0; f.src = "/";
-  document.body.appendChild(f);
-  f.addEventListener("load", () => setTimeout(() => {
-    try {
-      const d = f.contentDocument, win = f.contentWindow;
-      const drops = [...d.querySelectorAll(".cloud .drop")];
-      if (!drops.length) { out.push(w + ":none"); }
-      else {
-        const anims = drops.flatMap((p) => p.getAnimations());
-
-        /* Scroll-driven animation has a ScrollTimeline instead of the
-         * document's. This is the assertion for "they do not move when
-         * the page moves". */
-        const scrolly = anims.filter(
-          (a) => a.timeline && a.timeline !== d.timeline).length;
-
-        // Six words swinging on the same clock is a metronome.
-        const periods = new Set(anims.map(
-          (a) => String(a.effect.getTiming().duration)));
-
-        /* Held while the page moves, moving again once it settles.
-         * A real `scroll` event is dispatched; what is read back is the
-         * computed `animation-play-state`, which is the browser's own
-         * answer rather than the class the page sets. */
-        win.dispatchEvent(new Event("scroll"));
-        const whileScrolling = win.getComputedStyle(drops[0]).animationPlayState;
-
-        // Button-ness, which is what was wrong with them before.
-        const boxed = drops.filter((p) => {
-          const cs = win.getComputedStyle(p);
-          return parseFloat(cs.borderTopWidth) > 0.5
-              || (cs.backgroundColor !== "rgba(0, 0, 0, 0)"
-                  && cs.backgroundColor !== "transparent");
-        }).length;
-
-        const fonts = new Set(drops.map(
-          (p) => win.getComputedStyle(p).fontSize));
-
-        /* Every drift driven to both of its ends at once — the widest
-         * the field can ever be. A page that only fits while the words
-         * happen to be centred is a page that overflows later. */
-        /* Where the words can get to, sampled.
-         *
-         * Driving every drift to the SAME end is not the worst case —
-         * the three clocks on each word are independent, so over a few
-         * minutes every combination of phases happens. A deterministic
-         * pseudo-random walk over 64 of them is a fair picture of what
-         * the field actually does; driving them all to one end only
-         * tests the one arrangement that never occurs.
-         *
-         * `scrollWidth` is no witness here either: the page sets
-         * `overflow-x: clip`, so a word pushed past the edge is
-         * silently cut rather than scrolled to. The words' own rectangles
-         * are what gets measured. */
-        let over = 0, collide = 0;
-        if (scrolly === 0) {
-          anims.forEach((a) => a.pause());
-          let seed = 20261108;
-          const next = () => (seed = (seed * 1103515245 + 12345) % 2147483648)
-                             / 2147483648;
-          for (let sample = 0; sample < 200; sample++) {
-            anims.forEach((a) => {
-              a.currentTime = next() * a.effect.getTiming().duration;
-            });
-            const r = drops.map((p) => p.getBoundingClientRect());
-            for (let i = 0; i < r.length; i++) {
-              if (r[i].left < 0 || r[i].right > d.documentElement.clientWidth) over++;
-              for (let j = i + 1; j < r.length; j++) {
-                if (!(r[i].right <= r[j].left || r[j].right <= r[i].left
-                   || r[i].bottom <= r[j].top || r[j].bottom <= r[i].top)) collide++;
-              }
-            }
-          }
-        }
-        out.push(w + ":held=" + whileScrolling
-          + ":n=" + drops.length + ":anims=" + anims.length
-          + ":scrolly=" + scrolly + ":periods=" + periods.size
-          + ":boxed=" + boxed + ":fonts=" + fonts.size + ":over=" + over
-          + ":collide=" + collide + ":layer=" + (win.getComputedStyle(drops[0])
-              .willChange.includes("transform") ? "yes" : "no"));
-      }
-    } catch (err) {
-      out.push(w + ":threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-"));
-    }
-    if (++done === SIZES.length) {
-      document.getElementById("o").textContent = "CLOUD " + out.join(" ");
-    }
-  }, 900));
-});
-</script>"""
 
 
 def check_loops_close(css: str) -> "list[str]":
@@ -972,7 +489,7 @@ def check_cloud_css(css: str) -> "list[str]":
 
 
 def check_cloud(chrome: str, out: Path, url: str, still: bool) -> "list[str]":
-    (out / "_cloud.html").write_text(CLOUD_PROBE, encoding="utf-8")
+    (out / "_cloud.html").write_text(probe("cloud"), encoding="utf-8")
     said = dom(chrome, url + "/_cloud.html", 1000, 900, reduced=still)
     found = re.search(r"CLOUD ([^<]*)", said)
     if not found:
@@ -1043,54 +560,10 @@ def check_cloud(chrome: str, out: Path, url: str, still: bool) -> "list[str]":
 # cannot arrive, while one that CROSSES — an instant jump between two
 # timers — arrives exactly. The two are told apart by whether the page
 # moved, which is as direct as it gets.
-CROSS_PROBE = """
-<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
-const f = document.createElement("iframe");
-f.width = 390; f.height = 700; f.style.border = 0; f.src = "/";
-document.body.appendChild(f);
-f.addEventListener("load", () => setTimeout(() => {
-  try {
-    const d = f.contentDocument, w = f.contentWindow;
-    const root = d.documentElement;
-    const bar = d.querySelector("header");
-    const veil = d.querySelector(".veil");
-    const link = d.querySelector('.links a[href$="#about"]');
-    const btn = d.querySelector(".hero .btn.primary");
-    if (!veil || !link || !btn) { say("missing"); return; }
-
-    const inert = w.getComputedStyle(veil).pointerEvents === "none" ? "y" : "n";
-    const about = d.getElementById("about");
-    const want = Math.round(w.scrollY + about.getBoundingClientRect().top
-                            - bar.getBoundingClientRect().height);
-    link.click();
-    setTimeout(() => {
-      const during = root.classList.contains("crossing") ? "y" : "n";
-      const landed = Math.abs(w.scrollY - want) <= 2 ? "y" : "n";
-      setTimeout(() => {
-        const after = root.classList.contains("crossing") ? "y" : "n";
-        const held = Math.abs(w.scrollY - want) <= 2 ? "y" : "n";
-        w.scrollTo({ top: 0, behavior: "instant" });
-        setTimeout(() => {
-          btn.click();
-          setTimeout(() => {
-            // A travelling link cannot arrive here. A crossing one would.
-            const btnCrossed = root.classList.contains("crossing")
-                               || w.scrollY > 2 ? "y" : "n";
-            say("inert=" + inert + " during=" + during + " landed=" + landed
-              + " after=" + after + " held=" + held + " btn=" + btnCrossed
-              + " want=" + want);
-          }, 500);
-        }, 100);
-      }, 640);
-    }, 330);
-  } catch (err) { say("threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-")); }
-}, 900));
-function say(s) { document.getElementById("o").textContent = "CROSS " + s; }
-</script>"""
 
 
 def check_crossing(chrome: str, out: Path, url: str, still: bool) -> "list[str]":
-    (out / "_cross.html").write_text(CROSS_PROBE, encoding="utf-8")
+    (out / "_cross.html").write_text(probe("cross"), encoding="utf-8")
     said = dom(chrome, url + "/_cross.html", 500, 900, reduced=still)
     found = re.search(r"CROSS ([^<]*)", said)
     if not found:
@@ -1135,117 +608,10 @@ def check_crossing(chrome: str, out: Path, url: str, still: bool) -> "list[str]"
 
 
 # A document is shown and not served.
-DOC_PROBE = """
-<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
-const f = document.createElement("iframe");
-f.width = 390; f.height = 720; f.style.border = 0; f.src = "/";
-document.body.appendChild(f);
-/* WAIT FOR THE COVER TO GO.
- * Acting on a fixed delay made this measurement flap: sometimes the
- * page was still behind its loader, the click on the summary landed on
- * the cover instead of the page, and the document never opened — which
- * showed up as `pos=static covers=n` on one run and a clean pass on the
- * next. A reader waits for the page; so does this. */
-function whenReady(d, go, waited) {
-  // `booting` is the class the page itself takes off when the cover has
-  // done its work. Not the element: in a frame that one can outlive the
-  // class, and waiting on it waits for ever.
-  const covered = d.documentElement.classList.contains("booting");
-  if (!covered || (waited || 0) > 6000) { go(); return; }
-  setTimeout(() => whenReady(d, go, (waited || 0) + 100), 100);
-}
-
-f.addEventListener("load", () => setTimeout(() => {
-  try {
-    const d = f.contentDocument, w = f.contentWindow;
-    const box = d.querySelector("details.dossier");
-    if (!box) { say("none"); return; }
-    whenReady(d, () => measure(d, w, box));
-  } catch (err) { say("threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-")); }
-}, 300));
-
-function measure(d, w, box) {
-  try {
-
-    /* Everything in the reveal released, as it is for anyone who has
-     * scrolled to the card. The reveal puts a `transform` on the <ol>,
-     * and a transformed ancestor is the containing block for anything
-     * `position: fixed` inside it — which would make the reading
-     * surface a box inside the card instead of the page. Measured: 343
-     * x 757 at 23,-136 before the reveal; the viewport after it. */
-    d.querySelectorAll(".reveal").forEach((e) => {
-      /* The transition taken off FIRST. `.in` only sets the end state,
-       * and the 650ms journey to it keeps a `transform` on the element
-       * the whole way — so measuring half a second after adding the
-       * class caught it mid-flight, and `covers` came out true on one
-       * run and false on the next. Setting it through the element's own
-       * style is CSSOM, which `style-src 'self'` allows; an injected
-       * <style> element would be blocked. */
-      e.style.transition = "none";
-      e.classList.add("in");
-    });
-
-    const leaves = box.querySelector(".leaves");
-    const pages = leaves.querySelectorAll(".leaf").length;
-    // Anything at all that could hand the reader a file.
-    const links = box.querySelectorAll("a[href], [download]").length;
-
-    box.querySelector("summary").click();
-    setTimeout(() => {
-      /* READ IT NOW, not in `say()`. `getComputedStyle` returns a LIVE
-       * object: holding on to it and reading `.position` three timeouts
-       * later reported `static` every time, because by then the ground
-       * click had closed the document. The booleans beside it were
-       * computed eagerly and said the opposite, which is what gave a
-       * verdict of `pos=static covers=y` — two measurements of the same
-       * element at different moments, dressed as one. */
-      const pos = w.getComputedStyle(leaves).position;
-      const r = leaves.getBoundingClientRect();
-      /* Against the DOCUMENT's client box, not `innerWidth`.
-       * `innerWidth` includes the scrollbar; a fixed element does not.
-       * On a Mac, where scrollbars are overlays, the two agree and this
-       * passed. On the Linux runner, where a scrollbar takes 15 real
-       * pixels, it failed — a platform difference reported as a page
-       * fault. The check was wrong, not the page. */
-      const vw = d.documentElement.clientWidth;
-      const vh = d.documentElement.clientHeight;
-      const covers = Math.abs(r.width - vw) < 2 && Math.abs(r.height - vh) < 2
-                  && Math.abs(r.left) < 2 && Math.abs(r.top) < 2;
-      /* Scrollable, not merely overflowing. A box with `overflow:
-       * visible` still reports a scrollHeight past its clientHeight —
-       * the content spills instead of scrolling — so taking the
-       * stylesheet's `overflow-y` away left this test green while the
-       * pages ran off the bottom of the screen with no way to reach
-       * them. Both halves are needed: room to scroll, and permission. */
-      const oy = w.getComputedStyle(leaves).overflowY;
-      const scrolls = leaves.scrollHeight > leaves.clientHeight + 10
-                   && (oy === "auto" || oy === "scroll");
-      const leaf = leaves.querySelector(".leaf");
-      const sharp = leaf.naturalWidth / Math.max(1, leaf.getBoundingClientRect().width);
-
-      leaf.click();                       // reading, not leaving
-      setTimeout(() => {
-        const stillOpen = box.open;
-        leaves.click();                   // the margin, which is leaving
-        setTimeout(() => {
-          say("pages=" + pages + " links=" + links
-            + " pos=" + pos
-            + " covers=" + (covers ? "y" : "n")
-            + " scrolls=" + (scrolls ? "y" : "n")
-            + " sharp=" + sharp.toFixed(1)
-            + " onpage=" + (stillOpen ? "stays" : "CLOSED")
-            + " onground=" + (box.open ? "STAYS" : "closes"));
-        }, 150);
-      }, 150);
-    }, 500);
-  } catch (err) { say("threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-")); }
-}
-function say(s) { document.getElementById("o").textContent = "DOC " + s; }
-</script>"""
 
 
 def check_document(chrome: str, out: Path, url: str) -> "list[str]":
-    (out / "_doc.html").write_text(DOC_PROBE, encoding="utf-8")
+    (out / "_doc.html").write_text(probe("doc"), encoding="utf-8")
     said = dom(chrome, url + "/_doc.html", 500, 900, budget=20000)
     found = re.search(r"DOC ([^<]*)", said)
     if not found:
@@ -1316,88 +682,10 @@ def check_no_pdf_served(out: Path) -> "list[str]":
 # Under reduced motion the page sets the palette without the easing,
 # which is the state machine this is here to check. The easing itself
 # is a thing to look at, not to assert.
-TINT_PROBE = """
-<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
-const L = [];
-const ground = (d, w) => w.getComputedStyle(d.body).backgroundColor;
-/* Not brightness — WARMTH. Cream (#f6f2e9) and the cool palette's light
- * ground (#f4f5f7) are both pale, within two points of the same
- * luminance, so a brightness test cannot tell them apart: swapping the
- * default from one to the other passed a check that only asked whether
- * the page was light. Red against blue separates them at a glance —
- * cream is +13, cool light is -3, cool dark is -7. */
-const warmth = (s) => {
-  const m = (s.match(/[\\d.]+/g) || [0, 0, 0]).map(Number);
-  return Math.round(m[0] - m[2]);
-};
-function visit(then) {
-  const f = document.createElement("iframe");
-  f.width = 390; f.height = 720; f.style.border = 0; f.src = "/";
-  document.body.appendChild(f);
-  f.addEventListener("load", () => setTimeout(() => then(f.contentDocument,
-                                                         f.contentWindow), 1400));
-}
-visit((d, w) => {
-  try {
-    const tag = (name) => L.push(name + "=" + (d.documentElement.dataset.palette
-                                               || "none") + ":" + warmth(ground(d, w)));
-    tag("arrive");
-    w.scrollTo({ top: 2500, behavior: "instant" });
-    setTimeout(() => {
-      tag("scrolled");
-      /* THE HERO BUTTON, named. `querySelector("[data-tint]")` used to
-       * mean this one and quietly started meaning the menu entry the
-       * moment that got a trigger too — the nav comes first in the
-       * document. Both doors are tested now, each by where it lives. */
-      const go = d.querySelector(".hero [data-tint]");
-      if (!go) { say("no-hero-trigger"); return; }
-      go.click();
-      setTimeout(() => {
-        tag("clicked");
-        go.click();
-        setTimeout(() => {
-          tag("again");
-          // Quitting and coming back: a second visit, with nothing kept.
-          visit((d2, w2) => {
-            L.push("returned=" + (d2.documentElement.dataset.palette || "none")
-                   + ":" + warmth(ground(d2, w2)));
-            /* THE OTHER DOOR. Selected Work in the menu does what the
-             * hero button does — it should not matter which was used.
-             * And a menu entry that is NOT Selected Work must leave the
-             * page cream, which is what keeps the meaning "going into
-             * the work changes the light" rather than "navigating
-             * does". */
-            const band = d2.querySelector(".links [data-tint]");
-            if (!band) { say("no-menu-trigger"); return; }
-            const elsewhere = [...d2.querySelectorAll(".links a")]
-              .find((a) => !a.hasAttribute("data-tint"));
-            // If every entry tints there is nothing left to prove the
-            // rule with, which is itself the failure — say so rather
-            // than throwing on `undefined` and returning no verdict.
-            if (!elsewhere) { say("every-menu-entry-tints"); return; }
-            elsewhere.click();
-            setTimeout(() => {
-              L.push("elsewhere=" + (d2.documentElement.dataset.palette || "none")
-                     + ":" + warmth(ground(d2, w2)));
-              band.click();
-              setTimeout(() => {
-                L.push("viamenu=" + (d2.documentElement.dataset.palette || "none")
-                       + ":" + warmth(ground(d2, w2)));
-                say(L.join(" "));
-              }, 400);
-            }, 400);
-          });
-        }, 400);
-      }, 400);
-    }, 400);
-  } catch (err) { say("threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-")); }
-});
-function say(s) { document.getElementById("o").textContent = "TINT " + s; }
-</script>"""
 
 
 def check_tint(chrome: str, out: Path, url: str) -> "list[str]":
-    (out / "_tint.html").write_text(TINT_PROBE, encoding="utf-8")
+    (out / "_tint.html").write_text(probe("tint"), encoding="utf-8")
     said = dom(chrome, url + "/_tint.html", 500, 900, reduced=True, budget=25000)
     found = re.search(r"TINT ([^<]*)", said)
     if not found:
@@ -1443,53 +731,10 @@ def check_tint(chrome: str, out: Path, url: str) -> "list[str]":
 
 
 # The open patchwork takes the screen, and its photograph fills it.
-PATCH_PROBE = """
-<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
-const out = []; let done = 0;
-const SIZES = [[390, 720], [1400, 900]];
-SIZES.forEach(([w, h]) => {
-  const f = document.createElement("iframe");
-  f.width = w; f.height = h; f.style.border = 0; f.src = "/";
-  document.body.appendChild(f);
-  f.addEventListener("load", () => setTimeout(() => {
-    try {
-      const d = f.contentDocument;
-      // The reveal released at once: its transform is the containing
-      // block for the fixed front, and mid-flight it reads as a box
-      // inside the card instead of the screen.
-      d.querySelectorAll(".reveal").forEach((e) => {
-        e.style.transition = "none";
-        e.classList.add("in");
-      });
-      const g = d.querySelector("details.group");
-      g.open = true;
-      setTimeout(() => {
-        const fr = g.querySelector(".fridge.front").getBoundingClientRect();
-        const im = g.querySelector(".fridge.front > .slot-1 img")
-                    .getBoundingClientRect();
-        out.push(w + ":wide=" + Math.round(100 * fr.width / w)
-          + ":tall=" + Math.round(100 * fr.height / h)
-          // The photograph must BE the patchwork's box. On the card the
-          // slot is an <li> with the image as its child; at the front a
-          // <summary> sits between them and a percentage height dies on
-          // it, leaving the photograph at its own 3:2 at the top.
-          + ":fills=" + ((Math.abs(im.width - fr.width) < 3
-                       && Math.abs(im.height - fr.height) < 3) ? "y" : "n")
-          + ":img=" + Math.round(im.width) + "x" + Math.round(im.height));
-        if (++done === SIZES.length) say(out.join(" "));
-      }, 400);
-    } catch (err) {
-      out.push(w + ":threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-"));
-      if (++done === SIZES.length) say(out.join(" "));
-    }
-  }, 1300));
-});
-function say(s) { document.getElementById("o").textContent = "PATCH " + s; }
-</script>"""
 
 
 def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
-    (out / "_patch.html").write_text(PATCH_PROBE, encoding="utf-8")
+    (out / "_patch.html").write_text(probe("patch"), encoding="utf-8")
     said = dom(chrome, url + "/_patch.html", 1450, 950, budget=25000)
     found = re.search(r"PATCH ([^<]*)", said)
     if not found:
@@ -1578,59 +823,10 @@ def check_form_words(html: str, where: str) -> "list[str]":
 # holding the dossier at 343x757 in the corner of a card. Each was found
 # by hand, after the fact. This asks the browser about every fixed
 # element at once.
-FIXED_PROBE = """
-<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
-const f = document.createElement("iframe");
-f.width = 390; f.height = 720; f.style.border = 0; f.src = "/";
-document.body.appendChild(f);
-f.addEventListener("load", () => setTimeout(() => {
-  try {
-    const d = f.contentDocument, w = f.contentWindow;
-    // The reveal landed at once: its transform is real but transient,
-    // and catching it mid-flight reports a fault that is not one.
-    d.querySelectorAll(".reveal").forEach((e) => {
-      e.style.transition = "none";
-      e.classList.add("in");
-    });
-    // Everything that is only fixed once it is open.
-    d.querySelectorAll("details.group, details.shots, details.dossier")
-      .forEach((e) => { e.open = true; });
-    setTimeout(() => {
-      const caught = [];
-      let seen = 0;
-      for (const el of d.querySelectorAll("*")) {
-        if (w.getComputedStyle(el).position !== "fixed") continue;
-        seen++;
-        const name = el.tagName.toLowerCase()
-          + (typeof el.className === "string" && el.className.trim()
-             ? "." + el.className.trim().split(/\\s+/)[0] : "");
-        let a = el.parentElement;
-        while (a && a !== d.documentElement) {
-          const cs = w.getComputedStyle(a);
-          if (cs.transform !== "none" || cs.filter !== "none"
-              || cs.backdropFilter !== "none" || cs.perspective !== "none"
-              || cs.contain.indexOf("paint") >= 0
-              || cs.willChange.indexOf("transform") >= 0) {
-            caught.push(name + "-inside-" + a.tagName.toLowerCase()
-              + (typeof a.className === "string" && a.className.trim()
-                 ? "." + a.className.trim().split(/\\s+/)[0] : ""));
-            break;
-          }
-          a = a.parentElement;
-        }
-      }
-      say("seen=" + seen + " caught=" + (caught.join(",") || "none"));
-    }, 500);
-  } catch (err) {
-    say("threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-"));
-  }
-}, 1400));
-function say(s) { document.getElementById("o").textContent = "FIXED " + s; }
-</script>"""
 
 
 def check_fixed(chrome: str, out: Path, url: str) -> "list[str]":
-    (out / "_fixed.html").write_text(FIXED_PROBE, encoding="utf-8")
+    (out / "_fixed.html").write_text(probe("fixed"), encoding="utf-8")
     said = dom(chrome, url + "/_fixed.html", 500, 900, budget=22000)
     found = re.search(r"FIXED ([^<]*)", said)
     if not found:
@@ -1735,19 +931,6 @@ def check_shape_css(css: str) -> "list[str]":
     return bad
 
 
-def strip_portfolio(page: str) -> str:
-    out, skip = [], False
-    for line in page.splitlines(keepends=True):
-        if line.startswith("[[extra.project]]") or line.startswith("[[extra.photo]]"):
-            skip = True
-            continue
-        if skip and (line.startswith("[[") or line.startswith("# ----")):
-            skip = False
-        if not skip:
-            out.append(line)
-    return "".join(out)
-
-
 GROUP = re.compile(r'<details[^>]*\bclass=["\']?group[\s"\'>]')
 SHOTS = re.compile(r'\bclass=["\']?shots ')
 SLOT = {k: re.compile(rf'\bslot-{k}[\s"\'>]') for k in range(1, 6)}
@@ -1835,41 +1018,6 @@ def check_gallery(html: str) -> "list[str]":
 # asynchronously — reading straight after setting it reports the state
 # before the handler has run, which is how this check first told me the
 # fix had not worked.
-REOPEN_PROBE = """
-<script>
-addEventListener("load", () => setTimeout(() => {
-  const out = document.getElementById("verdict");
-  const group = document.querySelector(".group");
-  const shots = group && group.querySelector(".shots");
-  if (!group || !shots) { out.textContent = "RESULT no-gallery"; return; }
-  group.open = true;
-  shots.open = true;
-  const both = group.open && shots.open;
-  group.open = false;
-  setTimeout(() => {
-    const left = shots.open;
-    group.open = true;
-    setTimeout(() => {
-      // THE GROUND IS THE WAY OUT, one level at a time.
-      // A carousel closes back to the group it came from, not out of
-      // both — so the reader lands where they were, not at the start.
-      const front = group.querySelector(".group-front");
-      const reel = shots.querySelector(".reel");
-      shots.open = true;
-      reel.dispatchEvent(new MouseEvent("click", {bubbles: true}));
-      setTimeout(() => {
-        const afterReel = "carousel=" + shots.open + " group=" + group.open;
-        front.dispatchEvent(new MouseEvent("click", {bubbles: true}));
-        setTimeout(() => {
-          out.textContent = "RESULT both=" + both + " left=" + left
-            + " reopened=" + shots.open + " " + afterReel
-            + " afterFront=" + group.open;
-        }, 20);
-      }, 20);
-    }, 20);
-  }, 20);
-}, 0));
-</script>"""
 
 
 def check_reopen(chrome: str, out: Path, url: str) -> "list[str]":
@@ -1882,7 +1030,7 @@ def check_reopen(chrome: str, out: Path, url: str) -> "list[str]":
     (out / "_reopen.html").write_text(
         '<!doctype html><html lang=en class=js><meta charset=utf-8>'
         + css.group(0) + '<body><p id=verdict>no verdict</p><main>'
-        + sec.group(0) + '</main>' + js.group(0) + REOPEN_PROBE + '</html>',
+        + sec.group(0) + '</main>' + js.group(0) + probe("reopen") + '</html>',
         encoding="utf-8")
     said = dom(chrome, url + "/_reopen.html", 500, 900)
     found = re.search(r"RESULT ([^<]*)", said)
@@ -1916,34 +1064,10 @@ def check_reopen(chrome: str, out: Path, url: str) -> "list[str]":
 # inside a frame, because the cover's whole life is over before an
 # ordinary screenshot could catch it: 28ms without the floor, 443ms
 # with it.
-COVER_PROBE = """
-<meta charset=utf-8><body><p id=o>?</p><script>
-const f = document.createElement("iframe");
-f.width = 390; f.height = 700; f.style.border = 0; f.src = "/";
-document.body.appendChild(f);
-let seen = null, gone = null;
-const t0 = performance.now();
-const tick = () => {
-  let d = null;
-  try { d = f.contentDocument; } catch (e) {}
-  const booting = d && d.documentElement
-    && d.documentElement.classList.contains("booting");
-  if (booting && seen === null) seen = performance.now();
-  if (seen !== null && !booting && gone === null) gone = performance.now();
-  if (gone !== null || performance.now() - t0 > 8000) {
-    document.getElementById("o").textContent = "COVERED-FOR "
-      + (seen === null ? "never-covered" : gone === null ? "never-uncovered"
-         : Math.round(gone - seen));
-    return;
-  }
-  setTimeout(tick, 5);
-};
-tick();
-</script>"""
 
 
 def check_cover(chrome: str, out: Path, url: str) -> "list[str]":
-    (out / "_cover.html").write_text(COVER_PROBE, encoding="utf-8")
+    (out / "_cover.html").write_text(probe("cover"), encoding="utf-8")
     said = dom(chrome, url + "/_cover.html", 500, 900)
     found = re.search(r"COVERED-FOR ([a-z0-9-]+)", said)
     if not found:
@@ -1984,36 +1108,6 @@ def check_cover(chrome: str, out: Path, url: str) -> "list[str]":
 # print painted AFTER it. The ground beneath is fine; the print on top
 # is not. Hit testing accounts for rotation, outlines and stacking
 # without any of it being modelled here.
-LIGHT_PROBE = """
-<script>
-const slotOf = (el) => {
-  const s = el && el.closest(".shots");
-  if (!s) return 0;
-  const m = s.className.match(/slot-(\\d)/);
-  return m ? Number(m[1]) : 0;
-};
-addEventListener("load", () => setTimeout(() => {
-  const hidden = [];
-  let seen = 0;
-  document.querySelectorAll(".group").forEach((g, gi) => {
-    g.open = true;
-    g.querySelectorAll(".look").forEach((look) => {
-      seen++;
-      const mine = slotOf(look);
-      const r = look.getBoundingClientRect();
-      const pts = [[r.left + r.width/2, r.top + r.height/2],
-                   [r.left + 3, r.top + 3], [r.right - 3, r.top + 3],
-                   [r.left + 3, r.bottom - 3], [r.right - 3, r.bottom - 3]];
-      const over = pts.filter(([x, y]) =>
-        slotOf(document.elementFromPoint(x, y)) > mine).length;
-      if (over > 1) hidden.push("set" + (gi+1) + " slot" + mine + " (" + over + "/5)");
-    });
-    g.open = false;
-  });
-  document.getElementById("out").textContent =
-    "LIGHTS seen=" + seen + " hidden=" + (hidden.join(", ") || "none");
-}, 60));
-</script>"""
 
 
 def check_takes_turns(css: str) -> "list[str]":
@@ -2050,7 +1144,7 @@ def check_lights(chrome: str, out: Path, url: str) -> "list[str]":
     (out / "_lights.html").write_text(
         '<!doctype html><html lang=en class=js><meta charset=utf-8>'
         + css.group(0) + '<body><p id=out>?</p><main>' + sec.group(0)
-        + '</main>' + LIGHT_PROBE + '</html>', encoding="utf-8")
+        + '</main>' + probe("light") + '</html>', encoding="utf-8")
     said = dom(chrome, url + "/_lights.html", 1100, 1000)
     found = re.search(r"LIGHTS seen=(\d+) hidden=([^<]*)", said)
     if not found:
@@ -2062,83 +1156,6 @@ def check_lights(chrome: str, out: Path, url: str) -> "list[str]":
     if hidden != "none":
         bad.append(f"lights: hidden under the print beside them — {hidden}")
     return bad
-
-
-def build_with_projects(out: Path) -> Path:
-    """A whole site, copied, with one reference's fridge filled in.
-
-    A COPY, not the real content file. Zola's content directory is
-    fixed, so rendering a different page means either editing the
-    tracked one and hoping to put it back, or building somewhere else.
-
-    BESIDE the output, never inside it: `zola build -o <out> -f` wipes
-    the output directory first, so a source root nested in it deletes
-    itself on the way to being built.
-    """
-    root = out.with_name(out.name + "-with-projects")
-    if root.exists():
-        shutil.rmtree(root)
-    root.mkdir(parents=True)
-    for name in ("content", "templates", "static"):
-        shutil.copytree(ROOT / name, root / name,
-                        ignore=shutil.ignore_patterns("processed_images"))
-    shutil.copy2(ROOT / "config.toml", root / "config.toml")
-
-    page = root / "content" / "_index.md"
-    text = strip_portfolio(page.read_text(encoding="utf-8"))
-    mark = "# ---- 04 original concepts"
-    text = (text.replace(mark, WITH_PROJECTS + "\n" + mark, 1)
-            if mark in text else text.replace("+++", WITH_PROJECTS + "\n+++", 1))
-    page.write_text(text, encoding="utf-8")
-    return root
-
-
-def build_with_a_waiting_project(out: Path) -> Path:
-    """A site where one project exists and has no photograph yet.
-
-    The state the panel's "add a project" leaves behind, between
-    pressing the button and dropping the first image. It used to STOP
-    THE BUILD — `resize_image` was handed the empty path — and both
-    `objects.py` and `content-check.py` called the page sound, so the
-    first anyone knew was a failed deploy.
-    """
-    root = out.with_name(out.name + "-waiting")
-    if root.exists():
-        shutil.rmtree(root)
-    root.mkdir(parents=True)
-    for name in ("content", "templates", "static"):
-        shutil.copytree(ROOT / name, root / name,
-                        ignore=shutil.ignore_patterns("processed_images"))
-    shutil.copy2(ROOT / "config.toml", root / "config.toml")
-
-    page = root / "content" / "_index.md"
-    text = page.read_text(encoding="utf-8")
-    waiting = ('[[extra.project]]\n'
-               'id = "waiting-on-a-photograph"\n'
-               'reference = 1\n'
-               'name = "Added, not yet filled"\n\n')
-    at = text.index("[[extra.project]]")
-    page.write_text(text[:at] + waiting + text[at:], encoding="utf-8")
-    return root
-
-
-def build_live_config(out: Path) -> Path:
-    """config.toml with `live = true`, for rendering only.
-
-    The launch configuration is the only one that will ever face the
-    public, and until this existed it was the only one nobody had
-    rendered. It is how "STAND-IN" came within one merge of being
-    printed across the client's own photographs: the badge was tied to
-    the presence of an image, not to whether that image was a
-    placeholder, and no check could see it because no check ever built
-    the page that would show it.
-
-    Written beside the build, never over config.toml.
-    """
-    text = (ROOT / "config.toml").read_text(encoding="utf-8")
-    live = out / "config.live.toml"
-    live.write_text(text.replace("live = false", "live = true"), encoding="utf-8")
-    return live
 
 
 def check_live(html: str) -> "list[str]":
