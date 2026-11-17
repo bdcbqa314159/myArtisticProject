@@ -1,0 +1,28 @@
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+/* Does a project's own spot for its light actually arrive?
+ *
+ * It did not, and nothing noticed. The two numbers were written into a
+ * `style` attribute, and the policy on this page is `style-src 'self'`
+ * with no `unsafe-hashes` — so the browser dropped the attribute and
+ * every light sat at its default, including in the arrangements where
+ * the default disappears under a neighbouring print. The hatch existed
+ * on paper only.
+ *
+ * So this reads the custom property back from the computed style. A
+ * value that is EMPTY means the write never happened; the number means
+ * it did. */
+const f = document.createElement("iframe");
+f.width = 1100; f.height = 900; f.style.border = 0; f.src = "/";
+document.body.appendChild(f);
+f.addEventListener("load", () => setTimeout(() => {
+  const d = f.contentDocument, w = f.contentWindow;
+  const named = d.querySelector(".look[data-look]");
+  const plain = d.querySelector(".look:not([data-look])");
+  const read = (el, prop) => el ? (w.getComputedStyle(el).getPropertyValue(prop).trim() || "EMPTY") : "MISSING";
+  document.getElementById("o").textContent = "SPOT asked=" + (named ? named.dataset.look : "MISSING")
+    + " x=" + read(named, "--look-x")
+    + " y=" + read(named, "--look-y")
+    + " left=" + (named ? w.getComputedStyle(named).left : "MISSING")
+    + " untouched=" + read(plain, "--look-x");
+}, 1500));
+</script>

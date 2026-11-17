@@ -1,0 +1,106 @@
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+const f = document.createElement("iframe");
+f.width = 390; f.height = 720; f.style.border = 0; f.src = "/";
+document.body.appendChild(f);
+/* WAIT FOR THE COVER TO GO.
+ * Acting on a fixed delay made this measurement flap: sometimes the
+ * page was still behind its loader, the click on the summary landed on
+ * the cover instead of the page, and the document never opened — which
+ * showed up as `pos=static covers=n` on one run and a clean pass on the
+ * next. A reader waits for the page; so does this. */
+function whenReady(d, go, waited) {
+  // `booting` is the class the page itself takes off when the cover has
+  // done its work. Not the element: in a frame that one can outlive the
+  // class, and waiting on it waits for ever.
+  const covered = d.documentElement.classList.contains("booting");
+  if (!covered || (waited || 0) > 6000) { go(); return; }
+  setTimeout(() => whenReady(d, go, (waited || 0) + 100), 100);
+}
+
+f.addEventListener("load", () => setTimeout(() => {
+  try {
+    const d = f.contentDocument, w = f.contentWindow;
+    const box = d.querySelector("details.dossier");
+    if (!box) { say("none"); return; }
+    whenReady(d, () => measure(d, w, box));
+  } catch (err) { say("threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-")); }
+}, 300));
+
+function measure(d, w, box) {
+  try {
+
+    /* Everything in the reveal released, as it is for anyone who has
+     * scrolled to the card. The reveal puts a `transform` on the <ol>,
+     * and a transformed ancestor is the containing block for anything
+     * `position: fixed` inside it — which would make the reading
+     * surface a box inside the card instead of the page. Measured: 343
+     * x 757 at 23,-136 before the reveal; the viewport after it. */
+    d.querySelectorAll(".reveal").forEach((e) => {
+      /* The transition taken off FIRST. `.in` only sets the end state,
+       * and the 650ms journey to it keeps a `transform` on the element
+       * the whole way — so measuring half a second after adding the
+       * class caught it mid-flight, and `covers` came out true on one
+       * run and false on the next. Setting it through the element's own
+       * style is CSSOM, which `style-src 'self'` allows; an injected
+       * <style> element would be blocked. */
+      e.style.transition = "none";
+      e.classList.add("in");
+    });
+
+    const leaves = box.querySelector(".leaves");
+    const pages = leaves.querySelectorAll(".leaf").length;
+    // Anything at all that could hand the reader a file.
+    const links = box.querySelectorAll("a[href], [download]").length;
+
+    box.querySelector("summary").click();
+    setTimeout(() => {
+      /* READ IT NOW, not in `say()`. `getComputedStyle` returns a LIVE
+       * object: holding on to it and reading `.position` three timeouts
+       * later reported `static` every time, because by then the ground
+       * click had closed the document. The booleans beside it were
+       * computed eagerly and said the opposite, which is what gave a
+       * verdict of `pos=static covers=y` — two measurements of the same
+       * element at different moments, dressed as one. */
+      const pos = w.getComputedStyle(leaves).position;
+      const r = leaves.getBoundingClientRect();
+      /* Against the DOCUMENT's client box, not `innerWidth`.
+       * `innerWidth` includes the scrollbar; a fixed element does not.
+       * On a Mac, where scrollbars are overlays, the two agree and this
+       * passed. On the Linux runner, where a scrollbar takes 15 real
+       * pixels, it failed — a platform difference reported as a page
+       * fault. The check was wrong, not the page. */
+      const vw = d.documentElement.clientWidth;
+      const vh = d.documentElement.clientHeight;
+      const covers = Math.abs(r.width - vw) < 2 && Math.abs(r.height - vh) < 2
+                  && Math.abs(r.left) < 2 && Math.abs(r.top) < 2;
+      /* Scrollable, not merely overflowing. A box with `overflow:
+       * visible` still reports a scrollHeight past its clientHeight —
+       * the content spills instead of scrolling — so taking the
+       * stylesheet's `overflow-y` away left this test green while the
+       * pages ran off the bottom of the screen with no way to reach
+       * them. Both halves are needed: room to scroll, and permission. */
+      const oy = w.getComputedStyle(leaves).overflowY;
+      const scrolls = leaves.scrollHeight > leaves.clientHeight + 10
+                   && (oy === "auto" || oy === "scroll");
+      const leaf = leaves.querySelector(".leaf");
+      const sharp = leaf.naturalWidth / Math.max(1, leaf.getBoundingClientRect().width);
+
+      leaf.click();                       // reading, not leaving
+      setTimeout(() => {
+        const stillOpen = box.open;
+        leaves.click();                   // the margin, which is leaving
+        setTimeout(() => {
+          say("pages=" + pages + " links=" + links
+            + " pos=" + pos
+            + " covers=" + (covers ? "y" : "n")
+            + " scrolls=" + (scrolls ? "y" : "n")
+            + " sharp=" + sharp.toFixed(1)
+            + " onpage=" + (stillOpen ? "stays" : "CLOSED")
+            + " onground=" + (box.open ? "STAYS" : "closes"));
+        }, 150);
+      }, 150);
+    }, 500);
+  } catch (err) { say("threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-")); }
+}
+function say(s) { document.getElementById("o").textContent = "DOC " + s; }
+</script>

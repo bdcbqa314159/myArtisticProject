@@ -1,0 +1,23 @@
+<meta charset=utf-8><body><p id=o>?</p><script>
+const f = document.createElement("iframe");
+f.width = 390; f.height = 700; f.style.border = 0; f.src = "/";
+document.body.appendChild(f);
+let seen = null, gone = null;
+const t0 = performance.now();
+const tick = () => {
+  let d = null;
+  try { d = f.contentDocument; } catch (e) {}
+  const booting = d && d.documentElement
+    && d.documentElement.classList.contains("booting");
+  if (booting && seen === null) seen = performance.now();
+  if (seen !== null && !booting && gone === null) gone = performance.now();
+  if (gone !== null || performance.now() - t0 > 8000) {
+    document.getElementById("o").textContent = "COVERED-FOR "
+      + (seen === null ? "never-covered" : gone === null ? "never-uncovered"
+         : Math.round(gone - seen));
+    return;
+  }
+  setTimeout(tick, 5);
+};
+tick();
+</script>

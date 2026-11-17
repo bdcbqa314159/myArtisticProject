@@ -1,0 +1,74 @@
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+const out = []; let done = 0;
+const SIZES = [[390, 700], [900, 800]];
+SIZES.forEach(([w, h]) => {
+  const f = document.createElement("iframe");
+  f.width = w; f.height = h; f.style.border = 0; f.src = "/";
+  document.body.appendChild(f);
+  f.addEventListener("load", () => setTimeout(() => {
+    try {
+      const d = f.contentDocument;
+      const sw = d.querySelector(".swap");
+      const ph = [...d.querySelectorAll(".swap .phrase")];
+      if (!sw || ph.length !== 2) { out.push(w + ":no-heading"); }
+      else {
+        sw.classList.add("swapping");
+        const a = ph.map((p) => p.getAnimations()[0]);
+        if (a.some((x) => !x)) { out.push(w + ":no-animation"); }
+        else {
+          a.forEach((x) => x.pause());
+          /* The INK, not the block. The heading is centred, so the
+           * block reaches the gutter with empty margin on both sides
+           * and its own left edge may cross the viewport without a
+           * single letter doing so. Measuring the block failed a sweep
+           * that was comfortably inside the page. */
+          const inkOf = (p) => {
+            const r = d.createRange();
+            r.selectNodeContents(p);
+            const box = r.getBoundingClientRect();
+            return box.width > 0 ? box : p.getBoundingClientRect();
+          };
+          const at = (t) => { a.forEach((x) => { x.currentTime = t; });
+                              return ph.map(inkOf); };
+
+          /* Home is where the phrases rest with NO animation and no
+           * waiting offset — read before any of this starts. Taking it
+           * from the animation's own last frame instead made "did they
+           * land home" compare the end against itself, so a version
+           * that finished six pixels off passed. */
+          sw.classList.remove("swapping");
+          ph.forEach((p) => { p.style.transform = ""; });
+          const home = ph.map(inkOf);
+          sw.classList.add("swapping");
+          a.length = 0;
+          ph.forEach((p) => a.push(p.getAnimations()[0]));
+          a.forEach((x) => x.pause());
+          let bow = 0, edge = 1e9, travel = 0, cross = 1e9, crossGap = 0, rightward = 0;
+          for (let i = 0; i <= 24; i++) {
+            const r = at(480 + 820 * i / 24);
+            for (let k = 0; k < 2; k++) {
+              const dx = r[k].left - home[k].left;
+              if (dx > 0.5) rightward++;            // a C never goes right
+              bow = Math.max(bow, -dx);
+              travel = Math.max(travel, Math.abs(r[k].top - home[k].top));
+            }
+            edge = Math.min(edge, r[0].left, r[1].left);
+            const dy = Math.abs(r[0].top - r[1].top);
+            if (dy < cross) { cross = dy; crossGap = Math.abs(r[0].left - r[1].left); }
+          }
+          const end = at(1300);
+          const landed = ph.every((p, k) =>
+            Math.abs(end[k].left - home[k].left) < 0.5
+            && Math.abs(end[k].top - home[k].top) < 0.5);
+          out.push(w + ":bow=" + Math.round(bow) + ":travel=" + Math.round(travel)
+            + ":edge=" + Math.round(edge) + ":gap=" + Math.round(crossGap)
+            + ":right=" + rightward + ":home=" + landed);
+        }
+      }
+    } catch (err) { out.push(w + ":threw-" + err.message); }
+    if (++done === SIZES.length) {
+      document.getElementById("o").textContent = "ARC " + out.join(" ");
+    }
+  }, 900));
+});
+</script>

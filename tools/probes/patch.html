@@ -1,0 +1,42 @@
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+const out = []; let done = 0;
+const SIZES = [[390, 720], [1400, 900]];
+SIZES.forEach(([w, h]) => {
+  const f = document.createElement("iframe");
+  f.width = w; f.height = h; f.style.border = 0; f.src = "/";
+  document.body.appendChild(f);
+  f.addEventListener("load", () => setTimeout(() => {
+    try {
+      const d = f.contentDocument;
+      // The reveal released at once: its transform is the containing
+      // block for the fixed front, and mid-flight it reads as a box
+      // inside the card instead of the screen.
+      d.querySelectorAll(".reveal").forEach((e) => {
+        e.style.transition = "none";
+        e.classList.add("in");
+      });
+      const g = d.querySelector("details.group");
+      g.open = true;
+      setTimeout(() => {
+        const fr = g.querySelector(".fridge.front").getBoundingClientRect();
+        const im = g.querySelector(".fridge.front > .slot-1 img")
+                    .getBoundingClientRect();
+        out.push(w + ":wide=" + Math.round(100 * fr.width / w)
+          + ":tall=" + Math.round(100 * fr.height / h)
+          // The photograph must BE the patchwork's box. On the card the
+          // slot is an <li> with the image as its child; at the front a
+          // <summary> sits between them and a percentage height dies on
+          // it, leaving the photograph at its own 3:2 at the top.
+          + ":fills=" + ((Math.abs(im.width - fr.width) < 3
+                       && Math.abs(im.height - fr.height) < 3) ? "y" : "n")
+          + ":img=" + Math.round(im.width) + "x" + Math.round(im.height));
+        if (++done === SIZES.length) say(out.join(" "));
+      }, 400);
+    } catch (err) {
+      out.push(w + ":threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-"));
+      if (++done === SIZES.length) say(out.join(" "));
+    }
+  }, 1300));
+});
+function say(s) { document.getElementById("o").textContent = "PATCH " + s; }
+</script>

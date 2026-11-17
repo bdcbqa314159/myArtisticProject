@@ -1,0 +1,48 @@
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+const f = document.createElement("iframe");
+f.width = 390; f.height = 720; f.style.border = 0; f.src = "/";
+document.body.appendChild(f);
+f.addEventListener("load", () => setTimeout(() => {
+  try {
+    const d = f.contentDocument, w = f.contentWindow;
+    // The reveal landed at once: its transform is real but transient,
+    // and catching it mid-flight reports a fault that is not one.
+    d.querySelectorAll(".reveal").forEach((e) => {
+      e.style.transition = "none";
+      e.classList.add("in");
+    });
+    // Everything that is only fixed once it is open.
+    d.querySelectorAll("details.group, details.shots, details.dossier")
+      .forEach((e) => { e.open = true; });
+    setTimeout(() => {
+      const caught = [];
+      let seen = 0;
+      for (const el of d.querySelectorAll("*")) {
+        if (w.getComputedStyle(el).position !== "fixed") continue;
+        seen++;
+        const name = el.tagName.toLowerCase()
+          + (typeof el.className === "string" && el.className.trim()
+             ? "." + el.className.trim().split(/\s+/)[0] : "");
+        let a = el.parentElement;
+        while (a && a !== d.documentElement) {
+          const cs = w.getComputedStyle(a);
+          if (cs.transform !== "none" || cs.filter !== "none"
+              || cs.backdropFilter !== "none" || cs.perspective !== "none"
+              || cs.contain.indexOf("paint") >= 0
+              || cs.willChange.indexOf("transform") >= 0) {
+            caught.push(name + "-inside-" + a.tagName.toLowerCase()
+              + (typeof a.className === "string" && a.className.trim()
+                 ? "." + a.className.trim().split(/\s+/)[0] : ""));
+            break;
+          }
+          a = a.parentElement;
+        }
+      }
+      say("seen=" + seen + " caught=" + (caught.join(",") || "none"));
+    }, 500);
+  } catch (err) {
+    say("threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-"));
+  }
+}, 1400));
+function say(s) { document.getElementById("o").textContent = "FIXED " + s; }
+</script>
