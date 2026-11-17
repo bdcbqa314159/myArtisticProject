@@ -161,6 +161,26 @@ Un fichier au mauvais format est refusé avec la raison, et rien n'est
 remplacé tant qu'il n'est pas accepté. **remove** remet la marque
 dessinée.
 
+### La typographie
+
+Deux moitiés, et aucune ne suffit seule.
+
+1. **Le nom** : dans **Everything as a list → launch → extra.theme**,
+   écris la pile de polices, la vraie en premier —
+   `serif = "Canela, Georgia, serif"`.
+2. **Le fichier** : dans **Everything as a list → her typeface**, dépose
+   le `.woff2` correspondant.
+
+Écrire le nom sans déposer le fichier ne change **rien** : le navigateur
+ne trouve pas la police sur la machine du visiteur et dessine
+silencieusement la suivante de la pile (ici Georgia). La liste te le dit
+désormais, en clair, à la ligne du fichier manquant.
+
+Trois fichiers possibles : `display.woff2` (la police d'affichage),
+`text.woff2` (le texte) et `text-bold.woff2` (le texte en gras).
+**woff2 uniquement** — demande-le à la graphiste, c'est le format web.
+Un `.otf`, un `.ttf` ou un `.woff` est refusé en te disant quoi exporter.
+
 ### Les photographies
 
 Les six emplacements de la section *Selected Work* acceptent une image.

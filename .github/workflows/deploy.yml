@@ -50,6 +50,7 @@ jobs:
       - run: python3 tools/icons.py          # favicon, touch icon, share image
       - run: python3 tools/vcard.py          # the saveable contact, or nothing at all
       - run: python3 tools/theme.py --check  # the stylesheet matches the decisions in config
+      - run: python3 tools/fonts.py --check  # and so does the one that loads her typeface
       - run: python3 tools/objects.py        # every content object is well formed
       - run: python3 tools/content-check.py  # the client's publication rules hold
       - run: python3 tools/objects-check.py  # the object checker itself still bites
@@ -64,6 +65,7 @@ jobs:
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
       - run: python3 tools/dossier-check.py  # a PDF is judged by what is inside it
       - run: python3 tools/logo-check.py     # and so is a logo
+      - run: python3 tools/fonts-check.py    # and a typeface, by its header
       - run: python3 tools/invariants.py     # nothing that must happen once happens twice
       - run: python3 tools/studio/check.py   # the editor refuses what it must, and the guide still quotes it
       - uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2

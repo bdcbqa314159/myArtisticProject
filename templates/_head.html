@@ -64,3 +64,10 @@ setTimeout(function(){d.classList.remove("booting")},6000)})(document.documentEl
    tools/theme.py; empty until someone decides something, and then it
    is nothing but custom properties. #}
 <link rel="stylesheet" href="{{ get_url(path='css/theme.css') }}">
+{# And after THAT, the faces themselves. The stack above names a family;
+   this is what makes a visitor who has never installed it see it.
+   Generated from static/fonts/ by tools/fonts.py, and empty — not one
+   rule — until a file is dropped. `font-src` needs no permission of its
+   own: `default-src 'self'` already covers it, and nothing is loaded
+   from anywhere else. #}
+<link rel="stylesheet" href="{{ get_url(path='css/fonts.css') }}">

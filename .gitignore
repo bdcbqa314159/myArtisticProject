@@ -54,6 +54,14 @@ node_modules/
 /static/logo.png
 /static/share.png
 
+# HER TYPEFACE. A licensed webfont is somebody else's property and a
+# public repository is the one place it must not be — most foundry
+# licences forbid redistribution outright, and a committed woff2 is
+# redistribution. The generated static/css/fonts.css IS tracked: it
+# names a family and a path, which is not the font. The files arrive
+# through _dropin/static/fonts/ and are assembled into _local/.
+/static/fonts/
+
 # THE SHOWREEL. His film, and the largest single thing he will hand
 # over. The studio panel writes it here when it is run at the repository
 # root, so without this line a drop would leave a client's film sitting
