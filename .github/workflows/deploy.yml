@@ -50,6 +50,7 @@ jobs:
       - run: python3 tools/icons.py          # favicon, touch icon, share image
       - run: python3 tools/vcard.py          # the saveable contact, or nothing at all
       - run: python3 tools/theme.py --check  # the stylesheet matches the decisions in config
+      - run: python3 tools/contrast-check.py # the palette can be read, the fields can be seen
       - run: python3 tools/fonts.py --check  # and so does the one that loads their typeface
       - run: python3 tools/objects.py        # every content object is well formed
       - run: python3 tools/content-check.py  # the client's publication rules hold
