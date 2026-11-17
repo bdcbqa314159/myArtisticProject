@@ -33,7 +33,26 @@ import edit                                                 # noqa: E402
 import objects                                              # noqa: E402
 import server                                               # noqa: E402
 
-SERVER = (ROOT / "tools" / "studio" / "server.py").read_text(encoding="utf-8")
+# The panel, as one body of text: the Python that routes and the two
+# pages it serves. They were one file; `panel.html` and `list.html` were
+# lifted out of it, and every assertion below that looks for a phrase —
+# a message the guide quotes, a listener bound in the capture phase —
+# has to keep seeing all three or it would pass by looking at less.
+STUDIO = ROOT / "tools" / "studio"
+PAGES = ("panel.html", "list.html")
+def read(name: str) -> str:
+    """One part of the panel, or "" if it is not there.
+
+    Tolerant on purpose. Reading them eagerly raised FileNotFoundError
+    at import and the guard that exists to NAME the missing page never
+    ran — a traceback instead of one sentence saying which file to put
+    back.
+    """
+    page = STUDIO / name
+    return page.read_text(encoding="utf-8") if page.exists() else ""
+
+
+SERVER = "\n".join([read("server.py")] + [read(name) for name in PAGES])
 
 
 def without_portfolio(page: str) -> str:
@@ -341,6 +360,15 @@ def main() -> int:
     # Structural, because the browser half cannot be driven here: the
     # headless browser runs no animation frames and cannot click. These
     # guard the two fixes most likely to be undone by someone tidying.
+    # FIRST, because every assertion after it reads that text. A page
+    # that has moved or been emptied would otherwise fail fifteen
+    # checks at once and name none of them.
+    for name in PAGES:
+        page = STUDIO / name
+        ok(page.exists() and len(page.read_text(encoding="utf-8")) > 2000,
+           f"tools/studio/{name} is missing or nearly empty — the panel "
+           f"serves it, and the checks below read it")
+
     ok('doc.addEventListener("click"' in SERVER and "}, true);" in SERVER,
        "the frame's clicks are no longer caught in the capture phase — "
        "bound to elements instead, the site's own handlers run first and "

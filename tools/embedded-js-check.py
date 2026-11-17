@@ -30,19 +30,23 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 # Where to look, and how to get the script out of it.
-# Where a script hides inside another language. The panel's two pages
-# are HTML documents inside Python strings; the probe pages used to be
-# too, and are real files now — parsed here as well, because a tool
-# that says "all parse" while quietly covering a fifth of what it did
-# is worse than one that fails.
-EMBEDDED = (
-    ("tools/studio/server.py", r'^(SHELL|TEMPLATE)\s*=\s*r?"""(.*?)"""'),
+# Where the browser programs live. All of them are HTML files now —
+# the probe pages the render check serves, and the studio panel's two
+# pages — so there is nothing left to cut out of a Python string.
+#
+# Directories, not lists of names: a page added without being mentioned
+# anywhere is the normal way coverage goes backwards. And each one must
+# yield at least one script, because this tool reporting "all parse"
+# over a smaller set than yesterday is the failure it exists to
+# prevent. It happened: the probes moved out of render-check.py and
+# this went from 16 scripts to 2 without a word.
+# Each directory must yield scripts; whether the RIGHT pages are there
+# is `tools/studio/check.py`'s question, and it names them. This one
+# only parses what it finds.
+WHERE = (
+    ("tools/probes", "the render check's probe pages"),
+    ("tools/studio", "the studio panel's own pages"),
 )
-
-# And the probe pages, which are HTML on disk. A directory rather than
-# a list: a probe added without being mentioned anywhere is the normal
-# way coverage goes backwards.
-PROBES = ROOT / "tools" / "probes"
 
 
 def tags(label: str, body: str) -> "list[tuple[str, str]]":
@@ -55,21 +59,17 @@ def tags(label: str, body: str) -> "list[tuple[str, str]]":
 
 def scripts() -> "list[tuple[str, str]]":
     out = []
-    for rel, pattern in EMBEDDED:
-        text = (ROOT / rel).read_text(encoding="utf-8")
-        for block in re.finditer(pattern, text, re.S | re.M):
-            out += tags(f"{rel}:{block.group(1)}", block.group(2))
-
-    pages = sorted(PROBES.glob("*.html")) if PROBES.exists() else []
-    if not pages:
-        print(f"\n  no probe pages in {PROBES.relative_to(ROOT)}. They hold "
-              f"the browser programs the render check runs — if they have "
-              f"moved, point this at them rather than letting it pass over "
-              f"an empty directory.\n", file=sys.stderr)
-        raise SystemExit(1)
-    for page in pages:
-        out += tags(f"tools/probes/{page.name}",
-                    page.read_text(encoding="utf-8"))
+    for rel, what in WHERE:
+        pages = sorted((ROOT / rel).glob("*.html")) if (ROOT / rel).exists() else []
+        found = []
+        for page in pages:
+            found += tags(f"{rel}/{page.name}", page.read_text(encoding="utf-8"))
+        if not found:
+            print(f"\n  no scripts found in {rel}/ — {what}. If they have "
+                  f"moved, point this at them rather than letting it pass "
+                  f"over an empty directory.\n", file=sys.stderr)
+            raise SystemExit(1)
+        out += found
     return out
 
 
