@@ -103,8 +103,8 @@ def main() -> int:
     # --- elsewhere: the two links the client named -------------------------
     # LinkedIn and WhatsApp Business. The client's decision is that the
     # services' own pages are enough for now, so a homepage is a valid
-    # destination here and is not flagged — swapping in his profile and
-    # his wa.me number later is a one-line edit each, in config.toml or
+    # destination here and is not flagged — swapping in their profile
+    # and their wa.me number later is a one-line edit each, in config.toml or
     # from the studio panel.
     #
     # What is still checked: a link that goes nowhere at all, and a mark
@@ -222,7 +222,7 @@ def main() -> int:
     # The drawn mark is a stand-in like the stand-in photographs, and
     # for the same reason it blocks `live`: a point on a circle is an
     # honest placeholder on a demo and a studio shipping someone else's
-    # geometry as his logo on the day it goes out.
+    # geometry as their logo on the day it goes out.
     import sys as _sys
     _sys.path.insert(0, str(ROOT / "tools"))
     from logo import SLOTS, installed as marks_installed
@@ -230,7 +230,7 @@ def main() -> int:
     absent = [name for slot, (name, _j, _w) in SLOTS.items() if slot not in have]
     if absent:
         problems.append(
-            f"the drawn mark still stands in for his logo: "
+            f"the drawn mark still stands in for their logo: "
             f"{', '.join(absent)} not dropped (python3 tools/logo.py)"
         )
 

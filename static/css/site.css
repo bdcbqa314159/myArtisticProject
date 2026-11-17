@@ -15,7 +15,7 @@
  * system rather than from opulence.
  *
  * STILL A PLACEHOLDER. The graphiste authors logo, typography, palette
- * and iconography separately. Everything below is tokens, so her values
+ * and iconography separately. Everything below is tokens, so their values
  * drop in without anything structural moving. See NOTICE.
  *
  * Written phone-first: every rule here is the phone rule, and the two
@@ -1891,7 +1891,7 @@ section:not(.hero) > .wrap > .note { text-align: left; }
 
    "J'ai remarqué la réaction sur le bouton bleu, mais pas sur l'autre."
 
-   He is right, and it was not a matter of degree. Both buttons had the same
+   They are right, and it was not a matter of degree. Both buttons had the same
    `:active` transform — but the filled one also inverts its background,
    which is a change across its whole area, while the outline one changed
    only a 1px border. One read as a press and the other as nothing.
@@ -1963,7 +1963,7 @@ section:not(.hero) > .wrap > .note { text-align: left; }
    - the TEXT inside stays left in every one of them, including the centred
      block. Centring the text as well would make the middle item a
      different kind of thing rather than the same thing in a different
-     place, and he asked for a sequence, not a feature.
+     place, and they asked for a sequence, not a feature.
 
    Scoped by id to Expertise. Concepts uses the same grid class and was not
    part of the request, and an id beats a class — so the three-column rule

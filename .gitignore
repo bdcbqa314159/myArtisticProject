@@ -42,7 +42,7 @@ node_modules/
 # where the client drops material before it is placed in content/
 /_client_input/
 
-# HIS MARK. The real logo is the brand itself, and the brand in this
+# THEIR MARK. The real logo is the brand itself, and the brand in this
 # repository is a stand-in — so a committed logo.svg would say in one
 # file what every other file is careful not to. The panel writes these
 # three when it is run at the repository root, and `tools/icons.py`
@@ -54,7 +54,7 @@ node_modules/
 /static/logo.png
 /static/share.png
 
-# HER TYPEFACE. A licensed webfont is somebody else's property and a
+# THEIR TYPEFACE. A licensed webfont is somebody else's property and a
 # public repository is the one place it must not be — most foundry
 # licences forbid redistribution outright, and a committed woff2 is
 # redistribution. The generated static/css/fonts.css IS tracked: it
@@ -62,7 +62,7 @@ node_modules/
 # through _dropin/static/fonts/ and are assembled into _local/.
 /static/fonts/
 
-# THE SHOWREEL. His film, and the largest single thing he will hand
+# THE SHOWREEL. Their film, and the largest single thing they will hand
 # over. The studio panel writes it here when it is run at the repository
 # root, so without this line a drop would leave a client's film sitting
 # untracked in a PUBLIC checkout, one `git add -A` from being published.
@@ -73,7 +73,7 @@ node_modules/
 # ---------------------------------------------------------------
 # THE REAL CONTENT, AND THE PREVIEW BUILT FROM IT.
 #
-# _dropin/ is where his names, photographs and showreel go; _local/ is
+# _dropin/ is where their names, photographs and showreel go; _local/ is
 # the site assembled from them. Both are ignored, and that is the whole
 # mechanism keeping client material out of a public repository — see
 # tools/dropin.py. The tracked tree keeps the placeholders and stays

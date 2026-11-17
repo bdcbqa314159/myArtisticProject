@@ -108,7 +108,7 @@ def text_values() -> "dict[str, str]":
 
 
 def faces_section() -> str:
-    """Her typeface, and whether a visitor will actually see it.
+    """The typeface they chose, and whether a visitor will actually see it.
 
     The two halves are shown together on purpose. A stack naming a face
     with no file loaded is the state this whole section exists to make
@@ -147,7 +147,7 @@ def faces_section() -> str:
         </tr>""")
 
     return (
-        f'<section><h2>her typeface<span class="count">{len(have)} of '
+        f'<section><h2>the typeface<span class="count">{len(have)} of '
         f'{len(fonts.SLOTS)}</span></h2>'
         '<p class="doc">Two halves, and neither works alone: the name goes in '
         'launch below (theme.serif and theme.sans), and the file goes here. '
@@ -159,7 +159,7 @@ def faces_section() -> str:
 
 
 def marks_section() -> str:
-    """His own logo, in the three places a browser asks for one.
+    """Their own logo, in the three places a browser asks for one.
 
     Three slots rather than one, and nothing converted between them:
     there is no rasteriser here, so an SVG cannot become the two PNGs.
@@ -187,7 +187,7 @@ def marks_section() -> str:
         </tr>""")
 
     return (
-        f'<section><h2>his mark<span class="count">{len(have)} of '
+        f'<section><h2>the mark<span class="count">{len(have)} of '
         f'{len(logo.SLOTS)}</span></h2>'
         '<p class="doc">Until the logo exists, the tab carries a mark drawn by '
         'the studio — a point on a circle, no letterform. Drop the real one '

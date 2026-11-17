@@ -483,7 +483,7 @@ def main() -> int:
     ok('"/logo-remove"' in SERVER,
        "a logo can be put in place and not taken back off")
     ok('"/font"' in SERVER and "faces_section" in SERVER,
-       "the panel can no longer put her typeface in place, so a font stack "
+       "the panel can no longer put their typeface in place, so a font stack "
        "can be named with nothing loading it — which is the state the "
        "section exists to make visible")
     ok('"/font-remove"' in SERVER,

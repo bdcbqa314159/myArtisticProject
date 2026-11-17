@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The typeface she chose, actually loaded.
+"""The typeface they chose, actually loaded.
 
     python3 tools/fonts.py            # write static/css/fonts.css
     python3 tools/fonts.py --check    # fail if what is committed is stale
@@ -22,7 +22,7 @@ So the stack is now half of the answer and the file is the other half:
 
 THE FAMILY NAME IS NOT INVENTED HERE
 
-It is the FIRST family in the stack she typed. Drop `display.woff2`,
+It is the FIRST family in the stack they typed. Drop `display.woff2`,
 write `serif = "Canela, Georgia, serif"`, and this emits an `@font-face`
 for "Canela" — so the stack in the stylesheet resolves to the file, and
 the rest of the stack stays a real fallback for the moment the file is

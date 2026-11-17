@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""His own mark, in the browser tab and under a pasted link.
+"""Their own mark, in the browser tab and under a pasted link.
 
     python3 tools/logo.py        # say which marks are in place, and which are not
 
@@ -7,7 +7,7 @@ WHAT THIS IS FOR
 
 `tools/icons.py` draws a placeholder: a point on a circle, no
 letterform, because a letterform would be a logo and that is the
-graphiste's to design. The moment she has designed one, three files
+graphiste's to design. The moment they have designed one, three files
 replace it, and nothing in the page or the head has to change — the
 published names stay `favicon.svg`, `icon-180.png` and `og.png`.
 
@@ -35,7 +35,7 @@ WHERE THE REAL ONE LIVES
 
 Not here. `_dropin/static/logo.svg` mirrors `static/logo.svg`, so the
 mark is assembled into `_local/` and never enters the tracked tree —
-the same mechanism as his photographs and his film, and for the same
+the same mechanism as their photographs and their film, and for the same
 reason: this repository is public and the brand is a stand-in.
 """
 from __future__ import annotations

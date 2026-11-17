@@ -69,7 +69,7 @@ CONFIG_FIELDS = {
     # studio's, and a mark pointing at a file that is not there is a
     # broken image in the footer — not a thing to expose to a browser.
     "extra.social.linkedin": {
-        "url": "his LinkedIn profile, not linkedin.com",
+        "url": "their LinkedIn profile, not linkedin.com",
     },
     "extra.social.whatsapp": {
         "url": "https://wa.me/ and the business number",
@@ -470,7 +470,7 @@ def _regenerate_theme() -> str:
 
 
 def set_logo(slot: str, raw: bytes) -> str:
-    """Put one of his three marks in place, and rebuild what it feeds.
+    """Put one of their three marks in place, and rebuild what it feeds.
 
     The validation is not here: `tools/logo.py` owns what a usable mark
     is, because `tools/icons.py` has to agree with it — a file this
@@ -498,7 +498,7 @@ def set_logo(slot: str, raw: bytes) -> str:
 
 
 def remove_logo(slot: str) -> str:
-    """Take one of his marks away again, and draw the stand-in back."""
+    """Take one of their marks away again, and draw the stand-in back."""
     import logo
 
     if slot not in logo.SLOTS:
