@@ -216,6 +216,18 @@ INVARIANTS = [
         "notices until it matters.",
     ),
     (
+        "no style attribute anywhere in the page",
+        "templates/index.html",
+        r'style="',
+        0,
+        "The policy is style-src 'self' with no 'unsafe-hashes', so a "
+        "style ATTRIBUTE is inline style and the browser drops it. Five "
+        "of them sat on the lights for weeks, carrying the only escape "
+        "hatch for the arrangements where a light hides under its "
+        "neighbour, and it had never once applied. Write it from script "
+        "with setProperty, which the policy allows.",
+    ),
+    (
         "the templates do not carry their own policy",
         "templates/index.html",
         r'http-equiv="Content-Security-Policy"',

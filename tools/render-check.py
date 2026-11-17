@@ -193,6 +193,9 @@ name = "Probe A"
 id = "probe-b"
 reference = 1
 name = "Probe B"
+# A named spot, so check_named_spot has something to measure. The
+# mechanism carrying these two numbers was dead for weeks.
+look = "33 77"
 
 [[extra.project]]
 id = "probe-c"
@@ -404,6 +407,65 @@ visit((d, w) => {
 });
 </script>
 """
+
+
+NAMED_SPOT_PROBE = """
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+/* Does a project's own spot for its light actually arrive?
+ *
+ * It did not, and nothing noticed. The two numbers were written into a
+ * `style` attribute, and the policy on this page is `style-src 'self'`
+ * with no `unsafe-hashes` — so the browser dropped the attribute and
+ * every light sat at its default, including in the arrangements where
+ * the default disappears under a neighbouring print. The hatch existed
+ * on paper only.
+ *
+ * So this reads the custom property back from the computed style. A
+ * value that is EMPTY means the write never happened; the number means
+ * it did. */
+const f = document.createElement("iframe");
+f.width = 1100; f.height = 900; f.style.border = 0; f.src = "/";
+document.body.appendChild(f);
+f.addEventListener("load", () => setTimeout(() => {
+  const d = f.contentDocument, w = f.contentWindow;
+  const named = d.querySelector(".look[data-look]");
+  const plain = d.querySelector(".look:not([data-look])");
+  const read = (el, prop) => el ? (w.getComputedStyle(el).getPropertyValue(prop).trim() || "EMPTY") : "MISSING";
+  document.getElementById("o").textContent = "SPOT asked=" + (named ? named.dataset.look : "MISSING")
+    + " x=" + read(named, "--look-x")
+    + " y=" + read(named, "--look-y")
+    + " left=" + (named ? w.getComputedStyle(named).left : "MISSING")
+    + " untouched=" + read(plain, "--look-x");
+}, 1500));
+</script>
+"""
+
+
+def check_named_spot(chrome: str, out: Path, url: str) -> "list[str]":
+    """A light where its project asked for it, not where it is tidy."""
+    (out / "_spot.html").write_text(NAMED_SPOT_PROBE, encoding="utf-8")
+    said = dom(chrome, url + "/_spot.html", 1100, 900)
+    found = re.search(r"SPOT ([^<]*)", said)
+    if not found:
+        return ["spot: the probe returned no verdict"]
+    verdict = found.group(1).strip()
+    bad = []
+    if "asked=33 77" not in verdict:
+        bad.append(f"spot: the project's named position never reached the "
+                   f"markup ({verdict})")
+    elif "x=33%" not in verdict or "y=77%" not in verdict:
+        bad.append(f"spot: a project named its own spot and the light did not "
+                   f"take it ({verdict}). A style ATTRIBUTE will not do it — "
+                   f"the policy drops inline style; it has to be written with "
+                   f"setProperty")
+    elif "left=auto" in verdict:
+        bad.append(f"spot: the position arrived and resolved to nothing "
+                   f"({verdict})")
+    if "untouched=EMPTY" not in verdict:
+        bad.append(f"spot: a light with no named spot has one anyway "
+                   f"({verdict}) — the default in the stylesheet is what "
+                   f"every other light depends on")
+    return bad
 
 
 def check_reach(chrome: str, out: Path, url: str) -> "list[str]":
@@ -1954,6 +2016,31 @@ addEventListener("load", () => setTimeout(() => {
 </script>"""
 
 
+def check_takes_turns(css: str) -> "list[str]":
+    """One light at a time, which is what the fifth attempt is.
+
+    Five lights pulsing in step read as five notifications on someone's
+    photographs. They take turns now, by nothing more than a delay per
+    slot — so the failure to guard against is not a broken animation
+    but a copy-paste: five slots, five identical delays, and the page
+    is quietly back to what the client did not like, with every check
+    still green.
+    """
+    delays = re.findall(r"\.shots\.slot-(\d)\s*\{\s*--look-delay:\s*([0-9.]+)s", css)
+    if len(delays) < 5:
+        return [f"turns: {len(delays)} of the five print slots give their "
+                f"light a delay; without one they light together"]
+    spread = {d for _slot, d in delays}
+    if len(spread) != len(delays):
+        return [f"turns: the slots share a delay ({', '.join(sorted(spread))}) "
+                f"— their lights come on together, which is the thing being "
+                f"fixed"]
+    if "infinite both" not in css or "animation: turn" not in css:
+        return ["turns: the light no longer takes a turn at all — the "
+                "animation that brings it in and out is gone"]
+    return []
+
+
 def check_lights(chrome: str, out: Path, url: str) -> "list[str]":
     page = (out / "index.html").read_text(encoding="utf-8")
     css = re.search(r'<link[^>]*site\.css[^>]*>', page)
@@ -2142,6 +2229,7 @@ def main() -> int:
             problems += check_reach(chrome, out, url)
             site_css = Path("static/css/site.css").read_text(encoding="utf-8")
             problems += check_shape_css(site_css)
+            problems += check_takes_turns(site_css)
             problems += check_marks_declared(site_css)
             problems += check_marks(chrome, out, url, site_css)
             problems += check_arc(chrome, out, url)
@@ -2218,6 +2306,7 @@ def main() -> int:
                 # the whole mechanism, so the gallery must not need one.
                 problems += check_gallery(dom(chrome, url, 500, 1400, None, no_js=True))
                 problems += check_reopen(chrome, out, url)
+                problems += check_named_spot(chrome, out, url)
                 problems += check_cover(chrome, out, url)
 
             live_cfg = build_live_config(out)
