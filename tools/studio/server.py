@@ -37,7 +37,8 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 from objects import LOCKED, SCHEMA, blocks, front_matter  # noqa: E402
-from edit import (CONFIG, CONFIG_FIELDS, CONTENT, MAX_IMAGE, TEXT_FIELDS,  # noqa: E402
+from edit import surgery  # noqa: E402
+from edit import (CONFIG_FIELDS, MAX_IMAGE, TEXT_FIELDS,  # noqa: E402
                   Refused, add, remove_font, remove_logo, set_font, set_logo,
                   add_project, attach, attach_dossier, attach_photo,
                   attach_showreel, remove, remove_dossier, remove_photo,
@@ -100,7 +101,7 @@ def field_row(value: str, required: bool, what: str, name: str,
 
 
 def config_value(section: str, key: str) -> str:
-    text = CONFIG.read_text(encoding="utf-8")
+    text = surgery.CONFIG.read_text(encoding="utf-8")
     header = re.search(rf"^\[{re.escape(section)}\]\s*$", text, re.M)
     if not header:
         return ""
@@ -118,7 +119,7 @@ def text_values() -> "dict[str, str]":
     is the same cut `set_text` makes. Without it `name = "..."` inside
     a reference would be read as a page-level field.
     """
-    body = CONTENT.read_text(encoding="utf-8")
+    body = surgery.CONTENT.read_text(encoding="utf-8")
     front = body.split("+++")[1] if body.count("+++") >= 2 else body
     cut = front.find("\n[[")
     return {

@@ -127,6 +127,21 @@ def main() -> int:
 
     # The writers report what they did, which is right for a person and
     # noise for a test.
+    # What the real paths are, so they can be put back. The verbs reach
+    # them through the module that owns them — `edit.surgery` — which is
+    # what makes redirecting them work at all; it also means a path left
+    # pointing at a deleted temporary directory breaks every check after
+    # this block rather than being harmlessly ignored. It did.
+    real = (edit.surgery.ROOT, edit.surgery.CONTENT, edit.surgery.CONFIG,
+            objects.CONTENT)
+    untouched = real[1].read_bytes()
+    # And what the real content directory holds. The bytes of one file
+    # are not enough: the verb that attaches a photograph writes it to
+    # `ROOT/content/<name>`, and when only the front-matter path was
+    # redirected this check dropped real image files into the
+    # repository — noticed by `git status`, not by the check.
+    around = {f.name for f in (real[0] / "content").iterdir()}
+
     with tempfile.TemporaryDirectory() as raw, contextlib.redirect_stdout(io.StringIO()):
         tmp = Path(raw)
         shutil.copytree(ROOT / "content", tmp / "content")
@@ -135,18 +150,18 @@ def main() -> int:
         # left this check dropping real image files into the repository —
         # found by `git status`, not by the check, which is the wrong way
         # round and the reason it is written down here.
-        edit.ROOT = tmp
-        edit.CONTENT = tmp / "content" / "_index.md"
+        edit.surgery.ROOT = tmp
+        edit.surgery.CONTENT = tmp / "content" / "_index.md"
         # `_commit` re-checks with objects.check(), which reads its OWN
         # path — so without this the panel's safety net was validating
         # the real file while the test edited a copy, and every refusal
         # it is supposed to make looked like an acceptance.
-        objects.CONTENT = edit.CONTENT
-        edit.CONFIG = tmp / "config.toml"
-        shutil.copy2(ROOT / "config.toml", edit.CONFIG)
-        full_page = edit.CONTENT.read_text(encoding="utf-8")
+        objects.CONTENT = edit.surgery.CONTENT
+        edit.surgery.CONFIG = tmp / "config.toml"
+        shutil.copy2(ROOT / "config.toml", edit.surgery.CONFIG)
+        full_page = edit.surgery.CONTENT.read_text(encoding="utf-8")
         original = without_portfolio(full_page)
-        edit.CONTENT.write_text(original, encoding="utf-8")
+        edit.surgery.CONTENT.write_text(original, encoding="utf-8")
 
         # --- the characters that cannot be written ----------------------
         # A TOML basic string is ended by a quote and escaped by a
@@ -187,7 +202,7 @@ def main() -> int:
         # ...and what was written survives the round trip intact.
         edit.set_text("about_title", 'He said "oui" — déjà')
         line = re.search(r'^about_title = (.*)$',
-                         edit.CONTENT.read_text(encoding="utf-8"), re.M)
+                         edit.surgery.CONTENT.read_text(encoding="utf-8"), re.M)
         ok(line is not None and line.group(1) == r'"He said \"oui\" — déjà"',
            "a quote in a value was not escaped on the way into the file")
 
@@ -208,10 +223,10 @@ def main() -> int:
         # --- only above the first object --------------------------------
         # `name` and `text` appear inside every reference too. Writing a
         # heading into a reference would be a quiet disaster to find.
-        before = edit.CONTENT.read_text(encoding="utf-8")
+        before = edit.surgery.CONTENT.read_text(encoding="utf-8")
         cut = before.index("\n[[")
         edit.set_text("work_note", "Changed by the check.")
-        after = edit.CONTENT.read_text(encoding="utf-8")
+        after = edit.surgery.CONTENT.read_text(encoding="utf-8")
         ok(after[after.index("\n[["):] == before[cut:],
            "writing a page field changed something inside the objects")
 
@@ -223,10 +238,10 @@ def main() -> int:
                     f"{field} is writable from the panel and must not be")
 
         # --- a bad edit is undone, not reported ------------------------
-        edit.CONTENT.write_text(original, encoding="utf-8")
+        edit.surgery.CONTENT.write_text(original, encoding="utf-8")
         refuses(lambda: edit.write("reference", 1, "name", ""),
                 "an empty required field was accepted")
-        ok(edit.CONTENT.read_text(encoding="utf-8") == original,
+        ok(edit.surgery.CONTENT.read_text(encoding="utf-8") == original,
            "a refused edit left the file changed")
 
         # --- photographs -------------------------------------------------
@@ -260,7 +275,7 @@ def main() -> int:
         # file is misleads every tool that touches it afterwards.
         edit.attach("reference", 1, "misnamed.jpg", png, "A PNG, misnamed.")
         named = re.search(r'^image = "(.*)"$',
-                          edit.CONTENT.read_text(encoding="utf-8"), re.M)
+                          edit.surgery.CONTENT.read_text(encoding="utf-8"), re.M)
         ok(named is not None and named.group(1).endswith(".png"),
            "a PNG sent as .jpg was stored under the name it lied about")
 
@@ -268,7 +283,7 @@ def main() -> int:
         # already there, and replacing it would change that one silently.
         edit.attach("reference", 2, "misnamed.png", png[:-1] + b"1", "A different one.")
         both = re.findall(r'^image = "(.*)"$',
-                          edit.CONTENT.read_text(encoding="utf-8"), re.M)
+                          edit.surgery.CONTENT.read_text(encoding="utf-8"), re.M)
         ok(len(set(both)) == len(both),
            "two references ended up pointing at the same photograph")
 
@@ -277,7 +292,7 @@ def main() -> int:
         # projects, two photographs — and the moment the page gained a
         # stand-in portfolio they were measuring the content rather than
         # the change, and failed for being right about the wrong thing.
-        edit.CONTENT.write_text(original, encoding="utf-8")
+        edit.surgery.CONTENT.write_text(original, encoding="utf-8")
 
         roomy = 1
 
@@ -301,7 +316,7 @@ def main() -> int:
         saying(lambda: edit.add_project(roomy), "already has five",
                "adding to a full reference is refused, but not for a "
                "reason anyone who pressed a button can act on")
-        edit.CONTENT.write_text(original, encoding="utf-8")
+        edit.surgery.CONTENT.write_text(original, encoding="utf-8")
         edit.add_project(roomy)
         edit.add_project(roomy)
         fresh = [p["id"] for p in objects.blocks(objects.front_matter(), "extra.project")]
@@ -350,11 +365,29 @@ def main() -> int:
         refuses(lambda: edit.remove_project("ghost"),
                 "removing a project that does not exist was accepted")
 
-        edit.CONTENT.write_text(original, encoding="utf-8")
+        edit.surgery.CONTENT.write_text(original, encoding="utf-8")
         refuses(lambda: edit.write("reference", 99, "name", "x"),
                 "an index past the end was accepted")
         refuses(lambda: edit.write("nonesuch", 1, "name", "x"),
                 "an unknown object kind was accepted")
+
+    (edit.surgery.ROOT, edit.surgery.CONTENT, edit.surgery.CONFIG,
+     objects.CONTENT) = real
+
+    # THE POINT OF ALL THAT REDIRECTION, asserted rather than assumed.
+    # Every verb above writes, and several delete; the client's real
+    # content file must come out of it byte for byte. If the paths are
+    # ever copied into a second place — a `from .surgery import CONTENT`
+    # anywhere — the redirection would quietly miss, the checks would
+    # still pass, and this is the line that would not.
+    ok(real[1].read_bytes() == untouched,
+       "the checks wrote to the REAL content file. They run against a copy; "
+       "something is writing through a path that was not redirected")
+    strays = sorted({f.name for f in (real[0] / "content").iterdir()} - around)
+    ok(not strays,
+       f"the checks left {len(strays)} file(s) in the real content directory "
+       f"({', '.join(strays[:4])}). A verb is writing through ROOT rather "
+       f"than through the module that owns it")
 
     # --- the panel's own page ------------------------------------------
     # Structural, because the browser half cannot be driven here: the
@@ -424,7 +457,7 @@ def main() -> int:
     #
     # This compares it against what the template actually renders.
     import re as _re
-    edit_src = (ROOT / "tools" / "studio" / "edit.py").read_text(encoding="utf-8")
+    edit_src = (STUDIO / "edit" / "words.py").read_text(encoding="utf-8")
     allowed = set(_re.findall(
         r'^\s*"([a-z_]+)":',
         edit_src[edit_src.index("TEXT_FIELDS"):edit_src.index("def set_text")],
@@ -452,7 +485,8 @@ def main() -> int:
         bad.append(
             f"the panel cannot change {len(behind)} piece(s) of prose the page "
             f"shows: {', '.join(behind)}. Add them to TEXT_FIELDS in "
-            f"tools/studio/edit.py, or to BY_A_VERB here if something else "
+            f"tools/studio/edit/words.py, or to BY_A_VERB here if something "
+            f"else "
             f"writes them"
         )
 
