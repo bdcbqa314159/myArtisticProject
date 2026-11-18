@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Studio</title>
+<style>
+:root{color-scheme:light dark;--ink:#14171c;--muted:#5e6672;--line:#d7dbe2;--bg:#f4f5f7;--accent:#2563eb;--warn:#9a3412}
+@media(prefers-color-scheme:dark){:root{--ink:#eef1f5;--muted:#9aa3b0;--line:#272c34;--bg:#101317;--accent:#7aa2f7;--warn:#f0a070}}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif;
+     display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:1rem;padding:.7rem 1.1rem;border-bottom:1px solid var(--line)}
+h1{font-size:.72rem;letter-spacing:.24em;text-transform:uppercase;font-weight:500;color:var(--muted);margin:0}
+.grow{flex:1}
+a.b,button.b{font:inherit;font-size:.82rem;color:var(--ink);background:none;border:1px solid var(--line);
+   border-radius:999px;padding:.3rem .85rem;cursor:pointer;text-decoration:none}
+a.b:hover,button.b:hover{border-color:var(--muted)}
+#say{font-size:.82rem;color:var(--muted);min-height:1.2em}
+#say.bad{color:var(--warn)}
+iframe{flex:1;width:100%;border:0;background:var(--bg)}
+#sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:2rem}
+#sheet[hidden]{display:none}
+#photo{background:var(--bg);border:1px solid var(--line);border-radius:10px;
+  padding:1.4rem;max-width:30rem;width:100%;display:grid;gap:.75rem}
+#photo h2{margin:0;font-size:.95rem;font-weight:600}
+#pview{max-height:11rem;width:auto;max-width:100%;justify-self:center;border-radius:6px;display:none}
+#pview[src]{display:block}
+#photo label{font-size:.85rem;display:grid;gap:.2rem}
+#photo i{font-style:normal;color:var(--muted);font-size:.78rem}
+#photo textarea{font:inherit;font-size:.9rem;padding:.5rem;border:1px solid var(--line);
+  border-radius:6px;background:transparent;color:var(--ink);resize:vertical}
+#perr{margin:0;min-height:1.1em;font-size:.82rem;color:var(--warn)}
+#photo menu{display:flex;gap:.5rem;justify-content:flex-end;margin:0;padding:0}
+.b.go{border-color:var(--accent);color:var(--accent)}
+</style></head><body>
+<header>
+  <h1>Studio</h1>
+  <span id="say">Click any text on the page to change it.</span>
+  <span class="grow"></span>
+  <a class="b" id="form" href="">Everything as a list</a>
+  <a class="b" id="open" href="/site/" target="_blank">Open the site</a>
+</header>
+<iframe id="view" src="/site/"></iframe>
+<div id="sheet" hidden><form id="photo">
+  <h2 id="ptitle">Photograph</h2>
+  <img id="pview" alt="">
+  <label for="palt">What does it show?<i>Required — it is what someone who cannot see it is read.</i></label>
+  <textarea id="palt" rows="3" maxlength="600"></textarea>
+  <p id="perr"></p>
+  <menu><button type="button" id="pno" class="b">Cancel</button>
+        <button id="pyes" class="b go">Save</button></menu>
+</form></div>
+<script>
+const say = (m, bad) => { const s = document.getElementById("say");
+  s.textContent = m; s.classList.toggle("bad", !!bad); };
+document.getElementById("form").href = location.pathname + "/form";
+
+/* The frame is same-origin — it is the real site, fetched through this
+   server — so the page inside it can simply be reached into. No second
+   renderer, no copy of the markup here that could disagree with it. */
+const view = document.getElementById("view");
+let busy = false;
+
+function arm() {
+  let doc;
+  try { doc = view.contentDocument; } catch (e) { return; }
+  if (!doc || !doc.body || doc.getElementById("studio-marks")) return;
+
+  const style = doc.createElement("style");
+  style.id = "studio-marks";          /* once per document, not per load */
+  style.textContent = `
+    [data-edit]{outline:0;transition:background 120ms,box-shadow 120ms;border-radius:3px}
+    [data-edit]:hover{background:color-mix(in oklch,currentColor 8%,transparent);
+      box-shadow:0 0 0 4px color-mix(in oklch,currentColor 8%,transparent);cursor:text}
+    [data-edit][contenteditable="true"]{background:color-mix(in oklch,currentColor 12%,transparent);
+      box-shadow:0 0 0 4px color-mix(in oklch,currentColor 12%,transparent)}
+    [data-photo],[data-film]{position:relative;cursor:copy}
+    [data-film]::after{content:attr(data-hint);position:absolute;inset:auto 0 0 0;
+      padding:6px 8px;font:500 11px/1.3 system-ui;letter-spacing:.05em;
+      background:rgba(0,0,0,.72);color:#fff;opacity:0;transition:opacity 140ms}
+    [data-film]:hover::after,[data-film].over::after{opacity:1}
+    [data-film].over{outline:2px dashed currentColor;outline-offset:3px}
+    [data-photo]::after{content:attr(data-hint);position:absolute;inset:auto 0 0 0;
+      padding:.5rem .7rem;font:500 11px/1.3 system-ui;letter-spacing:.08em;
+      text-transform:uppercase;text-align:center;
+      background:color-mix(in oklch,currentColor 85%,transparent);
+      color:canvas;opacity:0;transition:opacity 140ms;pointer-events:none}
+    [data-photo]:hover::after,[data-photo].over::after{opacity:1}
+    [data-photo].over{outline:2px dashed currentColor;outline-offset:3px}
+    [data-reel]{position:relative}
+    [data-reel]::after{content:attr(data-hint);position:absolute;inset:auto 0 0 0;
+      padding:.4rem .6rem;font:500 11px/1.3 system-ui;letter-spacing:.06em;
+      text-transform:uppercase;text-align:center;
+      background:color-mix(in oklch,currentColor 85%,transparent);
+      color:canvas;opacity:0;transition:opacity 140ms;pointer-events:none}
+    [data-reel]:hover::after,[data-reel].over::after{opacity:1}
+    [data-reel].over{outline:2px dashed currentColor;outline-offset:3px}
+    .studio-doc{display:block;margin-top:10px;padding:10px;cursor:copy;
+      border:1px dashed currentColor;border-radius:6px;opacity:.6;
+      font:500 11px/1.4 system-ui;letter-spacing:.06em;text-transform:uppercase}
+    .studio-doc:hover,.studio-doc.over{opacity:1}
+    .studio-doc.over{border-style:solid}
+    .studio-add button,.studio-drop{font:500 11px/1 system-ui;letter-spacing:.08em;
+      text-transform:uppercase;color:inherit;background:none;cursor:pointer;
+      border:1px dashed color-mix(in oklch,currentColor 40%,transparent);
+      border-radius:999px;padding:.5rem .8rem}
+    .studio-add{display:grid;place-items:center;min-height:60px}
+    .studio-drop{position:absolute;top:6px;right:6px;z-index:2;
+      background:color-mix(in oklch,canvas 75%,transparent);border-style:solid}`;
+  doc.head.appendChild(style);
+
+  /* ON THE DOCUMENT, IN THE CAPTURE PHASE.
+     Bound to each element instead, this ran AFTER the site's own
+     handlers: landing.js binds every `a[href^="#"]` at load, so
+     clicking "Explore selected work" to rename it also scrolled the
+     frame to Selected Work. Listeners on one element fire in the order
+     they were added, and ours is always added second. Capture happens
+     before any of them. */
+  doc.addEventListener("click", (ev) => {
+    const photo = ev.target.closest("[data-photo],[data-reel]");
+    if (photo) {
+      ev.preventDefault(); ev.stopPropagation();
+      if (busy) { say("Still saving the last one.", true); return; }
+      return choose(photo);
+    }
+    const el = ev.target.closest("[data-edit]");
+    if (!el || el.isContentEditable) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (busy) { say("Still saving the last one.", true); return; }
+    edit(doc, el);
+  }, true);
+
+  for (const fig of doc.querySelectorAll("[data-photo]")) {
+    fig.dataset.hint = fig.classList.contains("empty")
+      ? "Drop a photograph here, or click" : "Drop a new one, or click to replace";
+  }
+  for (const reel of doc.querySelectorAll("[data-reel]")) {
+    reel.dataset.hint = "Drop a photograph to add it to this project";
+  }
+
+  /* ---- a document on a concept ---------------------------------------
+     Every concept card takes one PDF. Marked here rather than in the
+     template for the same reason as the add and remove controls: a
+     published page should carry no affordance only an editor can use.
+
+     `accept=".pdf"` on the picker is a convenience and NOTHING MORE. It
+     filters a file dialog; it does not inspect a byte. What decides is
+     `tools/dossier.py` on the other side of the wire — the signature,
+     the trailer, a real parser's verdict, and whether every page will
+     actually rasterise. A text file renamed .pdf gets past this line
+     and no further. */
+  /* ---- the showreel ---------------------------------------------------
+     The slot takes the film and the still it shows before it is
+     pressed. One target for both: the file says which it is, and
+     asking a person to repeat what the file already knows is a
+     question not worth posing. */
+  for (const slot of doc.querySelectorAll(".placeholder.video")) {
+    if (slot.hasAttribute("data-film")) continue;
+    slot.setAttribute("data-film", "");
+    const film = slot.querySelector("video");
+    slot.dataset.hint = film
+      ? "Drop a new film, or a poster image, to replace"
+      : "Drop the showreel (.mp4) here, or a poster image";
+    if (film && !slot.querySelector(".studio-drop")) {
+      const off = doc.createElement("button");
+      off.type = "button";
+      off.className = "studio-drop";
+      off.textContent = "Remove the showreel";
+      off.addEventListener("click", (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        if (busy) { say("Still saving the last one.", true); return; }
+        send("/showreel-remove", {});
+      });
+      slot.appendChild(off);
+    }
+  }
+
+  /* ---- the message box ------------------------------------------------
+     Its words are editable like any others, but it is a modal dialog
+     whose opener is itself a word to edit: the click is caught here and
+     never reaches the page's own handler, so the form would never be
+     seen. One control, added here rather than in the template for the
+     same reason as the others, opens it. Escape closes it again — its
+     Cancel button is a word now too, and a word does not close a box. */
+  const box = doc.querySelector("dialog.talk");
+  const band = doc.querySelector("#contact .actions");
+  if (box && band && !band.querySelector(".studio-talk")) {
+    const open = doc.createElement("button");
+    open.type = "button";
+    open.className = "studio-drop studio-talk";
+    open.style.position = "static";
+    open.textContent = "Open the message box";
+    open.addEventListener("click", (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      box.showModal();
+      say("Its words are editable in there. Escape closes it.");
+    });
+    band.appendChild(open);
+  }
+
+  doc.querySelectorAll("#concepts .card").forEach((card, i) => {
+    if (card.querySelector("[data-dossier-drop]")) return;
+    const zone = doc.createElement("div");
+    zone.setAttribute("data-dossier-drop", String(i + 1));
+    zone.className = "studio-doc";
+    const has = card.querySelector("details.dossier");
+    zone.textContent = has
+      ? "Drop a PDF to replace this document" : "Drop a PDF here, or click";
+    card.appendChild(zone);
+
+    /* And a way back out. Everything else the panel adds can be taken
+       off again; a document could only ever be put on. */
+    if (has) {
+      const off = doc.createElement("button");
+      off.type = "button";
+      off.className = "studio-drop";
+      off.style.position = "static";
+      off.textContent = "Remove this document";
+      off.addEventListener("click", (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        if (busy) { say("Still saving the last one.", true); return; }
+        send("/dossier-remove", {concept: String(i + 1)});
+      });
+      card.appendChild(off);
+    }
+  });
+
+  /* The add and remove controls are the PANEL's, not the page's. They
+     are injected here rather than rendered by the template, because a
+     published portfolio should not carry buttons only an editor can
+     use — the `data-` marks it does carry are inert; a button is not. */
+  for (const list of doc.querySelectorAll(".projects[data-reference]")) {
+    if (list.querySelector(".studio-add")) continue;
+    const slot = doc.createElement("li");
+    slot.className = "studio-add";
+    const button = doc.createElement("button");
+    button.type = "button";
+    button.textContent = "+ project";
+    button.addEventListener("click", (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      if (busy) { say("Still saving the last one.", true); return; }
+      post("/project-add", {reference: Number(list.dataset.reference)});
+    });
+    slot.appendChild(button);
+    list.appendChild(slot);
+  }
+
+  for (const reel of doc.querySelectorAll("[data-reel]")) {
+    const box = reel.closest("details");
+    const summary = box && box.querySelector("summary");
+    if (!summary || summary.querySelector(".studio-drop")) continue;
+    const kill = doc.createElement("button");
+    kill.type = "button";
+    kill.className = "studio-drop";
+    kill.textContent = "remove project";
+    kill.addEventListener("click", (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      if (busy) { say("Still saving the last one.", true); return; }
+      const name = summary.querySelector(".project-name");
+      if (!confirm(`Remove ${name ? name.textContent : "this project"} and all its photographs?`)) return;
+      post("/project-remove", {project: reel.dataset.reel});
+    });
+    summary.appendChild(kill);
+  }
+
+  /* A drop anywhere else in the frame must do NOTHING. Without this the
+     browser's default takes over and navigates away from the site to
+     the dropped file — the panel's frame replaced by a lone JPEG, and
+     no obvious way back. */
+  doc.addEventListener("dragover", (ev) => ev.preventDefault());
+  doc.addEventListener("drop", (ev) => ev.preventDefault());
+
+  for (const slot of doc.querySelectorAll("[data-film]")) {
+    const take = (file) => {
+      if (!file) return;
+      if (busy) { say("Still saving the last one.", true); return; }
+      /* No sheet. A film needs no description — the section already
+         says what it is — and a poster is not a photograph of its own.
+         Straight to the verb, which decides what arrived. */
+      const read = new FileReader();
+      read.onload = () => send("/showreel", {
+        filename: file.name,
+        file: read.result,
+      });
+      read.readAsDataURL(file);
+    };
+    slot.addEventListener("click", () => {
+      const pick = doc.createElement("input");
+      pick.type = "file";
+      pick.accept = "video/mp4,image/*";   // a dialog filter, not a check
+      pick.addEventListener("change", () => take(pick.files[0]));
+      pick.click();
+    });
+    slot.addEventListener("dragover", (ev) => {
+      ev.preventDefault(); ev.stopPropagation(); slot.classList.add("over");
+    });
+    slot.addEventListener("dragleave", () => slot.classList.remove("over"));
+    slot.addEventListener("drop", (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      slot.classList.remove("over");
+      take(ev.dataTransfer && ev.dataTransfer.files[0]);
+    });
+  }
+
+  for (const zone of doc.querySelectorAll("[data-dossier-drop]")) {
+    const take = (file) => {
+      if (!file) return;
+      if (busy) { say("Still saving the last one.", true); return; }
+      askDoc(zone, file);
+    };
+    zone.addEventListener("click", () => {
+      const pick = doc.createElement("input");
+      pick.type = "file";
+      pick.accept = ".pdf,application/pdf";   // a dialog filter, not a check
+      pick.addEventListener("change", () => take(pick.files[0]));
+      pick.click();
+    });
+    zone.addEventListener("dragover", (ev) => {
+      ev.preventDefault(); ev.stopPropagation(); zone.classList.add("over");
+    });
+    zone.addEventListener("dragleave", () => zone.classList.remove("over"));
+    zone.addEventListener("drop", (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      zone.classList.remove("over");
+      take(ev.dataTransfer && ev.dataTransfer.files[0]);
+    });
+  }
+
+  for (const fig of doc.querySelectorAll("[data-photo],[data-reel]")) {
+    fig.addEventListener("dragover", (ev) => {
+      ev.preventDefault(); ev.stopPropagation(); fig.classList.add("over");
+    });
+    fig.addEventListener("dragleave", () => fig.classList.remove("over"));
+    fig.addEventListener("drop", (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      fig.classList.remove("over");
+      if (busy) { say("Still saving the last one.", true); return; }
+      const file = ev.dataTransfer && ev.dataTransfer.files[0];
+      if (file) ask(fig, file);
+    });
+  }
+}
+
+/* ---- photographs -------------------------------------------------------
+ * The file and its description arrive together or not at all — the verb
+ * refuses them apart, and so does this. That rule is the reason the
+ * photograph is not just an editable filename: the moment someone
+ * attaches one is the only moment they know what it shows.
+ */
+const sheet = document.getElementById("sheet");
+const palt = document.getElementById("palt");
+const perr = document.getElementById("perr");
+const pview = document.getElementById("pview");
+const ptitle = document.getElementById("ptitle");
+let pending = null;
+
+function choose(fig) {
+  const pick = document.createElement("input");
+  pick.type = "file";
+  pick.accept = "image/jpeg,image/png,image/webp";
+  pick.addEventListener("change", () => {
+    if (pick.files[0]) ask(fig, pick.files[0]);
+  });
+  pick.click();
+}
+
+/* A document asks the same question a photograph does — what is it? —
+   and sends it to a different verb. No preview: the panel cannot render
+   a PDF, and a thumbnail it invented would be a thumbnail of nothing. */
+let pendingDoc = null;
+
+function askDoc(zone, file) {
+  pendingDoc = {zone, file};
+  pending = null;
+  ptitle.textContent = file.name;
+  perr.textContent = "";
+  palt.value = "";
+  pview.removeAttribute("src");
+  sheet.hidden = false;
+  palt.focus();
+}
+
+function ask(fig, file) {
+  pending = {fig, file};
+  ptitle.textContent = file ? file.name : "Description";
+  perr.textContent = "";
+  palt.value = fig.dataset.alt || "";
+  pview.removeAttribute("src");
+  if (file) {
+    const look = new FileReader();
+    look.onload = () => pview.src = look.result;
+    look.readAsDataURL(file);
+  }
+  sheet.hidden = false;
+  palt.focus();
+}
+
+document.getElementById("pno").addEventListener("click", () => {
+  sheet.hidden = true; pending = null; pendingDoc = null;
+  say("Nothing changed.");
+});
+sheet.addEventListener("click", (ev) => {
+  if (ev.target === sheet) document.getElementById("pno").click();
+});
+document.addEventListener("keydown", (ev) => {
+  if (ev.key === "Escape" && !sheet.hidden) document.getElementById("pno").click();
+});
+
+document.getElementById("photo").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+
+  /* A DOCUMENT TAKES A DIFFERENT ROAD. Same sheet, same question, but
+     the bytes go to the verb that knows how to judge a PDF. Nothing
+     here looks at the file: it is sent, and the answer comes back from
+     `tools/dossier.py`. */
+  if (pendingDoc) {
+    const words = palt.value.replace(/\s+/g, " ").trim();
+    if (!words) { perr.textContent = "What is this document?"; palt.focus(); return; }
+    const doc = pendingDoc;
+    const read = new FileReader();
+    read.onload = () => {
+      sheet.hidden = true;
+      pendingDoc = null;
+      send("/dossier", {
+        concept: doc.zone.getAttribute("data-dossier-drop"),
+        filename: doc.file.name,
+        file: read.result,
+        alt: words,
+      });
+    };
+    read.readAsDataURL(doc.file);
+    return;
+  }
+
+  if (!pending) return;
+  const alt = palt.value.replace(/\s+/g, " ").trim();
+  if (!alt) { perr.textContent = "A photograph needs a description."; palt.focus(); return; }
+
+  /* A reel takes a NEW photograph; a reference's figure REPLACES its
+     one. Same gesture, different verb, and the element says which. */
+  const reel = pending.fig.dataset.reel;
+  if (reel) {
+    if (!pending.file) { perr.textContent = "Choose a photograph to add."; return; }
+    /* Taken before anything clears `pending` — the handler fires later,
+       and reading it from there is how a save loses its own file. */
+    const file = pending.file;
+    const read = new FileReader();
+    read.onload = () => {
+      sheet.hidden = true;
+      pending = null;
+      post("/photo", {project: reel, filename: file.name,
+                      data: String(read.result).split(",")[1], alt});
+    };
+    read.onerror = () => { perr.textContent = "That file could not be read."; };
+    return read.readAsDataURL(file);
+  }
+
+  const [kind, index] = pending.fig.dataset.photo.split(".");
+  const done = (body, where) => {
+    busy = true;
+    sheet.hidden = true;
+    say("Saving…");
+    fetch(location.pathname + where, {method: "POST",
+      headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)})
+      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) { busy = false; say(r.message || "Refused.", true); return; }
+        say(r.message || "Saved.");
+        return settled(alt);
+      })
+      .catch(e => { busy = false; say(String(e), true); });
+    pending = null;
+  };
+
+  /* No new file means the description alone changed, which is an
+     ordinary field edit — `attach` would refuse it for having no
+     photograph, and refusing to fix a description is not helpful. */
+  if (!pending.file) {
+    return done({kind, index: Number(index), field: "alt", value: alt}, "/edit");
+  }
+
+  const read = new FileReader();
+  read.onload = () => done({
+    kind, index: Number(index),
+    filename: pending.file.name,
+    /* The header is `data:<type>;base64,` — everything after the comma
+       is the file. */
+    data: String(read.result).split(",")[1],
+    alt,
+  }, "/attach");
+  read.onerror = () => { perr.textContent = "That file could not be read."; };
+  read.readAsDataURL(pending.file);
+});
+
+/* Every verb that is not a text edit goes through here, so "busy",
+   the message line and waiting for the rebuild are written once rather
+   than once per button. */
+function post(where, body) {
+  busy = true;
+  say("Saving…");
+  return fetch(location.pathname + where, {method: "POST",
+      headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)})
+    .then(r => r.json())
+    .then(r => {
+      busy = false;
+      say(r.message || (r.ok ? "Saved." : "Refused."), !r.ok);
+      if (r.ok) view.contentWindow.location.reload();
+    })
+    .catch(e => { busy = false; say(String(e), true); });
+}
+
+function edit(doc, el) {
+  const was = el.textContent;
+
+  /* Headings arrive split into one span per word, for the reveal.
+     contenteditable over that is unusable — typing lands inside a
+     clipping box and the caret disappears. Flatten first; the split
+     comes back on the next load, which is a reload away. */
+  if (el.classList.contains("split") || el.querySelector(".w")) {
+    el.textContent = was;
+    el.classList.remove("split");
+  }
+
+  const session = new AbortController();
+  const opts = {signal: session.signal};
+
+  el.contentEditable = "true";
+  el.focus();
+  doc.getSelection().selectAllChildren(el);
+  say("Enter to keep it, Escape to leave it alone.");
+
+  let over = false;
+  const stop = (keep) => {
+    if (over) return;             /* Enter then blur would run this twice */
+    over = true;
+    session.abort();              /* and nothing is left listening */
+    el.contentEditable = "false";
+    /* innerText, never innerHTML: anything pasted in arrives as markup
+       otherwise, and the value is going into a line of TOML. */
+    const now = el.innerText.replace(/\s+/g, " ").trim();
+    if (!keep || !now || now === was.trim()) {
+      el.textContent = was;
+      say("Nothing changed.");
+      return;
+    }
+    save(el.dataset.edit, now, was, el);
+  };
+
+  el.addEventListener("keydown", (k) => {
+    if (k.key === "Enter") { k.preventDefault(); stop(true); }
+    if (k.key === "Escape") { k.preventDefault(); stop(false); }
+  }, opts);
+  el.addEventListener("blur", () => stop(true), opts);
+}
+
+/* `kind.index.field` is an object; anything else is one of the page's
+   own sentences. The key says which verb it needs, so the markup does
+   not have to carry a second attribute saying the same thing. */
+function save(key, value, was, el) {
+  busy = true;
+  const bits = key.split(".");
+  const object = bits.length === 3;
+  const where = location.pathname + (object ? "/edit" : "/text");
+  const body = object
+    ? {kind: bits[0], index: Number(bits[1]), field: bits[2], value}
+    : {key, value};
+
+  say("Saving…");
+  fetch(where, {method:"POST", headers:{"Content-Type":"application/json"},
+                body: JSON.stringify(body)})
+    .then(r => r.json())
+    .then(r => {
+      if (!r.ok) { busy = false; el.textContent = was; say(r.message || "Refused.", true); return; }
+      say(r.message || "Saved.");
+      return settled(value);
+    })
+    .catch(e => { busy = false; el.textContent = was; say(String(e), true); });
+}
+
+/* WAIT FOR THE REBUILD, DO NOT GUESS AT IT.
+   This was a 700ms timer, which is a bet on how long Zola takes. Lose
+   the bet and the frame reloads the OLD page, so a saved edit looks
+   lost until you reload by hand. Ask the site instead: fetch it until
+   the new words are in it, then show it. */
+function settled(value, tries = 0) {
+  return fetch("/site/", {cache: "no-store"})
+    .then(r => r.text())
+    .then(html => {
+      const there = html.includes(value
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+      if (there || tries > 25) {
+        busy = false;
+        view.contentWindow.location.reload();
+        if (!there) say("Saved — the page is still rebuilding.", true);
+        return;
+      }
+      return new Promise(go => setTimeout(go, 120)).then(() => settled(value, tries + 1));
+    })
+    .catch(() => { busy = false; view.contentWindow.location.reload(); });
+}
+
+view.addEventListener("load", arm);
+if (view.contentDocument && view.contentDocument.readyState === "complete") arm();
+</script>
+</body></html>
