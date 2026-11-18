@@ -237,6 +237,32 @@ INVARIANTS = [
 ]
 
 
+def print_rules_come_last() -> "list[str]":
+    """Is `@media print` the last thing in the stylesheet?
+
+    It sat in the middle with 747 lines of screen CSS after it. Nothing
+    was broken — none of those rules restated a property the print
+    block sets, measured — but a print override that something later
+    can beat is a trap for whoever adds the rule that finally does,
+    and the only visible symptom would be a printed page.
+
+    Last is also where a reader expects it, which is the other half of
+    why the contents block now exists.
+    """
+    css = read("static/css/site.css")
+    at = css.find("@media print")
+    if at == -1:
+        return ["static/css/site.css has no @media print block at all"]
+    after = css[css.index("}", css.rindex("{")) + 1:]
+    rules = len(re.findall(r"(?m)^[.#a-zA-Z@:\[][^{}]*\{", css[at:]))
+    if rules > 1:
+        return [f"@media print is followed by {rules - 1} more rule(s) in "
+                f"static/css/site.css. Print comes last: a print override "
+                f"that a later rule can beat is a trap, and the only symptom "
+                f"is a printed page nobody looks at"]
+    return []
+
+
 def unrun_checks() -> "list[str]":
     """Checks the workflow runs that `npm test` does not.
 
@@ -311,15 +337,21 @@ def main() -> int:
     problems = []
     dupes = duplicate_rules()
     unrun = unrun_checks()
+    misplaced = print_rules_come_last()
     for name, rel, pattern, expected, why in INVARIANTS:
         found = len(re.findall(pattern, read(rel)))
         if found != expected:
             problems.append((name, rel, found, expected, why))
 
-    if not problems and not dupes and not unrun:
+    if not problems and not dupes and not unrun and not misplaced:
         print(f"\n  invariants: {len(INVARIANTS)} hold, no selector defined "
               f"twice, and npm test runs what the workflow runs\n")
         return 0
+
+    if misplaced:
+        print("\n  THE STYLESHEET ENDS IN THE WRONG PLACE\n")
+        for why in misplaced:
+            print(f"    {why}\n")
 
     if unrun:
         print("\n  THE WORKFLOW RUNS CHECKS THAT npm test DOES NOT\n")
@@ -336,7 +368,7 @@ def main() -> int:
         print("      how an edit stops applying and nobody can say why.\n")
 
     if not problems:
-        return 1 if (dupes or unrun) else 0
+        return 1 if (dupes or unrun or misplaced) else 0
 
     print("\n  INVARIANT BROKEN\n")
     for name, rel, found, expected, why in problems:
