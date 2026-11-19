@@ -30,26 +30,26 @@
 
    section                              line   lines
    ----------------------------------  -----  ------
-   FOUNDATION                             55     143
-   THE FURNITURE                         198     323
-   GRIDS, CARDS AND THE SHOWREEL SLOT    521     169
-   CROSSING BETWEEN SECTIONS             690      58
-   A DOCUMENT BEHIND A CONCEPT           748     108
-   THE FIELDS THE WORK SITS IN           856     549
-   MOTION                               1405      62
-   WIDER                                1467      51
-   THE LOADER                           1518      96
-   THE MENU, BELOW THE BREAKPOINT       1614      46
-   OFFSETS                              1660     173
-   OFFSETS, SECOND ATTEMPT              1833      31
-   CENTRED SECTION HEADINGS             1864      40
-   FULL-BLEED PHOTOGRAPHS               1904      34
-   BOTH BUTTONS, AND TIME TO SEE THEM   1938      59
-   HOW WE CAN WORK TOGETHER             1997     140
-   THE TWO PHRASES, EXCHANGING PLACES   2137      74
-   THE WORK, AT THREE LEVELS            2211     535
-   THE FORM BEHIND "LET'S TALK"         2746     117
-   PRINT                                2863      40
+   FOUNDATION                             55     148
+   THE FURNITURE                         203     323
+   GRIDS, CARDS AND THE SHOWREEL SLOT    526     169
+   CROSSING BETWEEN SECTIONS             695      58
+   A DOCUMENT BEHIND A CONCEPT           753     108
+   THE FIELDS THE WORK SITS IN           861     549
+   MOTION                               1410      62
+   WIDER                                1472      51
+   THE LOADER                           1523      96
+   THE MENU, BELOW THE BREAKPOINT       1619      46
+   OFFSETS                              1665     173
+   OFFSETS, SECOND ATTEMPT              1838      31
+   CENTRED SECTION HEADINGS             1869      40
+   FULL-BLEED PHOTOGRAPHS               1909      34
+   BOTH BUTTONS, AND TIME TO SEE THEM   1943      59
+   HOW WE CAN WORK TOGETHER             2002     140
+   THE TWO PHRASES, EXCHANGING PLACES   2142      74
+   THE WORK, AT THREE LEVELS            2216     597
+   THE FORM BEHIND "LET'S TALK"         2813     117
+   PRINT                                2930      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -81,6 +81,11 @@
 
   --max:    1160px;
   --gutter: clamp(1.25rem, 6vw, 4rem);
+  /* The band at the edge of an open focus that takes you back out.
+     44px is the smallest target a thumb should be given; raise it
+     and the ring eats more of the prints' outer edge, lower it and
+     a miss opens a carousel. */
+  --way-out: 44px;
   --band:   clamp(4rem, 11vw, 8rem);
 
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
@@ -2465,6 +2470,68 @@ html.js .group[open] > .group-front {
   display: grid;
   place-items: center;
   padding: var(--gutter);
+}
+
+/* WHILE A FOCUS IS OPEN, NOTHING ABOVE IT MAY TRANSFORM.
+ *
+ * The third time this page has met the containing-block rule, and the
+ * first time it was not a static mistake. `.group-front` is
+ * `position: fixed; inset: 0`, which resolves against the nearest
+ * ancestor carrying a transform — and every section is inside a
+ * `.reveal` block whose transform is `translateY(1.25rem)` before it
+ * arrives and `none` after.
+ *
+ * In between it is neither. The reveal is a 650ms TRANSITION, so for
+ * those 650ms the computed value is an interpolated matrix, which is a
+ * transform like any other. Measured: a focus opened in that window
+ * came up 343x3055 inside its section instead of 390x900 over the
+ * screen — and because it depends on when the reader taps, it happens
+ * sometimes and not others, which is the worst way for a bug to
+ * behave.
+ *
+ * `transition: none` as well as `transform: none`: without it the
+ * transform would simply animate to none over another 650ms, and the
+ * focus would spend that time collapsed.
+ */
+html:has(.group[open]) .reveal,
+html:has(.shots[open]) .reveal,
+html:has(.dossier[open]) .reveal {
+  transform: none;
+  transition: none;
+}
+
+/* ---- THE WAY OUT IS A BAND AT THE EDGE -------------------------------
+ * The ground around the prints has always been the way back — a click
+ * that lands on the box itself closes the focus. On a phone that
+ * ground is `--gutter`, which is 23px at 390px: a sliver at the edge
+ * of the screen, and a miss lands on a print, which opens its
+ * carousel. Reported from the page: a way back that does not risk
+ * "going by mistake inside the carrousel".
+ *
+ * So the band is explicit, and 44px — the size a thumb is actually
+ * given (Apple asks 44pt, Material 48dp). It is a RING, not a box: the
+ * clip-path takes the middle out, so every click aimed at a print
+ * still reaches it, and hit testing honours the clip.
+ *
+ * z-index 60: over the prints (3), under the carousel (70). So while
+ * a project is open this band is not reachable at all, and the way out
+ * of the carousel stays the carousel's own ground — one level at a
+ * time, as before.
+ */
+html.js .group[open] > .group-front > .way-out {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  /* Not a pointer: nothing here is a link. `zoom-out` is the one
+     cursor that says "this takes you back out". */
+  cursor: zoom-out;
+  clip-path: polygon(evenodd,
+    0 0, 100% 0, 100% 100%, 0 100%, 0 0,
+    var(--way-out) var(--way-out),
+    calc(100% - var(--way-out)) var(--way-out),
+    calc(100% - var(--way-out)) calc(100% - var(--way-out)),
+    var(--way-out) calc(100% - var(--way-out)),
+    var(--way-out) var(--way-out));
 }
 
 html.js .group[open] > .group-front::before {

@@ -185,6 +185,64 @@ def check_named_spot(chrome: str, out: Path, url: str) -> "list[str]":
     return bad
 
 
+def check_escape(chrome: str, out: Path, url: str) -> "list[str]":
+    """The band at the edge of an open focus that takes you back out.
+
+    It was `--gutter` of ground — 23px at 390px, a sliver at the edge
+    of a phone where a miss lands on a print and opens its carousel.
+    This measures the band in the browser rather than trusting the
+    stylesheet, because what matters is what the pointer hits: a ring
+    drawn with a clip-path, over the prints and under the carousel.
+    """
+    # A budget, like every probe that waits for the cover: the reveal
+    # is a timer, and virtual time ending early reads as a page that
+    # never left its loader — which is what this reported first.
+    (out / "_escape.html").write_text(probe("escape"), encoding="utf-8")
+    said = dom(chrome, url + "/_escape.html", 500, 1000, budget=22000)
+    found = re.search(r"ESCAPE (\{[^<]*\})", said)
+    if not found:
+        return ["escape: the probe returned no verdict"]
+    verdict = json.loads(found.group(1))
+    if "error" in verdict:
+        return [f"escape: the probe threw: {verdict['error']}"]
+
+    bad = []
+    if not verdict.get("ring"):
+        bad.append("escape: an open focus has no way-out band at all")
+    if verdict.get("covers") != verdict.get("viewport"):
+        bad.append(
+            f"escape: the open focus is {verdict.get('covers')} on a "
+            f"{verdict.get('viewport')} screen. It is `position: fixed; "
+            f"inset: 0`, so a size that is not the screen means an ancestor "
+            f"with a transform became its containing block — the rule this "
+            f"page has now met three times. The culprit: "
+            f"{verdict.get('containingBlock')}")
+    # 44px is the floor, and the band is measured in 2px steps from the
+    # edge, so 42 is the smallest reading a 44px band can give.
+    thin = {side: n for side, n in (verdict.get("band") or {}).items() if n < 42}
+    if thin:
+        bad.append(
+            f"escape: the way out is thinner than a thumb on "
+            f"{', '.join(f'{s} ({n}px)' for s, n in thin.items())}. "
+            f"--way-out in site.css sets it; 44px is the floor")
+    if not verdict.get("closedByTheBand"):
+        bad.append(
+            "escape: a click in the band does not close the focus. The band "
+            "is hittable and nothing listens to it — which every "
+            "measurement above passes happily, so this is the one that "
+            "matters")
+    if verdict.get("openAfterAPrintWasClicked") is False:
+        bad.append(
+            "escape: clicking a print in the middle of the focus closed it. "
+            "The band is for the edge; the middle belongs to the work")
+    if not verdict.get("middleIsAPrint"):
+        bad.append(
+            "escape: the middle of an open focus no longer belongs to the "
+            "prints — the band has eaten the whole box, so a click meant to "
+            "open a project closes the focus instead")
+    return bad
+
+
 def check_reach(chrome: str, out: Path, url: str) -> "list[str]":
     """Keyboard reach, accessible names, and holding still when asked.
 
@@ -1324,6 +1382,7 @@ def main() -> int:
                 problems += check_gallery(dom(chrome, url, 500, 1400, None, no_js=True))
                 problems += check_reopen(chrome, out, url)
                 problems += check_named_spot(chrome, out, url)
+                problems += check_escape(chrome, out, url)
                 problems += check_cover(chrome, out, url)
 
             live_cfg = build_live_config(out)
