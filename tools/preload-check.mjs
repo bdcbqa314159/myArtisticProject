@@ -20,7 +20,7 @@
  *     one that 404s must not take the other 149 with it.
  */
 import assert from "node:assert/strict";
-import { warming } from "../static/js/preload.js";
+import { warming, worthWarmingBigCopies } from "../static/js/preload.js";
 
 let checks = 0;
 const is = (got, want, what) => { assert.deepEqual(got, want, what); checks++; };
@@ -176,6 +176,24 @@ function hand() {
      + "likely to reach next, and it goes first");
   await h.done("probably-next");
   is(h.asked, ["probably-next", "rest"], "then the rest of the page");
+}
+
+/* ---- and whether the big copies are warmed at all ------------------- */
+{
+  ok(worthWarmingBigCopies(undefined),
+     "a browser that says nothing about the connection — Safari has no "
+     + "Network Information API — gets the big copies. That is the desktop "
+     + "case, where they cost least");
+  ok(worthWarmingBigCopies({ effectiveType: "4g" }), "a fast connection: yes");
+  ok(!worthWarmingBigCopies({ saveData: true, effectiveType: "4g" }),
+     "data saver says no, however fast the connection is — it is the one "
+     + "signal that is a request rather than a measurement");
+  ok(!worthWarmingBigCopies({ effectiveType: "3g" }),
+     "8.3MB of photographs nobody asked for is not a convenience on 3g");
+  ok(!worthWarmingBigCopies({ effectiveType: "slow-2g" }), "nor on slow-2g");
+  ok(worthWarmingBigCopies({}),
+     "an empty hint is not a refusal: a browser with the API and nothing to "
+     + "say about the line is treated like one without it");
 }
 
 console.log(`\n  preload: the warming queue holds its order, its width and its `

@@ -133,3 +133,32 @@ export function warming(
       (n, lane) => n + lane.filter((u) => state.get(u) === "queued").length, 0),
   };
 }
+
+
+/** What a browser will say about the connection, where it says anything. */
+export interface Line {
+  readonly saveData?: boolean;
+  readonly effectiveType?: string;
+}
+
+/** Is it fair to fetch the big copies before anyone has asked for them?
+ *
+ *  The small photographs are 7.6MB and the bigger copies another 8.3MB.
+ *  Warming the first set is the difference between a page that
+ *  assembles itself and one that is simply there, and it is worth the
+ *  bytes. Warming the SECOND set is a convenience — it saves a wait
+ *  when a reference is opened — and sixteen megabytes of it on a phone
+ *  with a data allowance is not a convenience at all.
+ *
+ *  So the big copies are warmed only where the browser says there is
+ *  room for them. Where it says nothing — Safari has no Network
+ *  Information API — the answer is yes: that is the desktop case and
+ *  the one where it costs least.
+ */
+export function worthWarmingBigCopies(line: Line | undefined): boolean {
+  if (!line) return true;
+  if (line.saveData) return false;
+  const kind = line.effectiveType;
+  if (!kind) return true;
+  return kind === "4g" || kind === "5g";
+}

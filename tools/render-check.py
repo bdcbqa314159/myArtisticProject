@@ -185,6 +185,35 @@ def check_named_spot(chrome: str, out: Path, url: str) -> "list[str]":
     return bad
 
 
+def check_edges(chrome: str, out: Path, url: str) -> "list[str]":
+    """Every picture ends the same way.
+
+    Not a matter of taste once it has been asked for: a page where one
+    photograph has a hairline, another a 3px cream outline and a third
+    nothing at all reads as unfinished, however good each one looks on
+    its own.
+    """
+    (out / "_edges.html").write_text(probe("edges"), encoding="utf-8")
+    said = dom(chrome, url + "/_edges.html", 500, 1000, budget=25000)
+    found = re.search(r"EDGES ([^<]*)", said)
+    if not found:
+        return ["edges: the probe returned no verdict"]
+    verdict = found.group(1).strip()
+    f = dict(kv.split("=", 1) for kv in verdict.split() if "=" in kv)
+    bad = []
+    if f.get("absent", "none") != "none":
+        bad.append(f"edges: {f['absent']} is not on the page, so nothing was "
+                   f"measured for it ({verdict})")
+    if f.get("kinds") != "1":
+        bad.append(f"edges: the pictures end in {f.get('kinds')} different "
+                   f"ways ({verdict}). One hairline, everywhere — a page "
+                   f"where one photograph has an edge and the next has none "
+                   f"reads as unfinished")
+    if "none" in [v for k, v in f.items() if k not in ("kinds", "absent")]:
+        bad.append(f"edges: a picture has no edge at all ({verdict})")
+    return bad
+
+
 def check_escape(chrome: str, out: Path, url: str) -> "list[str]":
     """The band at the edge of an open focus that takes you back out.
 
@@ -1472,6 +1501,7 @@ def main() -> int:
                 problems += check_reopen(chrome, out, url)
                 problems += check_named_spot(chrome, out, url)
                 problems += check_escape(chrome, out, url)
+                problems += check_edges(chrome, out, url)
                 problems += check_cover(chrome, out, url)
 
             live_cfg = build_live_config(out)

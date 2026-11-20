@@ -1,0 +1,50 @@
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+/* ONE EDGE FOR EVERY PICTURE.
+ *
+ * Measured before this existed: a reference's photograph had nothing,
+ * a print in the patchwork had a 3px cream outline, a document's
+ * miniature had a 1px line of its own and the carousel had nothing
+ * again — four pictures, three treatments. Reported from the page as
+ * "randomly not the same".
+ *
+ * Each entry below names the element a READER sees the edge on, which
+ * is not always the <img>: a reference's photograph is scaled and
+ * translated for the parallax, so its edge belongs to the frame that
+ * clips it, and a border on the image itself would be pushed out of
+ * sight.
+ */
+const f = document.createElement("iframe");
+f.width = 390; f.height = 900; f.style.border = 0; f.src = "/";
+document.body.appendChild(f);
+f.addEventListener("load", () => setTimeout(() => {
+  const d = f.contentDocument, w = f.contentWindow;
+  d.querySelector(".loader")?.remove();
+  /* The document's pages only exist once it is open. */
+  const doc = d.querySelector("details.dossier");
+  if (doc) doc.open = true;
+
+  const where = {
+    reference: ".case .image",
+    support: ".fridge > .slot-1 img",
+    print: ".fridge > .slot-2 img",
+    strip: ".reel img",
+    miniature: ".dossier > summary img",
+    leaf: ".dossier[open] .leaves .leaf",
+  };
+  setTimeout(() => {
+    const seen = [];
+    const missing = [];
+    for (const [name, sel] of Object.entries(where)) {
+      const el = d.querySelector(sel);
+      if (!el) { missing.push(name); continue; }
+      const s = w.getComputedStyle(el);
+      seen.push(name + "=" + (s.borderTopStyle === "none" ? "none"
+        : s.borderTopWidth + "/" + s.borderTopColor.replace(/\s/g, "")));
+    }
+    const edges = [...new Set(seen.map((r) => r.split("=")[1]))];
+    document.getElementById("o").textContent = "EDGES kinds=" + edges.length
+      + " absent=" + (missing.join(",") || "none")
+      + " " + seen.join(" ");
+  }, 300);
+}, 2500));
+</script>
