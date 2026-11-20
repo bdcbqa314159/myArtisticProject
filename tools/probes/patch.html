@@ -19,8 +19,8 @@ SIZES.forEach(([w, h]) => {
       g.open = true;
       setTimeout(() => {
         const fr = g.querySelector(".fridge.front").getBoundingClientRect();
-        const im = g.querySelector(".fridge.front > .slot-1 img")
-                    .getBoundingClientRect();
+        const support = g.querySelector(".fridge.front > .slot-1 img");
+        const im = support.getBoundingClientRect();
         out.push(w + ":wide=" + Math.round(100 * fr.width / w)
           + ":tall=" + Math.round(100 * fr.height / h)
           // The photograph must BE the patchwork's box. On the card the
@@ -29,9 +29,17 @@ SIZES.forEach(([w, h]) => {
           // it, leaving the photograph at its own 3:2 at the top.
           + ":fills=" + ((Math.abs(im.width - fr.width) < 3
                        && Math.abs(im.height - fr.height) < 3) ? "y" : "n")
-          + ":img=" + Math.round(im.width) + "x" + Math.round(im.height));
+          + ":img=" + Math.round(im.width) + "x" + Math.round(im.height)
+          /* AND HOW MANY PIXELS THERE ACTUALLY ARE. The box filling the
+           * screen says nothing about the photograph in it: the card's
+           * copy is 900px wide, and stretched over a 1400px screen it
+           * is soft. Opening swaps in a bigger one, and `naturalWidth`
+           * is the only honest way to ask whether that happened — the
+           * URL is a content hash and says nothing. */
+          + ":natural=" + support.naturalWidth
+          + ":waiting=" + (support.closest("summary").dataset.big ? "y" : "n"));
         if (++done === SIZES.length) say(out.join(" "));
-      }, 400);
+      }, 1200);
     } catch (err) {
       out.push(w + ":threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-"));
       if (++done === SIZES.length) say(out.join(" "));
