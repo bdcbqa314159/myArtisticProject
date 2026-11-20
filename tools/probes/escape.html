@@ -1,0 +1,138 @@
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+/* HOW THICK IS THE WAY OUT, AND IS THE MIDDLE STILL THE PRINTS'?
+ *
+ * The way back from an open focus is a click near its edge. This opens
+ * a group, then walks inward from each edge asking what the pointer
+ * would hit, and reports how many pixels of band answer "the way out"
+ * before something else does.
+ *
+ * Two things have to be true: the band is at least as thick as a thumb
+ * needs, and the middle is NOT the band — a ring that covers
+ * everything would close the focus on someone trying to open a print.
+ */
+function whenReady(d, go, waited) {
+  if (!d.documentElement.classList.contains("booting") || (waited || 0) > 6000) {
+    go(); return;
+  }
+  setTimeout(() => whenReady(d, go, (waited || 0) + 100), 100);
+}
+function visit(w, then) {
+  const f = document.createElement("iframe");
+  f.width = w; f.height = 900; f.style.border = 0; f.src = "/";
+  document.body.appendChild(f);
+  f.addEventListener("load", () => whenReady(f.contentDocument,
+    () => setTimeout(() => then(f.contentDocument, f.contentWindow), 400)));
+}
+
+const STEP = 2, LIMIT = 90;
+
+function thickness(d, box, ours) {
+  /* Inward from each edge, in 2px steps, until the hit is not ours. */
+  const r = box.getBoundingClientRect();
+  const mid = {x: r.left + r.width / 2, y: r.top + r.height / 2};
+  const sides = {
+    top:    (i) => [mid.x, r.top + i],
+    bottom: (i) => [mid.x, r.bottom - i],
+    left:   (i) => [r.left + i, mid.y],
+    right:  (i) => [r.right - i, mid.y],
+  };
+  const out = {};
+  for (const [side, at] of Object.entries(sides)) {
+    let last = 0;
+    for (let i = 1; i < LIMIT; i += STEP) {
+      const [x, y] = at(i);
+      const hit = d.elementFromPoint(x, y);
+      if (!hit || !ours(hit)) break;
+      last = i;
+    }
+    out[side] = last;
+  }
+  return out;
+}
+
+visit(390, (d, w) => {
+  const say = (o) => { document.getElementById("o").textContent =
+    "ESCAPE " + JSON.stringify(o); };
+  try {
+    /* The cover is taken off the page when its fade ENDS, and a
+     * transition never ends in a frame where no animation frames run —
+     * so `booting` goes and the element stays, over everything. A real
+     * reader is past it by now. */
+    d.querySelector(".loader")?.remove();
+    /* And the reveals: their callbacks arrive on a rendering
+     * opportunity, which this frame never gets. Unrevealed, each one
+     * still carries a translate — which makes it the containing block
+     * for the focus and lays it out inside the section instead of over
+     * the screen. A reader sees them revealed. */
+    for (const el of d.querySelectorAll(".reveal")) el.classList.add("in");
+
+    const group = d.querySelector(".group");
+    group.open = true;
+    const front = group.querySelector(".group-front");
+    const out = front.querySelector(".way-out");
+    const r = front.getBoundingClientRect();
+
+    const band = thickness(d, front,
+      (hit) => hit === out || hit === front);
+
+    /* The middle must belong to the prints, or the band has eaten the
+     * whole focus. */
+    const centre = d.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    const onAPrint = !!(centre && centre.closest(".shots"));
+
+    /* AND DOES CLICKING IT DO ANYTHING?
+     *
+     * Geometry is not behaviour. With the band hittable but dropped
+     * from the handler, every measurement above still passed and the
+     * page had no way out at all — so the click is made here, at a
+     * point in the band, and the question is whether the focus closed.
+     *
+     * Dispatched at coordinates rather than `el.click()`: the handler
+     * decides on `ev.target`, and a programmatic click on the element
+     * would prove nothing about what a pointer at that point hits. */
+    const hit = (x, y) => {
+      const el = d.elementFromPoint(x, y);
+      el && el.dispatchEvent(new w.MouseEvent("click",
+        {bubbles: true, cancelable: true, clientX: x, clientY: y}));
+      return el;
+    };
+    const inTheBand = [r.left + 20, r.top + r.height / 2];
+    hit(inTheBand[0], inTheBand[1]);
+    const closedByTheBand = !group.open;
+
+    /* The other half: a click in the middle must still be the print's.
+     * A ring that closes on every click is worse than a thin one. */
+    group.open = true;
+    const print = d.querySelector(".group[open] .shots > summary");
+    let stillOpen = "no print";
+    if (print) {
+      const pr = print.getBoundingClientRect();
+      hit(pr.left + pr.width / 2, pr.top + pr.height / 2);
+      stillOpen = group.open;
+    }
+
+    let blame = "nothing — the viewport";
+    for (let a = front.parentElement; a; a = a.parentElement) {
+      const s = w.getComputedStyle(a);
+      const why = [["transform", s.transform], ["filter", s.filter],
+                   ["backdrop-filter", s.backdropFilter],
+                   ["perspective", s.perspective], ["contain", s.contain],
+                   ["will-change", s.willChange]]
+        .filter(([_k, v]) => v && v !== "none" && v !== "auto" && v !== "normal");
+      if (why.length) {
+        blame = (a.className || a.tagName) + " via "
+                + why.map(([k, v]) => k + "=" + v).join(", ");
+        break;
+      }
+    }
+    say({closedByTheBand: closedByTheBand,
+         openAfterAPrintWasClicked: stillOpen,
+         containingBlock: blame,
+         band: band,
+         covers: [Math.round(r.width), Math.round(r.height)],
+         viewport: [w.innerWidth, w.innerHeight],
+         middleIsAPrint: onAPrint,
+         ring: !!out});
+  } catch (e) { say({error: String(e)}); }
+});
+</script>

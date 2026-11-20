@@ -946,12 +946,51 @@ function closeTheCarousel() {
         });
     }
     for (const front of document.querySelectorAll(".group-front")) {
+        /* A BAND AT THE EDGE, 44px of it.
+         *
+         * The ground around the prints was already the way back, and on a
+         * phone there was 23px of it — a sliver at the edge of the screen,
+         * where a miss lands on a print and opens its carousel. This is
+         * the same way out, made the size of a thumb: a ring drawn with a
+         * clip-path, so the middle still belongs to the prints.
+         *
+         * Added here rather than in the markup because it is an
+         * affordance for the version of this gallery that has script. With
+         * none, the focus is in the page rather than over it and the way
+         * out is the page itself. */
+        const out = document.createElement("i");
+        out.className = "way-out";
+        out.setAttribute("aria-hidden", "true");
+        front.prepend(out);
         front.addEventListener("click", (ev) => {
-            // The group's own box and nothing inside it. `.fridge` holds the
-            // prints, and each print is a summary that opens its carousel.
-            if (ev.target !== front)
+            // The group's own box, or the band: both mean "I am done".
+            // `.fridge` holds the prints, and each print is a summary that
+            // opens its carousel, so nothing else here closes anything.
+            if (ev.target !== front && ev.target !== out)
                 return;
-            shut(front.closest("details"));
+            /* Innermost, like Escape. The band sits under the carousel, so
+             * while a project is open it cannot be clicked at all — but if
+             * that ever changes, one keystroke and one click should take the
+             * same thing off. */
+            shut(innermost());
+        });
+    }
+    /* AND THE FOCUS HAS TO COVER THE SCREEN WHEN IT OPENS.
+     *
+     * `.group-front` is `position: fixed; inset: 0`, which resolves
+     * against the nearest ancestor with a transform — and every section
+     * is inside a `.reveal` block that carries `translateY` until its
+     * `.in` arrives. Measured: a group opened before that put the focus
+     * inside the section at 343x3055 instead of over the 390x900 screen.
+     *
+     * `.reveal.in` sets `transform: none`, so making sure the block is
+     * revealed before the focus opens is the whole fix. It is also the
+     * third time this page has met the containing-block rule; the other
+     * two are written up in site.css. */
+    for (const group of document.querySelectorAll(".group")) {
+        group.addEventListener("toggle", () => {
+            if (group.open)
+                group.closest(".reveal")?.classList.add("in");
         });
     }
     /* The same way out of a document. The pages are narrower than the
