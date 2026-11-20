@@ -30,26 +30,26 @@
 
    section                              line   lines
    ----------------------------------  -----  ------
-   FOUNDATION                             55     149
-   THE FURNITURE                         204     323
-   GRIDS, CARDS AND THE SHOWREEL SLOT    527     169
-   CROSSING BETWEEN SECTIONS             696      58
-   A DOCUMENT BEHIND A CONCEPT           754     108
-   THE FIELDS THE WORK SITS IN           862     549
-   MOTION                               1411      62
-   WIDER                                1473      51
-   THE LOADER                           1524      96
-   THE MENU, BELOW THE BREAKPOINT       1620      46
-   OFFSETS                              1666     173
-   OFFSETS, SECOND ATTEMPT              1839      31
-   CENTRED SECTION HEADINGS             1870      40
-   FULL-BLEED PHOTOGRAPHS               1910      34
-   BOTH BUTTONS, AND TIME TO SEE THEM   1944      59
-   HOW WE CAN WORK TOGETHER             2003     140
-   THE TWO PHRASES, EXCHANGING PLACES   2143      74
-   THE WORK, AT THREE LEVELS            2217     654
-   THE FORM BEHIND "LET'S TALK"         2871     117
-   PRINT                                2988      40
+   FOUNDATION                             55     156
+   THE FURNITURE                         211     323
+   GRIDS, CARDS AND THE SHOWREEL SLOT    534     175
+   CROSSING BETWEEN SECTIONS             709      58
+   A DOCUMENT BEHIND A CONCEPT           767     108
+   THE FIELDS THE WORK SITS IN           875     549
+   MOTION                               1424      62
+   WIDER                                1486      51
+   THE LOADER                           1537      96
+   THE MENU, BELOW THE BREAKPOINT       1633      46
+   OFFSETS                              1679     173
+   OFFSETS, SECOND ATTEMPT              1852      31
+   CENTRED SECTION HEADINGS             1883      40
+   FULL-BLEED PHOTOGRAPHS               1923      34
+   BOTH BUTTONS, AND TIME TO SEE THEM   1957      59
+   HOW WE CAN WORK TOGETHER             2016     140
+   THE TWO PHRASES, EXCHANGING PLACES   2156      74
+   THE WORK, AT THREE LEVELS            2230     659
+   THE FORM BEHIND "LET'S TALK"         2889     117
+   PRINT                                3006      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -87,6 +87,13 @@
      and the ring eats more of the prints' outer edge, lower it and
      a miss opens a carousel. */
   --way-out: 44px;
+  /* THE EDGE EVERY PHOTOGRAPH GETS. Measured before it existed: a
+     reference's photograph had nothing, a print in the patchwork had a
+     3px cream outline, the miniature of a document had a 1px line and
+     the carousel had nothing again — four pictures, three treatments,
+     "randomly not the same". A hairline of the ink is quiet enough to
+     disappear next to the work and definite enough to end it. */
+  --edge: 1px solid color-mix(in oklch, var(--ink) 18%, transparent);
   --band:   clamp(4rem, 11vw, 8rem);
 
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
@@ -603,6 +610,9 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
   position: relative;
   display: grid;
   place-items: center;
+  /* The photograph's edge, drawn on the frame that clips it — see the
+     note on the image itself. */
+  border: var(--edge);
   /* Edge to edge: pulled LEFT by one gutter, and made two gutters wider.
      Right stays 0 — the width already covers that side, and a negative
      right margin would drag what follows up into the photograph.
@@ -623,6 +633,9 @@ section { padding: var(--band) 0; border-bottom: 1px solid var(--line); }
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* The edge is on the FRAME, not here: this one is scaled 1.08 and
+     translated for the parallax, so a border on it would be pushed out
+     of sight along with the photograph's own edges. */
   /* A little more than it shows, so the parallax never pulls an edge
      into frame. The frame above already clips. */
   transform: translate3d(0, 0, 0);
@@ -785,7 +798,7 @@ html.js.crossing.arrived .veil {
   display: block;
   width: 160px;
   height: auto;
-  border: 1px solid var(--line);
+  border: var(--edge);
   background: var(--panel);
   transition: transform 160ms ease, border-color 160ms ease;
 }
@@ -832,7 +845,7 @@ html.js .dossier[open] > .leaves .leaf {
   aspect-ratio: 1 / 1.414;
   object-fit: contain;
   background: var(--panel);
-  border: 1px solid var(--line);
+  border: var(--edge);
 }
 
 /* With no script the pages simply follow the card, in order. */
@@ -841,7 +854,7 @@ html:not(.js) .dossier[open] > .leaves .leaf {
   width: 100%;
   height: auto;
   margin-top: 1rem;
-  border: 1px solid var(--line);
+  border: var(--edge);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2268,6 +2281,7 @@ html.js [data-copy] { display: inline-flex; }
   display: block;
   width: 100%;
   height: auto;
+  border: var(--edge);
 }
 
 /* The one underneath is the ground, not a print: square to the frame,
@@ -2787,6 +2801,10 @@ html.js:has(.group[open]) { overflow: hidden; }
    own shape asks for. */
 .reel img {
   flex: 0 0 auto;
+  /* The card's own strip. The one at the front is inside
+     `.fridge`, which already carries the edge — removing this line
+     changed nothing there, which is how the overlap was found. */
+  border: var(--edge);
   /* The height is chosen so that a LANDSCAPE photograph — the common
      case — fills the width exactly and shows no bars at all. Set by
      viewport height instead, a 3:2 photograph sat in a 420px box with

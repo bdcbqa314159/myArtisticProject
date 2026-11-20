@@ -15,7 +15,8 @@ import { shiftFor } from "./drift.js";
 import { owedBeforeShowing } from "./cover.js";
 import { whileInView } from "./arrive.js";
 import { swapOnArrival } from "./swap.js";
-import { warming } from "./preload.js";
+import { warming, worthWarmingBigCopies } from "./preload.js";
+import type { Line } from "./preload.js";
 import type { Seen } from "./arrive.js";
 
 /* Both failsafes in one place, so the ordering between them is visible.
@@ -929,11 +930,27 @@ const PHOTOGRAPHS = warming(
   },
 );
 
-/** Every photograph the page holds but has not asked for yet. */
+/** Every photograph the page holds but has not asked for yet.
+ *
+ *  In two passes, by what the reader is likely to need first: the
+ *  copies that are IN the page — the 150 lazy ones, 7.6MB — and then
+ *  the bigger copies behind them, which are only ever seen if a
+ *  reference or a project is opened.
+ *
+ *  The second pass is conditional. 8.3MB of photographs nobody has
+ *  asked to see is a convenience on a desk and an imposition on a
+ *  phone with an allowance, so the browser is asked first. */
 function warmTheRest(): void {
-  const lazy = [...document.querySelectorAll<HTMLImageElement>("img[loading=lazy]")]
+  const page = [...document.querySelectorAll<HTMLImageElement>("img[loading=lazy]")]
     .map((img) => img.currentSrc || img.src);
-  PHOTOGRAPHS.warm(lazy);
+  PHOTOGRAPHS.warm(page, 1);
+
+  const line = (navigator as unknown as { connection?: Line }).connection;
+  if (!worthWarmingBigCopies(line)) return;
+
+  const bigger = [...document.querySelectorAll<HTMLElement>("[data-big]")]
+    .map((el) => el.dataset["big"] || "");
+  PHOTOGRAPHS.warm(bigger, 2);
 }
 
 /* ---- a bigger copy, once it is being looked at ------------------------
