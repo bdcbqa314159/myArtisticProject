@@ -881,6 +881,66 @@ function exchangePhrases(): void {
   whileInView([heading], watcher, (_el, on) => staged(on), "0px", 0.6);
 }
 
+/* ---- a bigger copy, once it is being looked at ------------------------
+ * A print on the card is a card-sized photograph, and the front fills
+ * the screen with it: stretched to a 1600px monitor the 900px copy is
+ * soft, and on a phone at three device pixels per CSS pixel it is soft
+ * as well. The carousel is worse — a photograph someone opened in order
+ * to look at it.
+ *
+ * So the markup carries a second, larger URL in `data-big`, and this
+ * fetches it the moment the thing it belongs to opens. Nothing extra is
+ * on the first load: a reader who never opens a reference never asks
+ * for one of these.
+ *
+ * THE SMALL ONE STAYS UNTIL THE BIG ONE HAS ARRIVED. Assigning `src`
+ * and hoping is how a photograph becomes an empty box on a slow
+ * connection — so the big copy is loaded beside the page first and
+ * swapped in on its own `load`. `data-big` is removed only then, so a
+ * failed fetch leaves the small one in place and can be tried again on
+ * the next open.
+ */
+function sharpenOnOpen(): void {
+  const upgrade = (root: ParentNode, which: string): void => {
+    for (const el of root.querySelectorAll<HTMLElement>(which)) {
+      const big = el.dataset["big"];
+      const img = el instanceof HTMLImageElement
+        ? el
+        : el.querySelector<HTMLImageElement>("img");
+      if (!big || !img) continue;
+
+      const bigger = new Image();
+      bigger.decoding = "async";
+      bigger.addEventListener("load", () => {
+        img.src = big;
+        delete el.dataset["big"];
+      });
+      bigger.src = big;
+    }
+  };
+
+  /* WHAT IS ACTUALLY BEING LOOKED AT, AND NOTHING ELSE.
+   *
+   * A reference holds five prints, and each print holds a carousel of
+   * photographs — so "everything inside the group" would fetch about
+   * five megabytes the moment a reference opened, most of it for
+   * projects the reader has not touched. Measured across the fixture:
+   * 126 big copies, 16.4MB in total.
+   *
+   * So opening a reference takes the five prints, and opening a project
+   * takes that project's photographs. */
+  for (const group of document.querySelectorAll<HTMLDetailsElement>(".group")) {
+    group.addEventListener("toggle", () => {
+      if (group.open) upgrade(group, "summary[data-big]");
+    });
+  }
+  for (const shots of document.querySelectorAll<HTMLDetailsElement>(".shots")) {
+    shots.addEventListener("toggle", () => {
+      if (shots.open) upgrade(shots, "img[data-big]");
+    });
+  }
+}
+
 /* ---- the carousel, closed ---------------------------------------------
  * The carousel opens full screen and `<details>` does all of it: the
  * summary opens it, the summary closes it, and with no script at all it
@@ -1333,6 +1393,7 @@ start("counting the wait", countTheWait);
 start("softening while moving", softWhileMoving);
 start("the phrases exchanging", exchangePhrases);
 start("closing the carousel", closeTheCarousel);
+start("the bigger copies", sharpenOnOpen);
 start("keeping one address", keepOneAddress);
 start("the photographs drifting", photographsDrift);
 start("the press and release", showTheRelease);

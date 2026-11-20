@@ -47,9 +47,9 @@
    BOTH BUTTONS, AND TIME TO SEE THEM   1944      59
    HOW WE CAN WORK TOGETHER             2003     140
    THE TWO PHRASES, EXCHANGING PLACES   2143      74
-   THE WORK, AT THREE LEVELS            2217     597
-   THE FORM BEHIND "LET'S TALK"         2814     117
-   PRINT                                2931      40
+   THE WORK, AT THREE LEVELS            2217     611
+   THE FORM BEHIND "LET'S TALK"         2828     117
+   PRINT                                2945      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -2470,7 +2470,16 @@ html.js .group[open] > .group-front {
   z-index: 50;
   display: grid;
   place-items: center;
-  padding: var(--gutter);
+  /* FULL BLEED, both surfaces. There was a gutter here — 23px on a
+     phone, 64px on a wide screen — so the photograph that supports the
+     arrangement stopped short of every edge and the ground showed
+     around it. Asked for edge to edge.
+     
+     Nothing is lost by taking it away: the way back is the 44px band
+     inside the edge (`.way-out`), which lies OVER the photograph
+     rather than beside it, so the border a reader presses to go back is
+     still there and the picture reaches the glass. */
+  padding: 0;
 }
 
 /* WHILE A FOCUS IS OPEN, NOTHING ABOVE IT MAY TRANSFORM.
@@ -2558,9 +2567,14 @@ html.js .group[open] > .group-front .fridge {
      it is on, which is what the slots' percentage positions could
      always do.
 
-     The cap is for a very wide monitor, where filling would pull the
-     composition past any shape a photograph has. */
-  width: min(100%, 1600px);
+     THE CAP IS GONE. It held the arrangement to 1600px on a wide
+     monitor, on the grounds that filling would pull the composition
+     past any shape a photograph has — which left the supporting
+     photograph short of the edges on exactly the screens with the most
+     room. Full bleed was asked for on both surfaces, and the support
+     is `object-fit: cover`, so stretching the box crops the photograph
+     rather than distorting it. */
+  width: 100%;
   height: 100%;
   max-height: none;
   aspect-ratio: auto;

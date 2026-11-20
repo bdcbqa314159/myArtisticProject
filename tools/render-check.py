@@ -835,10 +835,26 @@ def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
         # 80% of each side. A 3:2 box in a 390x720 screen manages 32% of
         # the height — measured, before it was told to take the screen's
         # own shape — so this is the assertion that tells the two apart.
-        if int(f["wide"]) < 80 or int(f["tall"]) < 80:
+        # FULL BLEED, both surfaces. It was ">= 80%" when a gutter held
+        # the arrangement off the edges and a cap held it to 1600px on a
+        # wide monitor; the client asked for edge to edge, so 99 rather
+        # than 80 — a point of slack for a fractional device pixel, and
+        # nothing like enough to let a gutter back in.
+        if int(f["wide"]) < 99 or int(f["tall"]) < 99:
             bad.append(f"patch: at {width}px the open patchwork is "
                        f"{f['wide']}% wide and {f['tall']}% tall. It is meant "
                        f"to take the screen, at the screen's own shape")
+        if int(f.get("natural", 0)) < 1600:
+            bad.append(
+                f"patch: at {width}px the photograph behind the prints is "
+                f"{f.get('natural')}px of actual pixels, stretched across the "
+                f"whole screen. Opening is meant to fetch the big copy that "
+                f"`data-big` points at")
+        if f.get("waiting") != "n":
+            bad.append(
+                f"patch: at {width}px the open patchwork still carries "
+                f"data-big, so the swap has not happened — the small copy is "
+                f"what is on screen")
         if f["fills"] != "y":
             bad.append(f"patch: at {width}px the photograph behind the prints "
                        f"does not fill the patchwork ({f['img']} inside it). "
