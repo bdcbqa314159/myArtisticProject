@@ -907,17 +907,28 @@ def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
             if int(f["band"]) < 42:
                 bad.append(
                     f"patch: at {width}px there is {f['band']}px of ground "
-                    f"above the nearest slide. That ground is the way back at "
+                    f"above or below the nearest photograph. That ground is the way back at "
                     f"this level — 44px of it, and a ring cannot be used here "
                     f"because it would swallow the swipe to the next "
                     f"photograph")
-            if f["fit"] not in ("scale-down", "none"):
+            if f["enlarged"] != "n":
                 bad.append(
-                    f"patch: at {width}px the carousel fits its photographs "
-                    f"with `object-fit: {f['fit']}`. `scale-down` is what "
-                    f"keeps a photograph from being drawn larger than the "
-                    f"pixels it has — `contain` enlarges it to the slide and "
-                    f"`cover` crops it")
+                    f"patch: at {width}px a photograph is drawn larger than "
+                    f"the pixels it has ({f['slides']} slides). As large as "
+                    f"the slide allows, never larger than itself")
+            if int(f["of"]) < 97 and f["atpixels"] != "y":
+                bad.append(
+                    f"patch: at {width}px the widest photograph takes "
+                    f"{f['of']}% of the screen and is not at its own pixels "
+                    f"either — so it is neither as large as it could be nor "
+                    f"as large as it is")
+            if f["framed"] != "y":
+                bad.append(
+                    f"patch: at {width}px an open photograph has no hairline "
+                    f"on it. Every picture carries the same edge — and here "
+                    f"it has to be on the PHOTOGRAPH, not on the slide, or "
+                    f"it is a rectangle floating around a picture that does "
+                    f"not fill it")
 
         if f["fills"] != "y":
             bad.append(f"patch: at {width}px the photograph behind the prints "

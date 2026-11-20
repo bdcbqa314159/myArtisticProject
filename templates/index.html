@@ -287,9 +287,16 @@
                      rather than for a strip, loaded when the project
                      opens. #}
                   {% set full = resize_image(path="@/" ~ ph.file, width=2000, height=2000, op="fit", format="webp", quality=76) %}
-                  <img src="{{ shot.url }}" data-big="{{ full.url }}"
+                  {# A SLIDE AROUND EACH PHOTOGRAPH. On the card the
+                     wrapper is `display: contents` and changes nothing;
+                     at the front it becomes the slide — one screen
+                     wide, every one the same — and the photograph
+                     inside is sized to its own shape, so the hairline
+                     ends the PICTURE rather than floating around the
+                     screen it is centred in. #}
+                  <figure class="slide"><img src="{{ shot.url }}" data-big="{{ full.url }}"
                        width="{{ shot.width }}" height="{{ shot.height }}"
-                       alt="{{ ph.alt }}" loading="lazy" decoding="async">
+                       alt="{{ ph.alt }}" loading="lazy" decoding="async"></figure>
                   {%- endif %}{% endfor %}
                 </div>
               </details>{% endif %}
@@ -317,9 +324,16 @@
                      rather than for a strip, loaded when the project
                      opens. #}
                   {% set full = resize_image(path="@/" ~ ph.file, width=2000, height=2000, op="fit", format="webp", quality=76) %}
-                  <img src="{{ shot.url }}" data-big="{{ full.url }}"
+                  {# A SLIDE AROUND EACH PHOTOGRAPH. On the card the
+                     wrapper is `display: contents` and changes nothing;
+                     at the front it becomes the slide — one screen
+                     wide, every one the same — and the photograph
+                     inside is sized to its own shape, so the hairline
+                     ends the PICTURE rather than floating around the
+                     screen it is centred in. #}
+                  <figure class="slide"><img src="{{ shot.url }}" data-big="{{ full.url }}"
                        width="{{ shot.width }}" height="{{ shot.height }}"
-                       alt="{{ ph.alt }}" loading="lazy" decoding="async">
+                       alt="{{ ph.alt }}" loading="lazy" decoding="async"></figure>
                   {%- endif %}{% endfor %}
                 </div>
               </details>{% endif %}
@@ -347,9 +361,16 @@
                      rather than for a strip, loaded when the project
                      opens. #}
                   {% set full = resize_image(path="@/" ~ ph.file, width=2000, height=2000, op="fit", format="webp", quality=76) %}
-                  <img src="{{ shot.url }}" data-big="{{ full.url }}"
+                  {# A SLIDE AROUND EACH PHOTOGRAPH. On the card the
+                     wrapper is `display: contents` and changes nothing;
+                     at the front it becomes the slide — one screen
+                     wide, every one the same — and the photograph
+                     inside is sized to its own shape, so the hairline
+                     ends the PICTURE rather than floating around the
+                     screen it is centred in. #}
+                  <figure class="slide"><img src="{{ shot.url }}" data-big="{{ full.url }}"
                        width="{{ shot.width }}" height="{{ shot.height }}"
-                       alt="{{ ph.alt }}" loading="lazy" decoding="async">
+                       alt="{{ ph.alt }}" loading="lazy" decoding="async"></figure>
                   {%- endif %}{% endfor %}
                 </div>
               </details>{% endif %}
@@ -377,9 +398,16 @@
                      rather than for a strip, loaded when the project
                      opens. #}
                   {% set full = resize_image(path="@/" ~ ph.file, width=2000, height=2000, op="fit", format="webp", quality=76) %}
-                  <img src="{{ shot.url }}" data-big="{{ full.url }}"
+                  {# A SLIDE AROUND EACH PHOTOGRAPH. On the card the
+                     wrapper is `display: contents` and changes nothing;
+                     at the front it becomes the slide — one screen
+                     wide, every one the same — and the photograph
+                     inside is sized to its own shape, so the hairline
+                     ends the PICTURE rather than floating around the
+                     screen it is centred in. #}
+                  <figure class="slide"><img src="{{ shot.url }}" data-big="{{ full.url }}"
                        width="{{ shot.width }}" height="{{ shot.height }}"
-                       alt="{{ ph.alt }}" loading="lazy" decoding="async">
+                       alt="{{ ph.alt }}" loading="lazy" decoding="async"></figure>
                   {%- endif %}{% endfor %}
                 </div>
               </details>{% endif %}
@@ -407,9 +435,16 @@
                      rather than for a strip, loaded when the project
                      opens. #}
                   {% set full = resize_image(path="@/" ~ ph.file, width=2000, height=2000, op="fit", format="webp", quality=76) %}
-                  <img src="{{ shot.url }}" data-big="{{ full.url }}"
+                  {# A SLIDE AROUND EACH PHOTOGRAPH. On the card the
+                     wrapper is `display: contents` and changes nothing;
+                     at the front it becomes the slide — one screen
+                     wide, every one the same — and the photograph
+                     inside is sized to its own shape, so the hairline
+                     ends the PICTURE rather than floating around the
+                     screen it is centred in. #}
+                  <figure class="slide"><img src="{{ shot.url }}" data-big="{{ full.url }}"
                        width="{{ shot.width }}" height="{{ shot.height }}"
-                       alt="{{ ph.alt }}" loading="lazy" decoding="async">
+                       alt="{{ ph.alt }}" loading="lazy" decoding="async"></figure>
                   {%- endif %}{% endfor %}
                 </div>
               </details>{% endif %}

@@ -55,36 +55,38 @@ SIZES.forEach(([w, h]) => {
         setTimeout(() => {
           const reel = shots.querySelector(".reel");
           const rb = reel.getBoundingClientRect();
-          const slides = [...reel.querySelectorAll("img")].map((im) => {
+
+          /* TWO BOXES, AND THEY ARE NOT THE SAME QUESTION. The slide is
+           * the screen — every one identical, or the strip jumps as it
+           * is swiped. The photograph inside it is its own shape, as
+           * large as the slide allows and never larger than its own
+           * pixels, and the hairline is drawn on THAT. */
+          const slides = [...reel.querySelectorAll(".slide")].map((s) => {
+            const b = s.getBoundingClientRect();
+            return Math.round(b.width) + "x" + Math.round(b.height);
+          });
+          const pictures = [...reel.querySelectorAll("img")].map((im) => {
             const b = im.getBoundingClientRect();
-            const scale = Math.min(b.width / (im.naturalWidth || 1),
-                                   b.height / (im.naturalHeight || 1));
             return {
-              box: Math.round(b.width) + "x" + Math.round(b.height),
-              band: Math.round(b.top - rb.top),
-              ink: Math.round(im.naturalWidth * Math.min(scale, 1)),
-              scale: scale,
-              pixels: im.naturalWidth,
+              wide: Math.round(b.width),
+              top: Math.round(b.top - rb.top),
+              bottom: Math.round(rb.bottom - b.bottom),
+              enlarged: b.width > im.naturalWidth * 1.02,
+              atPixels: b.width >= im.naturalWidth * 0.98,
+              edge: parseFloat(f.contentWindow.getComputedStyle(im).borderTopWidth),
             };
           });
-          const boxes = [...new Set(slides.map((s) => s.box))];
-          const worst = slides.reduce((a, s) => Math.min(a, s.band), 9999);
+          const boxes = [...new Set(slides)];
           out.push(w + ":slides=" + boxes.join(",")
-            + ":shapes=" + slides.length
-            + ":band=" + worst
-            /* WHAT FITS THE PICTURE INTO THE SLIDE, asked of the
-             * browser rather than worked out. `scale-down` takes the
-             * smaller of contain and none, so a photograph is never
-             * drawn larger than its own pixels; `contain` enlarges it
-             * to the box, `cover` crops it. Computing a scale from the
-             * box cannot tell these apart — the box is the slide, not
-             * the ink, and a 1000px photograph in a 1400px slide reads
-             * as "enlarged" under every one of them. */
-            + ":fit=" + f.contentWindow.getComputedStyle(
-                reel.querySelector("img")).objectFit
-            // How much of the slide the ink takes, at its widest.
-            + ":of=" + Math.round(100 * Math.max(...slides.map(
-                (s) => s.ink / (rb.width || 1)))));
+            + ":shapes=" + pictures.length
+            + ":band=" + Math.min(...pictures.map((p) => Math.min(p.top, p.bottom)))
+            + ":enlarged=" + (pictures.some((p) => p.enlarged) ? "y" : "n")
+            + ":framed=" + (pictures.every((p) => p.edge >= 1) ? "y" : "n")
+            + ":of=" + Math.round(100 * Math.max(...pictures.map(
+                (p) => p.wide / (rb.width || 1))))
+            /* The one honest reason a photograph does not fill its
+             * slide: it has run out of its own pixels. */
+            + ":atpixels=" + (pictures.some((p) => p.atPixels) ? "y" : "n"));
           if (++done === SIZES.length) say(out.join(" "));
         }, 1200);
       }, 1200);
