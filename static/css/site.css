@@ -47,9 +47,9 @@
    BOTH BUTTONS, AND TIME TO SEE THEM   1944      59
    HOW WE CAN WORK TOGETHER             2003     140
    THE TWO PHRASES, EXCHANGING PLACES   2143      74
-   THE WORK, AT THREE LEVELS            2217     656
-   THE FORM BEHIND "LET'S TALK"         2873     117
-   PRINT                                2990      40
+   THE WORK, AT THREE LEVELS            2217     664
+   THE FORM BEHIND "LET'S TALK"         2881     117
+   PRINT                                2998      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -2690,7 +2690,15 @@ html.js .shots[open] > .reel {
 html.js .shots[open] > .reel img {
   height: auto;
   width: auto;
-  max-height: calc(100vh - var(--way-out) * 2);
+  /* AGAINST THE BOX, NOT THE VIEWPORT. `100vh` is the screen; the box
+     this photograph sits in is the screen LESS the carousel's own
+     horizontal scrollbar, which is nothing on macOS and about 15px on
+     Linux. CI caught it: 39px of ground above the photograph where the
+     band is meant to be 44, because the limit was measured against
+     something 15px taller than what the photograph was centred in. A
+     percentage resolves against the container's content box, which is
+     the thing that matters. */
+  max-height: calc(100% - var(--way-out) * 2);
   /* The screen, and no cap at the photograph's own pixels — because
      `width: auto` above already is one. `max-width` only ever limits;
      nothing here tells the photograph to grow, so it stops at its
