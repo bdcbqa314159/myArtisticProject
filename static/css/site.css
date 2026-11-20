@@ -47,9 +47,9 @@
    BOTH BUTTONS, AND TIME TO SEE THEM   1944      59
    HOW WE CAN WORK TOGETHER             2003     140
    THE TWO PHRASES, EXCHANGING PLACES   2143      74
-   THE WORK, AT THREE LEVELS            2217     611
-   THE FORM BEHIND "LET'S TALK"         2828     117
-   PRINT                                2945      40
+   THE WORK, AT THREE LEVELS            2217     664
+   THE FORM BEHIND "LET'S TALK"         2881     117
+   PRINT                                2998      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -2646,20 +2646,73 @@ html.js .shots[open] > .reel {
   inset: 0;
   z-index: 70;
   margin: 0;
-  padding: 0 var(--gutter);
+  /* THE BAND, ON ALL FOUR SIDES. It was `0 var(--gutter)`: 23px at the
+     sides and nothing at all above or below, so the only ground to
+     press for the way back was a sliver beside the photograph. The
+     band is the same 44px the open patchwork uses, and here it is real
+     ground rather than a ring over the picture — which matters because
+     this box scrolls sideways, and a ring would swallow the swipe that
+     moves to the next photograph.
+
+     NO PADDING AT ALL, THOUGH. The band above and below comes from the
+     height limit on the photograph itself — `100vh` less twice the
+     band — and padding here claimed the same thing a second time:
+     removing it changed nothing that could be measured, at any of the
+     three screen sizes. One rule, in one place.
+
+     And nothing at the sides: an inset there costs the phone a quarter
+     of its width — measured, a 3:2 photograph came out 302x201 on a
+     390px screen with 259px of ground going spare above and below it.
+     The sides are free. */
+  padding: 0;
   align-items: center;
   backdrop-filter: blur(16px) saturate(0.85);
   background: color-mix(in oklch, var(--bg) 62%, transparent);
-  scroll-padding-inline: var(--gutter);
+  scroll-padding-inline: 0;
 }
 
-/* As large as fits, and no larger: full screen there is one photograph
-   and a lot of ground, so nothing is being lined up against anything. */
+/* ONE PHOTOGRAPH, AS LARGE AS THE SCREEN ALLOWS.
+ *
+ * It was `max-height: 80vh`, which left a fifth of the screen empty
+ * above and below a picture someone had opened in order to look at it.
+ * The limit is the band now and nothing else: the photograph takes
+ * every pixel between the two edges of it, at its own shape.
+ *
+ * `width: auto; height: auto` with both maxima is what keeps the shape
+ * AND the quality: the browser scales the photograph down to whatever
+ * fits and never stretches it past its own pixels, so an upright one
+ * is limited by the height and a landscape one by the width, and
+ * neither is cropped. The copy swapped in on opening is 2000px wide,
+ * which is honest up to about a 2000px display; past that the browser
+ * would be enlarging, which is why the copy is that size and not the
+ * card's 1000.
+ */
 html.js .shots[open] > .reel img {
   height: auto;
   width: auto;
-  max-height: 80vh;
-  max-width: calc(100vw - var(--gutter) * 2);
+  /* AGAINST THE BOX, NOT THE VIEWPORT. `100vh` is the screen; the box
+     this photograph sits in is the screen LESS the carousel's own
+     horizontal scrollbar, which is nothing on macOS and about 15px on
+     Linux. CI caught it: 39px of ground above the photograph where the
+     band is meant to be 44, because the limit was measured against
+     something 15px taller than what the photograph was centred in. A
+     percentage resolves against the container's content box, which is
+     the thing that matters. */
+  max-height: calc(100% - var(--way-out) * 2);
+  /* The screen, and no cap at the photograph's own pixels — because
+     `width: auto` above already is one. `max-width` only ever limits;
+     nothing here tells the photograph to grow, so it stops at its
+     intrinsic size on a screen wider than itself. Measured at 2400px:
+     2000x1333, not enlarged, with or without a cap.
+     
+     There WAS a cap — written from `naturalWidth` into a custom
+     property by the script. It was defence against a rule that does
+     not exist, and worse, it MASKED the check: with the cap in place
+     even `width: 100%` could not be seen to enlarge anything, so the
+     assertion that says "never larger than its own pixels" could not
+     fail. Taking it out makes that check bite — proved: without it,
+     `width: 100%` reports 2400x1601 from 2000px. */
+  max-width: 100vw;
   background: none;
 }
 

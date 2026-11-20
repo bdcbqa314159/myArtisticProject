@@ -62,6 +62,20 @@ def dom(chrome: str, url: str, width: int, height: int, shot: Path = None,
             chrome,
             "--headless=new",
             "--disable-gpu",
+            # SCROLLBARS THAT TAKE SPACE, like the runner's.
+            #
+            # macOS overlays them and Linux does not, so a box's content
+            # is up to 15px shorter there than here — and a rule
+            # measured against `100vh` rather than against the box it
+            # sits in came out right locally and wrong on CI: "39px of
+            # ground above the open photograph" where the band is 44.
+            # A real difference on a real platform, invisible on this
+            # one.
+            #
+            # Matching the runner makes that class of failure local, and
+            # it is the stricter of the two: a layout that holds while
+            # scrollbars take room holds when they take none.
+            "--disable-features=OverlayScrollbar",
             "--no-sandbox",
             f"--window-size={width},{height}",
             *( [f"--screenshot={shot}"] if shot else [] ),

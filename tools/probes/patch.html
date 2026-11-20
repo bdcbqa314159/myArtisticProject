@@ -1,6 +1,9 @@
 <meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
 const out = []; let done = 0;
-const SIZES = [[390, 720], [1400, 900]];
+/* 2400x2000 is here for the photograph's own pixels: a 2000px copy
+ * on a wider screen would be enlarged, and nothing below this size
+ * can show that. */
+const SIZES = [[390, 720], [1400, 900], [2400, 2000]];
 SIZES.forEach(([w, h]) => {
   const f = document.createElement("iframe");
   f.width = w; f.height = h; f.style.border = 0; f.src = "/";
@@ -38,7 +41,37 @@ SIZES.forEach(([w, h]) => {
            * URL is a content hash and says nothing. */
           + ":natural=" + support.naturalWidth
           + ":waiting=" + (support.closest("summary").dataset.big ? "y" : "n"));
-        if (++done === SIZES.length) say(out.join(" "));
+
+        /* AND THE MAIN PICTURE, one level further in. A photograph
+         * someone opened in order to look at it: it should take every
+         * pixel the screen allows, keep its own shape, never be
+         * enlarged past its own pixels, and still leave the band of
+         * ground that takes the reader back. */
+        const shots = g.querySelector("details.shots");
+        shots.open = true;
+        setTimeout(() => {
+          const reel = shots.querySelector(".reel");
+          const pic = reel.querySelector("img");
+          const rb = reel.getBoundingClientRect();
+          const pb = pic.getBoundingClientRect();
+          out.push(w + ":pic=" + Math.round(pb.width) + "x" + Math.round(pb.height)
+            + ":screen=" + Math.round(rb.width) + "x" + Math.round(rb.height)
+            // How much of the room between the bands it actually takes,
+            // in the dimension its own shape is limited by.
+            + ":of=" + Math.round(100 * Math.max(pb.width / rb.width,
+                                                 pb.height / (rb.height - 88)))
+            // Ground above and below, which is the way out at this level.
+            + ":above=" + Math.round(pb.top - rb.top)
+            + ":below=" + Math.round(rb.bottom - pb.bottom)
+            // Enlarged past its own pixels would be soft, which is the
+            // thing this was all for.
+            + ":enlarged=" + (pb.width > pic.naturalWidth * 1.02 ? "y" : "n")
+            // At its own pixels: the one honest reason not to fill the
+            // screen, and the reason the cap exists.
+            + ":atpixels=" + (pb.width >= pic.naturalWidth * 0.98 ? "y" : "n")
+            + ":pixels=" + pic.naturalWidth);
+          if (++done === SIZES.length) say(out.join(" "));
+        }, 1200);
       }, 1200);
     } catch (err) {
       out.push(w + ":threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-"));
