@@ -47,9 +47,9 @@
    BOTH BUTTONS, AND TIME TO SEE THEM   1957      59
    HOW WE CAN WORK TOGETHER             2016     140
    THE TWO PHRASES, EXCHANGING PLACES   2156      74
-   THE WORK, AT THREE LEVELS            2230     659
-   THE FORM BEHIND "LET'S TALK"         2889     117
-   PRINT                                3006      40
+   THE WORK, AT THREE LEVELS            2230     698
+   THE FORM BEHIND "LET'S TALK"         2928     117
+   PRINT                                3045      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -2678,45 +2678,84 @@ html.js .shots[open] > .reel {
      of its width — measured, a 3:2 photograph came out 302x201 on a
      390px screen with 259px of ground going spare above and below it.
      The sides are free. */
-  padding: 0;
+  /* THE BAND, ON THIS BOX. 44px of ground above and below the
+     photograph, which is the way back at this level, and the only
+     place in this chain where a percentage resolves against what it
+     looks like it should. The slides are its content box; the
+     photographs are capped by the slides. */
+  box-sizing: border-box;
+  padding: var(--way-out) 0;
   align-items: center;
   backdrop-filter: blur(16px) saturate(0.85);
   background: color-mix(in oklch, var(--bg) 62%, transparent);
   scroll-padding-inline: 0;
 }
 
-/* ONE SLIDE, ONE SCREEN — AND THE SAME SLIDE EVERY TIME.
+/* ONE SLIDE, ONE SCREEN — AND A FRAME THAT HUGS THE PICTURE.
  *
- * On a wide screen the height was the binding limit, so every
- * photograph came out 801px tall and the strip had one horizon.
- * Measured on a phone, where the WIDTH binds instead: 390x260 for a
- * landscape photograph and 390x520 for an upright one — the same
- * width, and one twice the height of the other, so swiping jumped.
+ * The slide and the picture are two different boxes, and they have to
+ * be: the slide is the screen so the strip is steady as it is swiped,
+ * and the picture is its own shape so the hairline ends the PICTURE.
+ * Measured when they were one box: a frame around 390x801 with a
+ * photograph 390x260 inside it, which is the floating rectangle this
+ * exists to avoid.
  *
- * So the slide is the screen, at every size, and the photograph is
- * fitted inside it: the strip is steady and each picture keeps its own
- * shape. `scale-down` rather than `contain` is what keeps the quality
- * promise — contain would ENLARGE a photograph whose box is bigger
- * than it is, which is exactly what a 2000px copy on a 2400px screen
- * would do; `scale-down` takes the smaller of contain and none, so a
- * photograph is never drawn larger than the pixels it has.
+ * `display: contents` on the card, so the strip there is laid out
+ * exactly as it was — the wrapper is not a box at all until the
+ * project is open.
  *
- * The 44px band above and below is the way back, as before.
- *
- * WHAT THIS CANNOT DO is make the two photographs the same size on a
- * phone. An upright photograph and a landscape one cannot both fill a
- * portrait screen without cropping one of them; the slides are
- * uniform, the pictures inside them are as large as their own shape
- * allows. `object-fit: cover` here would make them identical and crop
- * the sides off every landscape — one line, if that is ever preferred.
+ * The slide takes no pointer events and the photograph takes them
+ * back: a click on the empty part of a slide has to reach the carousel
+ * underneath, because that is the way out of this level.
  */
-html.js .shots[open] > .reel img {
+.reel .slide { display: contents; }
+
+html.js .shots[open] > .reel .slide {
+  display: grid;
+  /* A DEFINITE ROW AND COLUMN. Left to `auto`, the track is sized by
+     the photograph inside it — so `max-height: 100%` on that
+     photograph had nothing to resolve against, was dropped, and the
+     track then grew to the full 927px of an upright picture inside an
+     801px slide. `minmax(0, 1fr)` makes the track the slide, which is
+     what the percentage is meant to mean. */
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
   flex: 0 0 100%;
-  width: 100%;
-  height: calc(100% - var(--way-out) * 2);
-  max-width: none;
-  max-height: none;
-  object-fit: scale-down;
+  /* The slide is the whole screen and the BAND is on the picture
+     below. The other way round — the band taken off the slide — left
+     the photograph uncapped: a percentage height on a flex item did
+     not resolve here, so `max-height: 100%` on the image resolved
+     against nothing and an upright photograph hung 146px past the
+     bottom of the screen. Measured, at 1400x900. */
+  height: 100%;
+  /* The band is on the REEL, not here — see the note there. Two
+     attempts at putting it on this box both missed: `max-height:
+     calc(100% - 88px)` on the picture resolved against something that
+     was not the slide (839px where 801 was wanted), and padding here
+     did not reach the grid row at all (the content box measured 889
+     with 44px of padding set on it). The reel is a plain flex box with
+     a definite height, and a percentage resolves against it exactly. */
+  margin: 0;
+  pointer-events: none;
+}
+
+html.js .shots[open] > .reel .slide img {
+  /* The element IS the photograph here — no object-fit, so `width` and
+     `height` of `auto` under both maxima give the picture its own
+     shape, as large as the slide allows and never larger than its own
+     pixels. */
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: fill;
+  pointer-events: auto;
+  /* The hairline comes from `.fridge img`, which this is inside —
+     written here as well, it changed nothing when removed, which is
+     how the overlap was found. What this box does for the frame is
+     BE the photograph, so the line ends the picture instead of
+     floating around the slide it is centred in. */
   background: none;
 }
 
