@@ -21,12 +21,44 @@ addEventListener("load", () => setTimeout(() => {
       reel.dispatchEvent(new MouseEvent("click", {bubbles: true}));
       setTimeout(() => {
         const afterReel = "carousel=" + shots.open + " group=" + group.open;
-        front.dispatchEvent(new MouseEvent("click", {bubbles: true}));
+
+        /* AND WHERE IT REOPENS. The strip remembers its scroll, so a
+         * project left on its third photograph opened on the third
+         * next time — reported from the page. Walked here: open it,
+         * scroll along, close it, open it again, and read where it is.
+         *
+         * WITH A TICK BETWEEN EACH STEP. `toggle` is delivered
+         * asynchronously, so closing and reopening in the same turn
+         * reads the scroll before the page has heard that anything
+         * closed — which is how this probe first reported the bug it
+         * was written to prove fixed. */
+        shots.open = true;
+        reel.scrollLeft = 999;              /* clamped to the far end */
+        const wandered = reel.scrollLeft;
+        shots.open = false;
         setTimeout(() => {
-          out.textContent = "RESULT both=" + both + " left=" + left
-            + " reopened=" + shots.open + " " + afterReel
-            + " afterFront=" + group.open;
-        }, 20);
+          shots.open = true;
+          setTimeout(() => {
+            const back = reel.scrollLeft;
+
+            /* Shut the project before the last step. The front's click
+             * closes the INNERMOST thing open — one level at a time —
+             * so with the carousel reopened here, clicking the front
+             * would close that and leave the group open, which is the
+             * rule working and not the bug this line is about. */
+            shots.open = false;
+            setTimeout(() => {
+            front.dispatchEvent(new MouseEvent("click", {bubbles: true}));
+            setTimeout(() => {
+              out.textContent = "RESULT both=" + both + " left=" + left
+                + " reopened=" + shots.open + " " + afterReel
+                + " afterFront=" + group.open
+                + " wandered=" + (wandered > 0)
+                + " backAtStart=" + (back === 0);
+            }, 20);
+            }, 40);
+          }, 40);
+        }, 40);
       }, 20);
     }, 20);
   }, 20);

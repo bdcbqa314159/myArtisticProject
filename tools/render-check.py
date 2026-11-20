@@ -1189,6 +1189,17 @@ def check_reopen(chrome: str, out: Path, url: str) -> "list[str]":
                    f"carousel back to its group ({verdict})")
     if "afterFront=false" not in verdict:
         bad.append("ground: clicking beside the group does not close it")
+    # The control first: a strip that could not be scrolled proves
+    # nothing about where it reopens.
+    if "wandered=true" not in verdict:
+        bad.append(f"reopen: the probe could not scroll the strip, so what it "
+                   f"says about coming back means nothing ({verdict})")
+    elif "backAtStart=true" not in verdict:
+        bad.append(f"reopen: a project left on its third photograph opens on "
+                   f"the third next time ({verdict}). The <details> is put "
+                   f"back when its group closes; the scroll inside it has to "
+                   f"be as well, or coming back to a reference lands "
+                   f"mid-strip")
     return bad
 
 

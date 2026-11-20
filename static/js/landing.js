@@ -14,6 +14,7 @@ import { shiftFor } from "./drift.js";
 import { owedBeforeShowing } from "./cover.js";
 import { whileInView } from "./arrive.js";
 import { swapOnArrival } from "./swap.js";
+import { warming } from "./preload.js";
 /* Both failsafes in one place, so the ordering between them is visible.
  * The cover's lives in the inline script in the head and is 6000ms;
  * this one must come after it. */
@@ -823,6 +824,55 @@ function exchangePhrases() {
     park();
     whileInView([heading], watcher, (_el, on) => staged(on), "0px", 0.6);
 }
+/* ---- warming the photographs, quietly --------------------------------
+ * Measured on the built page: seventeen images block the cover — 0.4MB,
+ * the first screen — and a hundred and fifty more are `loading="lazy"`,
+ * 7.6MB of them, arriving as the reader reaches them. A section
+ * assembling itself in front of whoever scrolled to it is the thing
+ * this is for: "I really do not want to see the pictures appearing by
+ * shreds".
+ *
+ * The cover is not the answer. Holding the page until all of it had
+ * arrived would mean sixteen megabytes before the first word. So the
+ * page still opens on its first screen, and the rest is fetched behind
+ * it, in reading order, at four at a time, only while the browser says
+ * it is idle — `preload.ts` holds that queue, and what the reader
+ * opens jumps it.
+ *
+ * DECODED BEFORE IT COUNTS AS READY. `img.decode()` resolves when the
+ * photograph can be drawn, not merely when its bytes have arrived —
+ * which is the difference between a picture appearing and a picture
+ * appearing in bands.
+ */
+const PHOTOGRAPHS = warming((url) => {
+    const img = new Image();
+    img.decoding = "async";
+    img.src = url;
+    // `decode()` rejects on a broken image, which is what the queue
+    // wants to hear; `load` alone would call a half-decodable file
+    // ready.
+    return img.decode === undefined
+        ? new Promise((done, fail) => {
+            img.addEventListener("load", () => done());
+            img.addEventListener("error", () => fail(new Error(url)));
+        })
+        : img.decode();
+}, (run) => {
+    /* Idle if the browser offers it, and a timer if it does not —
+     * Safari has no requestIdleCallback. The timeout is a promise that
+     * the warming starts even on a page that never goes idle. */
+    const idle = window.requestIdleCallback;
+    if (idle)
+        idle(run, { timeout: 2000 });
+    else
+        window.setTimeout(run, 200);
+});
+/** Every photograph the page holds but has not asked for yet. */
+function warmTheRest() {
+    const lazy = [...document.querySelectorAll("img[loading=lazy]")]
+        .map((img) => img.currentSrc || img.src);
+    PHOTOGRAPHS.warm(lazy);
+}
 /* ---- a bigger copy, once it is being looked at ------------------------
  * A print on the card is a card-sized photograph, and the front fills
  * the screen with it: stretched to a 1600px monitor the 900px copy is
@@ -851,6 +901,10 @@ function sharpenOnOpen() {
                 : el.querySelector("img");
             if (!big || !img)
                 continue;
+            /* Through the queue, so it is one fetch and not two if the
+             * warming had already reached it — and urgent, because the
+             * reader is looking at this one. */
+            PHOTOGRAPHS.urgent([big]);
             const bigger = new Image();
             bigger.decoding = "async";
             bigger.addEventListener("load", () => {
@@ -878,8 +932,14 @@ function sharpenOnOpen() {
     }
     for (const shots of document.querySelectorAll(".shots")) {
         shots.addEventListener("toggle", () => {
-            if (shots.open)
-                upgrade(shots, "img[data-big]");
+            if (!shots.open)
+                return;
+            /* The project's own photographs, before whatever the warming was
+             * working through. The small copies as well as the big ones: the
+             * reader may see either, depending on which arrives first. */
+            PHOTOGRAPHS.urgent([...shots.querySelectorAll("img")]
+                .flatMap((img) => [img.currentSrc || img.src, img.dataset["big"] || ""]));
+            upgrade(shots, "img[data-big]");
         });
     }
 }
@@ -939,6 +999,26 @@ function closeTheCarousel() {
             for (const shots of group.querySelectorAll(".shots[open]")) {
                 shots.open = false;
             }
+        });
+    }
+    /* AND A PROJECT REOPENED STARTS AT ITS FIRST PHOTOGRAPH.
+     *
+     * The strip is a scroll container, and a scroll container remembers.
+     * Reported from the page: go through a project's photographs to the
+     * third, leave, wander the page, come back to the same project — and
+     * it opens on the third. The <details> had been put back; the scroll
+     * inside it had not.
+     *
+     * Reset when it CLOSES rather than when it opens: on the way in the
+     * strip is already on screen, and moving it there would be a jump the
+     * reader watches. */
+    for (const shots of document.querySelectorAll(".shots")) {
+        shots.addEventListener("toggle", () => {
+            if (shots.open)
+                return;
+            const reel = shots.querySelector(".reel");
+            if (reel)
+                reel.scrollLeft = 0;
         });
     }
     /* THE GROUND IS THE WAY OUT, at both levels.
@@ -1308,6 +1388,7 @@ start("softening while moving", softWhileMoving);
 start("the phrases exchanging", exchangePhrases);
 start("closing the carousel", closeTheCarousel);
 start("the bigger copies", sharpenOnOpen);
+start("warming the rest", warmTheRest);
 start("keeping one address", keepOneAddress);
 start("the photographs drifting", photographsDrift);
 start("the press and release", showTheRelease);
