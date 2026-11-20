@@ -1033,12 +1033,19 @@ function softWhileMoving() {
         settle = window.setTimeout(() => root.classList.remove("scrolling"), SETTLE_MS);
     }, { passive: true });
 }
-/* ---- going into the work changes the light ---------------------------
+/* ---- leaving the top of the page changes the light -------------------
  *
  * "By default we are cream, always. Scrolling does nothing. If the user
  *  clicks on Explore selected work we move to the right section and we
  *  switch to the grey palette. Re-clicking does nothing. If we quit and
  *  come back we are cream again."
+ *
+ * The door was Explore selected work alone, then Selected Work in the
+ * menu as well, and now EVERY entry in the menu — settled with the
+ * client. The rule the light states is therefore "you have left the
+ * top of the page", not "you have gone into the work". Nothing here
+ * changed to do it: the trigger is an attribute on the element, so
+ * widening it was a line of the template.
  *
  * All four of those fall out of one line: set the attribute, store
  * nothing. Setting it twice is the same as setting it once, and a

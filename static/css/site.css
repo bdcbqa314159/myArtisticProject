@@ -30,26 +30,26 @@
 
    section                              line   lines
    ----------------------------------  -----  ------
-   FOUNDATION                             55     148
-   THE FURNITURE                         203     323
-   GRIDS, CARDS AND THE SHOWREEL SLOT    526     169
-   CROSSING BETWEEN SECTIONS             695      58
-   A DOCUMENT BEHIND A CONCEPT           753     108
-   THE FIELDS THE WORK SITS IN           861     549
-   MOTION                               1410      62
-   WIDER                                1472      51
-   THE LOADER                           1523      96
-   THE MENU, BELOW THE BREAKPOINT       1619      46
-   OFFSETS                              1665     173
-   OFFSETS, SECOND ATTEMPT              1838      31
-   CENTRED SECTION HEADINGS             1869      40
-   FULL-BLEED PHOTOGRAPHS               1909      34
-   BOTH BUTTONS, AND TIME TO SEE THEM   1943      59
-   HOW WE CAN WORK TOGETHER             2002     140
-   THE TWO PHRASES, EXCHANGING PLACES   2142      74
-   THE WORK, AT THREE LEVELS            2216     597
-   THE FORM BEHIND "LET'S TALK"         2813     117
-   PRINT                                2930      40
+   FOUNDATION                             55     149
+   THE FURNITURE                         204     323
+   GRIDS, CARDS AND THE SHOWREEL SLOT    527     169
+   CROSSING BETWEEN SECTIONS             696      58
+   A DOCUMENT BEHIND A CONCEPT           754     108
+   THE FIELDS THE WORK SITS IN           862     549
+   MOTION                               1411      62
+   WIDER                                1473      51
+   THE LOADER                           1524      96
+   THE MENU, BELOW THE BREAKPOINT       1620      46
+   OFFSETS                              1666     173
+   OFFSETS, SECOND ATTEMPT              1839      31
+   CENTRED SECTION HEADINGS             1870      40
+   FULL-BLEED PHOTOGRAPHS               1910      34
+   BOTH BUTTONS, AND TIME TO SEE THEM   1944      59
+   HOW WE CAN WORK TOGETHER             2003     140
+   THE TWO PHRASES, EXCHANGING PLACES   2143      74
+   THE WORK, AT THREE LEVELS            2217     597
+   THE FORM BEHIND "LET'S TALK"         2814     117
+   PRINT                                2931      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -65,7 +65,8 @@
   /* CREAM IS THE DEFAULT, AND THE DEFAULT IS WHAT EVERY VISIT STARTS
      IN. There is no stored preference and nothing to remember: close
      the page and come back and it is cream again. The only thing that
-     changes it is going into the work — see `[data-tint]`. */
+     changes it is a press — the hero
+     button, or any entry in the menu. See `[data-tint]`. */
   color-scheme: light;
 
   --ink:   #2f3236;

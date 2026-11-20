@@ -84,16 +84,21 @@
          button must keep working when there is none. #}
       <summary><span class="is-shut">Menu</span><span class="is-open">Close</span></summary>
       <nav class="links">
-        {# Selected Work turns the light grey from here too, exactly as the
-           hero button does: going into the work is what changes it, and it
-           should not matter which door was used.
+        {# EVERY entry turns the light grey, exactly as the hero button
+           does, and it should not matter which door was used.
 
-           Matched on the href rather than carried as a field on the nav
-           item, because `#work` is already written in one other place —
-           the hero button's own `href`. A `tint` field in the content
-           would be a third place to keep in step, and the French page
-           would need it as well. #}
-        {% for item in e.nav %}<a href="{{ item.href }}"{% if item.href == "#work" %} data-tint="cool"{% endif %}>{{ item.label }}</a>{% endfor %}
+           It was Selected Work alone — matched on its href — because
+           the light meant "going into the work". The client has settled
+           it the other way: the light means "you have left the top of
+           the page", so every section in the menu carries it and there
+           is no href to match on any more. Contact is in the menu and
+           points at a section, so it is in; its own behaviour, opening
+           the message box, is unchanged.
+
+           On the element rather than as a field in the content: a
+           `tint` field would be a second place to keep in step, and the
+           French page would need it as well. #}
+        {% for item in e.nav %}<a href="{{ item.href }}" data-tint="cool">{{ item.label }}</a>{% endfor %}
       </nav>
     </details>
     {% endif %}
@@ -121,9 +126,11 @@
          work" before being told what the work is. #}
       {% if e.intro %}<p class="muted hero-intro" data-edit="intro">{{ e.intro }}</p>{% endif %}
       <div class="actions">
-        {# Going into the work changes the light. `data-tint` says so here
-           rather than the script matching on an href: what triggers it is
-           this button, not any link that happens to point at #work. #}
+        {# Leaving the top of the page changes the light — this button
+           and every entry in the menu. `data-tint` says so on the
+           element rather than the script matching on an href: what
+           triggers it is a thing someone pressed, not any link that
+           happens to point at a section. #}
         {% if e.cta_work %}<a class="btn primary" href="#work" data-tint="cool" data-edit="cta_work">{{ e.cta_work }}</a>{% endif %}
         {% if e.cta_contact %}<a class="btn bubble" href="#talk" data-talk data-edit="cta_contact">{{ e.cta_contact }}</a>{% endif %}
       </div>
