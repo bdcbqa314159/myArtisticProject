@@ -10,7 +10,11 @@ f.addEventListener("load", () => setTimeout(() => {
     const veil = d.querySelector(".veil");
     const link = d.querySelector('.links a[href$="#about"]');
     const btn = d.querySelector(".hero .btn.primary");
-    if (!veil || !link || !btn) { say("missing"); return; }
+    /* The logo takes you back to the top, and used to do it by
+     * travelling the whole page — the longest journey on the site. It
+     * crosses now like everything else. */
+    const logo = d.querySelector("a.logo");
+    if (!veil || !link || !btn || !logo) { say("missing"); return; }
 
     const inert = w.getComputedStyle(veil).pointerEvents === "none" ? "y" : "n";
     const about = d.getElementById("about");
@@ -27,12 +31,30 @@ f.addEventListener("load", () => setTimeout(() => {
         setTimeout(() => {
           btn.click();
           setTimeout(() => {
-            // A travelling link cannot arrive here. A crossing one would.
+            /* THE HERO BUTTON CROSSES TOO, which is the opposite of
+             * what this used to prove. It travelled — an eased journey
+             * of up to 1100ms — and a travelling link cannot arrive in
+             * this browser at all, because the animation needs frames
+             * an iframe never runs. So "it moved" is itself the
+             * evidence: under the old rule the page would still be at
+             * the top here. */
             const btnCrossed = root.classList.contains("crossing")
                                || w.scrollY > 2 ? "y" : "n";
-            say("inert=" + inert + " during=" + during + " landed=" + landed
-              + " after=" + after + " held=" + held + " btn=" + btnCrossed
-              + " want=" + want);
+            w.scrollTo({ top: 4000, behavior: "instant" });
+            setTimeout(() => {
+              logo.click();
+              setTimeout(() => {
+                /* Back to the top, from deep in the page: the journey
+                 * the client singled out. Crossing, it is there. */
+                const logoCrossed = root.classList.contains("crossing")
+                                    || w.scrollY < 4000 ? "y" : "n";
+                const atTop = w.scrollY <= 2 ? "y" : "n";
+                say("inert=" + inert + " during=" + during + " landed=" + landed
+                  + " after=" + after + " held=" + held + " btn=" + btnCrossed
+                  + " logo=" + logoCrossed + " top=" + atTop
+                  + " want=" + want);
+              }, 900);
+            }, 100);
           }, 500);
         }, 100);
       }, 640);

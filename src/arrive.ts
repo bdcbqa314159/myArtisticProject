@@ -8,7 +8,7 @@
  * alive the first time and dead every time after. "The title stays in
  * place and no animation."
  *
- * Separated out for the reason `cover.ts` and `scroll.ts` were: the
+ * Separated out for the reason `cover.ts` and `words.ts` were: the
  * thing worth checking is the wiring, and it cannot be checked in a
  * browser here. IntersectionObserver callbacks arrive on a rendering
  * opportunity, and this harness runs a page in an iframe, where there

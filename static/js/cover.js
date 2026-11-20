@@ -1,6 +1,6 @@
 /* How long the cover still owes the reader, as a pure function.
  *
- * Separated out for the same reason `scroll.ts` was: the thing worth
+ * Separated out for the same reason `words.ts` was: the thing worth
  * checking is arithmetic, and it was being checked by timing the real
  * cover in a real browser against a virtual clock. That measurement
  * failed twice — once reporting 41ms and once 5026ms, both on a page

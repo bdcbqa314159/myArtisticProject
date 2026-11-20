@@ -622,7 +622,11 @@ def check_cloud(chrome: str, out: Path, url: str, still: bool) -> "list[str]":
 
 def check_crossing(chrome: str, out: Path, url: str, still: bool) -> "list[str]":
     (out / "_cross.html").write_text(probe("cross"), encoding="utf-8")
-    said = dom(chrome, url + "/_cross.html", 500, 900, reduced=still)
+    # A budget: the probe now makes two more journeys — the hero
+    # button and the logo — and the default 3s cut it off mid-way,
+    # which reads as "the probe could not run".
+    said = dom(chrome, url + "/_cross.html", 500, 900, reduced=still,
+               budget=22000)
     found = re.search(r"CROSS ([^<]*)", said)
     if not found:
         return ["cross: the probe returned no verdict"]
@@ -658,10 +662,27 @@ def check_crossing(chrome: str, out: Path, url: str, still: bool) -> "list[str]"
         bad.append(f"cross: the band jumps with nothing over it, so the "
                    f"reader sees the page cut from one place to another "
                    f"({verdict})")
-    if f["btn"] != "n":
-        bad.append("cross: the hero button crosses too. It is meant to keep "
-                   "its long scroll — that journey is the point there, and "
-                   "it is the one the client asked to keep")
+    # EVERY REDIRECTION CROSSES, which is the reverse of what this
+    # checked before: the hero button was required NOT to cross, so
+    # that the travel it used would be the thing keeping its own
+    # motion. The client settled it the other way — one motion for
+    # anything that takes the reader somewhere.
+    #
+    # "It moved" is the evidence, and it is good evidence precisely
+    # because the travel could never move anything here: an eased
+    # journey needs animation frames, and the probe's iframe runs none.
+    if f["btn"] != "y":
+        bad.append("cross: the hero button does not cross. Every redirection "
+                   "uses the same motion now — and a button that is still "
+                   "travelling cannot arrive in this browser at all, which "
+                   "is what this reads as 'did not move'")
+    if f.get("logo") != "y":
+        bad.append("cross: the logo does not cross. From the foot of the page "
+                   "it used to rewind the whole height, which is the journey "
+                   "the client asked to be rid of")
+    if f.get("top") != "y":
+        bad.append(f"cross: the logo crossed and the page is not at the top "
+                   f"({verdict})")
     return bad
 
 

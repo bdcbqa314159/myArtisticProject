@@ -13,7 +13,6 @@
 import { splitWords } from "./words.js";
 import { shiftFor } from "./drift.js";
 import { owedBeforeShowing } from "./cover.js";
-import { animateScroll, type ScrollEnv } from "./scroll.js";
 import { whileInView } from "./arrive.js";
 import type { Seen } from "./arrive.js";
 
@@ -616,52 +615,7 @@ function photographsDrift(): void {
  */
 const PRESS_MS = 140;
 
-/* ---- one scroll, ours --------------------------------------------------
- * Both the band and the buttons used `scrollIntoView({behavior:
- * "smooth"})`. That hands the speed to the browser, which chooses it
- * differently depending on the distance and differently again between
- * Safari and Chrome — so the two never matched, and neither could be
- * slowed.
- *
- * This is the same movement for every in-page link, at a speed we set.
- *
- * It yields to the reader: a wheel, a touch or a key during the
- * animation stops it where it is. A page that keeps travelling after
- * someone has started scrolling themselves is fighting them.
- */
-let stopScrolling: (() => void) | null = null;
 
-/* The browser's half of the scroll: a clock, a frame scheduler, a
- * scrollbar, and the three events that mean "I'll take it from here".
- * The loop itself is in scroll.ts, where it can be tested. */
-const INTERRUPTIONS = ["wheel", "touchstart", "keydown"] as const;
-
-const browserScroll: ScrollEnv = {
-  now: () => performance.now(),
-  position: () => window.scrollY,
-  /* INSTANT, EVERY FRAME. The two-argument form obeys the stylesheet,
-   * and the stylesheet says `scroll-behavior: smooth` — so each frame of
-   * our own easing was asking the browser to *smoothly* scroll to a new
-   * target, which it then retargeted on the next frame. Measured in
-   * isolation: `scrollTo(0, 500)` under smooth leaves `scrollY` at 0
-   * after 630ms, where `behavior: "instant"` is there at once.
-   *
-   * The visible cost was at the END. `animateScroll` calls `finish()`
-   * when its own clock reaches 1 — and the page was still travelling,
-   * so the navigation band released its marker and the keyboard was
-   * sent on, before either had arrived. */
-  moveTo: (y) => window.scrollTo({ top: y, behavior: "instant" }),
-  frame: (cb) => requestAnimationFrame(cb),
-  cancelFrame: (h) => cancelAnimationFrame(h),
-  whenInterrupted(give) {
-    for (const ev of INTERRUPTIONS) {
-      addEventListener(ev, give, { passive: true, once: true });
-    }
-    return () => {
-      for (const ev of INTERRUPTIONS) removeEventListener(ev, give);
-    };
-  },
-};
 
 /* ---- crossing, for the band -------------------------------------------
  *
@@ -715,26 +669,6 @@ function crossTo(top: number, onDone: () => void): void {
   }, VEIL_IN_MS);
 }
 
-function scrollTo(top: number, onSettled?: () => void): void {
-  // A newer journey replaces an older one, and the older one settles
-  // rather than being dropped — whoever was waiting on it still gets
-  // its ending.
-  stopScrolling?.();
-
-  if (reduced) {
-    // Explicit, rather than relying on the reduced-motion rule in the
-    // stylesheet also having turned `scroll-behavior` off.
-    window.scrollTo({ top, behavior: "instant" });
-    onSettled?.();
-    return;
-  }
-
-  const abandon = animateScroll(browserScroll, top, () => {
-    stopScrolling = null;
-    onSettled?.();
-  });
-  stopScrolling = abandon;
-}
 
 function keepOneAddress(): void {
   // A fragment we arrived with still works — someone may have been sent
@@ -797,19 +731,19 @@ function keepOneAddress(): void {
         const landing =
           window.scrollY + target.getBoundingClientRect().top - offset;
 
-        /* The band crosses; everything else travels. `closest` rather
-         * than a class on the link, because what decides this is where
-         * the link LIVES — a navigation band — not how it is dressed. */
-        if (a.closest(".links") !== null) {
-          crossTo(landing, () => marker?.release(id as string));
-        } else {
-          scrollTo(
-            landing,
-            // The band stops guessing where the reader is the moment the
-            // journey actually ends — arrived, or abandoned.
-            () => marker?.release(id as string),
-          );
-        }
+        /* EVERY REDIRECTION CROSSES. The band did and the buttons
+         * travelled — an eased journey of up to 1100ms — so the same
+         * destination moved two different ways depending on which
+         * element had been pressed: the logo rewound the whole page
+         * from the foot of it, while the menu went there at once.
+         *
+         * Settled with the client: one motion for anything that takes
+         * the reader somewhere. The travel is removed rather than left
+         * unused — it is in the history if it is ever wanted back.
+         *
+         * The band stops guessing where the reader is the moment the
+         * crossing ends. */
+        crossTo(landing, () => marker?.release(id as string));
         // And the keyboard follows the page.
         //
         // Without this the focus stays on the link that was just used,
