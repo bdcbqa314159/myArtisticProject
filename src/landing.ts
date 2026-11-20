@@ -14,6 +14,8 @@ import { splitWords } from "./words.js";
 import { shiftFor } from "./drift.js";
 import { owedBeforeShowing } from "./cover.js";
 import { animateScroll, type ScrollEnv } from "./scroll.js";
+import { whileInView } from "./arrive.js";
+import type { Seen } from "./arrive.js";
 
 /* Both failsafes in one place, so the ordering between them is visible.
  * The cover's lives in the inline script in the head and is 6000ms;
@@ -45,9 +47,35 @@ function markReveals(): void {
   }
 }
 
-/* One observer for the whole page. `once` is deliberate: a block that has
- * arrived stays arrived, because re-animating on the way back up reads as
- * a glitch rather than as an effect.
+/* What `whileInView` needs from this page: a real observer, and what
+ * "marked" means here — the class both reveals are driven by. */
+const watcher = (
+  cb: (entries: Seen[]) => void,
+  options: { rootMargin?: string; threshold?: number },
+): IntersectionObserver =>
+  new IntersectionObserver(cb as IntersectionObserverCallback, options);
+
+const released = (el: Element, on: boolean): void => {
+  el.classList.toggle("in", on);
+};
+
+/* Two observers for the whole page: one for arriving, one for leaving.
+ *
+ * It used to be one, and it unobserved: a block that had arrived stayed
+ * arrived, on the grounds that re-animating on the way back up reads as
+ * a glitch. Watched on the page, it reads as the opposite — "the title
+ * stays in place and no animation", a section that was alive the first
+ * time and dead every time after. The client asked for it to play on
+ * every arrival.
+ *
+ * WHY TWO, AND WITH DIFFERENT MARGINS. Arriving fires early, 12% before
+ * the block's top edge lands, so the motion finishes about where the
+ * eye does. Leaving must NOT use that margin: with 12% shaved off the
+ * bottom of the root, a block scrolled back towards from below would
+ * stop "intersecting" while still visibly on screen, and the words
+ * would retract in front of the reader. So the leave observer uses the
+ * viewport exactly: a block is reset only once it is entirely out of
+ * sight, where the reset costs nothing and is seen by nobody.
  */
 function observeReveals(): void {
   const blocks = document.querySelectorAll<HTMLElement>(".reveal");
@@ -67,20 +95,10 @@ function observeReveals(): void {
     if (box.top < window.innerHeight && box.bottom > 0) el.classList.add("in");
   }
 
-  const seen = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        entry.target.classList.add("in");
-        seen.unobserve(entry.target);
-      }
-    },
-    // Fire a little before the block's top edge arrives, so the motion
-    // finishes about where the eye lands rather than after it.
-    { rootMargin: "0px 0px -12% 0px", threshold: 0.01 },
-  );
-
-  for (const el of blocks) seen.observe(el);
+  // The wiring is in arrive.ts, where it can be checked: a browser
+  // here runs the page in an iframe, and an IntersectionObserver
+  // callback needs a rendering opportunity, which an iframe never gets.
+  whileInView(blocks, watcher, released);
 }
 
 /* ---- display headlines, word by word ---------------------------------
@@ -137,18 +155,11 @@ function releaseHeadlines(): void {
       // a phone cannot open on an empty hero.
       requestAnimationFrame(() => h.classList.add("in"));
     } else {
-      // Below the fold, wait for the reader to arrive.
-      const seen = new IntersectionObserver(
-        (entries) => {
-          for (const e of entries) {
-            if (!e.isIntersecting) continue;
-            e.target.classList.add("in");
-            seen.unobserve(e.target);
-          }
-        },
-        { threshold: 0.1 },
-      );
-      seen.observe(h);
+      // Below the fold, wait for the reader to arrive — and arrive
+      // again. A tenth of the headline in view is enough, and no
+      // margin: a headline is short, and the words should not start
+      // before it is on screen.
+      whileInView([h], watcher, released, "0px", 0.1);
     }
   }
 
