@@ -216,6 +216,19 @@ INVARIANTS = [
         "notices until it matters.",
     ),
     (
+        "the big copies never invent a pixel",
+        "templates/index.html",
+        r'op="fit_width", format="webp", quality=76',
+        0,
+        "The copies swapped in when something opens are the quality-76 "
+        "ones. `fit_width` ENLARGES a photograph smaller than the width "
+        "asked for: the stand-ins are 1000px and came out as 2000px "
+        "files, 16.4MB of invented detail that looked like quality in "
+        "every measurement. `op=\"fit\"` inside a 2000px box leaves a "
+        "smaller photograph alone — same files, 8.1MB, none of it made "
+        "up.",
+    ),
+    (
         "no style attribute anywhere in the page",
         "templates/index.html",
         r'style="',

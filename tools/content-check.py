@@ -37,6 +37,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # Reading TOML is shared — see tools/toml_read.py for why.
 from toml_read import value as value_in, front_matter, flag  # noqa: E402
+from pdfmake import jpeg_size                                # noqa: E402
 
 
 def main() -> int:
@@ -197,6 +198,40 @@ def main() -> int:
     for f in ("favicon.svg", "icon-180.png", "og.png"):
         if not (ROOT / "static" / f).exists():
             problems.append(f"static/{f} is missing (python3 tools/icons.py)")
+
+    # ---- photographs too small to fill a screen ---------------------
+    #
+    # Opening a reference fills the screen with one of its photographs,
+    # and opening a project shows them one per screen. The copy served
+    # there is capped at 2000px and NEVER enlarged — `op="fit"` leaves a
+    # smaller photograph alone — so a 1000px original is 1000px on a
+    # 1400px monitor, with the browser stretching it or the slide
+    # letterboxing it.
+    #
+    # That is a fact about the photograph, not about the page, so it
+    # belongs here with the rest of what a launch needs. The stand-ins
+    # are 1000px, which is why this reads as a warning on the demo and
+    # will clear when the real photography goes in.
+    small = []
+    for name in re.findall(r'(?m)^file\s*=\s*"([^"]+)"', fm):
+        where = ROOT / "content" / name
+        if not where.exists():
+            continue
+        try:
+            # (width, height, components) — the third is not a length.
+            wide, tall, _components = jpeg_size(where.read_bytes())
+        except Exception:                                   # noqa: BLE001
+            continue
+        size = (wide, tall)
+        if max(size) < 1600:
+            small.append(f"{name} ({size[0]}x{size[1]})")
+    if small:
+        problems.append(
+            f"{len(small)} photograph(s) are under 1600px on the long edge, "
+            f"so they cannot fill a screen when opened: "
+            f"{', '.join(small[:3])}"
+            + (f" and {len(small) - 3} more" if len(small) > 3 else "")
+        )
 
     # A typeface named and not loaded. This is the one that hid for a
     # whole release: the panel takes a font stack, and naming a face
