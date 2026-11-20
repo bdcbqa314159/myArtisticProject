@@ -42,23 +42,34 @@ visit((d, w) => {
           visit((d2, w2) => {
             L.push("returned=" + (d2.documentElement.dataset.palette || "none")
                    + ":" + warmth(ground(d2, w2)));
-            /* THE OTHER DOOR. Selected Work in the menu does what the
+            /* THE OTHER DOORS. Every entry in the menu does what the
              * hero button does — it should not matter which was used.
-             * And a menu entry that is NOT Selected Work must leave the
-             * page cream, which is what keeps the meaning "going into
-             * the work changes the light" rather than "navigating
-             * does". */
-            const band = d2.querySelector(".links [data-tint]");
-            if (!band) { say("no-menu-trigger"); return; }
-            const elsewhere = [...d2.querySelectorAll(".links a")]
-              .find((a) => !a.hasAttribute("data-tint"));
-            // If every entry tints there is nothing left to prove the
-            // rule with, which is itself the failure — say so rather
-            // than throwing on `undefined` and returning no verdict.
-            if (!elsewhere) { say("every-menu-entry-tints"); return; }
-            elsewhere.click();
+             *
+             * The rule used to be narrower: Selected Work tinted and
+             * the others did not, because the light meant "going into
+             * the work". It now means "leaving the top of the page",
+             * which the client settled, so what this proves is the
+             * reverse of what it used to: EVERY entry turns it, and
+             * the first one in the menu is the one tested — if the
+             * trigger were still only on Selected Work, that first
+             * entry would leave the page cream and say so.
+             *
+             * What must still NOT turn it is arriving and scrolling,
+             * which are checked above and are what keep this from
+             * being a check that nothing can fail. */
+            const entries = [...d2.querySelectorAll(".links a")];
+            const untinted = entries.filter((a) => !a.hasAttribute("data-tint"));
+            if (!entries.length) { say("no-menu-entries"); return; }
+            if (untinted.length) {
+              say("menu-entries-without-the-trigger:"
+                  + untinted.map((a) => a.getAttribute("href")).join(","));
+              return;
+            }
+            const band = entries[entries.length - 1];
+            const first = entries[0];
+            first.click();
             setTimeout(() => {
-              L.push("elsewhere=" + (d2.documentElement.dataset.palette || "none")
+              L.push("firstentry=" + (d2.documentElement.dataset.palette || "none")
                      + ":" + warmth(ground(d2, w2)));
               band.click();
               setTimeout(() => {

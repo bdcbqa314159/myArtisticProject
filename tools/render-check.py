@@ -764,8 +764,9 @@ def check_tint(chrome: str, out: Path, url: str) -> "list[str]":
         bad.append(f"tint: the page does not arrive in cream ({verdict}). "
                    f"Every visit starts there, and nothing is remembered")
     if f["scrolled"] != f["arrive"]:
-        bad.append(f"tint: scrolling changed the light ({verdict}). Only going "
-                   f"into the work does that")
+        bad.append(f"tint: scrolling changed the light ({verdict}). A press "
+                   f"does that — the hero button or an entry in the menu — "
+                   f"and nothing else")
     if named("clicked") != "cool" or warm("clicked"):
         bad.append(f"tint: Explore selected work did not turn the light grey "
                    f"({verdict})")
@@ -776,14 +777,19 @@ def check_tint(chrome: str, out: Path, url: str) -> "list[str]":
         bad.append(f"tint: coming back does not start again in cream "
                    f"({verdict}) — something was remembered that should not "
                    f"have been")
-    if f["elsewhere"] != f["returned"]:
-        bad.append(f"tint: a menu entry that is not Selected Work changed the "
-                   f"light ({verdict}). Going into the WORK is what changes "
-                   f"it, not navigating")
+    # EVERY entry in the menu, which is the rule the client settled on:
+    # the light says "you have left the top of the page", not "you have
+    # gone into the work". The first entry in the menu is the one tested
+    # — under the old rule it was the control that had to stay cream, so
+    # this line failing is exactly how a reverted template would show.
+    if named("firstentry") != "cool":
+        bad.append(f"tint: the first entry in the menu did not turn the light "
+                   f"grey ({verdict}). Every section in the menu does it now, "
+                   f"not only Selected Work")
     if f["viamenu"] != f["clicked"]:
-        bad.append(f"tint: Selected Work in the menu does not do what the hero "
-                   f"button does ({verdict}). It should not matter which door "
-                   f"was used — and this is also the second visit, so it "
+        bad.append(f"tint: the last entry in the menu does not do what the "
+                   f"hero button does ({verdict}). It should not matter which "
+                   f"door was used — and this is also the second visit, so it "
                    f"proves the trigger works again after coming back")
     return bad
 
@@ -1229,7 +1235,7 @@ def check_live(html: str) -> "list[str]":
     # no palette baked into the HTML, nothing read before first paint.
     if "data-palette=" in html:
         bad.append("live: a palette is baked into the published page. Every "
-                   "visit begins in cream, and only going into the work "
+                   "visit begins in cream, and only a press on the page "
                    "changes that")
     # The BADGE, not the words. The demo's placeholder alt text reads
     # "Stand-in photograph…", so matching the phrase anywhere made a
