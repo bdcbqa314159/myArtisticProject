@@ -851,49 +851,44 @@ def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
             bad.append(f"patch: at {width}px the open patchwork is "
                        f"{f['wide']}% wide and {f['tall']}% tall. It is meant "
                        f"to take the screen, at the screen's own shape")
-        if int(f.get("natural", 0)) < 1600:
-            bad.append(
-                f"patch: at {width}px the photograph behind the prints is "
-                f"{f.get('natural')}px of actual pixels, stretched across the "
-                f"whole screen. Opening is meant to fetch the big copy that "
-                f"`data-big` points at")
+        # The support's pixel count is NOT asserted here any more. The
+        # big copy no longer upscales — `op="fit"` inside a 2000px box
+        # leaves a smaller photograph alone — so what this number
+        # reports is the SOURCE's size, and the fixture's stand-ins are
+        # 1000px wide. Whether a photograph is big enough to fill a
+        # screen is a question about the content, and
+        # `tools/content-check.py` asks it where the rest of the launch
+        # gate lives. What still belongs here is that the swap happened
+        # at all, below.
         if f.get("waiting") != "n":
             bad.append(
                 f"patch: at {width}px the open patchwork still carries "
                 f"data-big, so the swap has not happened — the small copy is "
                 f"what is on screen")
-        # ---- and the main picture, one level in --------------------
-        if "of" in f:
-            # As large as the screen allows, UNLESS that would mean
-            # enlarging it — which is the whole bargain: "the maximum,
-            # keeping the quality". On a screen wider than the copy the
-            # photograph stops at its own pixels and is right to.
-            if int(f["of"]) < 97 and f["atpixels"] != "y":
+        # ---- and the pictures, one level in ------------------------
+        if "slides" in f:
+            if "," in f["slides"]:
                 bad.append(
-                    f"patch: at {width}px the open photograph takes "
-                    f"{f['of']}% of the room between the bands ({f['pic']} in "
-                    f"{f['screen']}) and is not at its own pixels either. It "
-                    f"was capped at 80vh, which left a fifth of the screen "
-                    f"empty above and below a picture someone opened to look "
-                    f"at")
-            for side in ("above", "below"):
-                if int(f[side]) < 42:
-                    bad.append(
-                        f"patch: at {width}px there is {f[side]}px of ground "
-                        f"{side} the open photograph. That ground is the way "
-                        f"back at this level — 44px of it, and a ring cannot "
-                        f"be used here because it would swallow the swipe to "
-                        f"the next photograph")
-            if f["enlarged"] != "n":
+                    f"patch: at {width}px the carousel's slides are not the "
+                    f"same size ({f['slides']} across {f['shapes']} "
+                    f"photographs). On a wide screen the height bound them "
+                    f"all to one horizon; on a phone the width bound them "
+                    f"instead and an upright photograph came out twice the "
+                    f"height of a landscape one, so swiping jumped")
+            if int(f["band"]) < 42:
                 bad.append(
-                    f"patch: at {width}px the open photograph is enlarged "
-                    f"past its own pixels ({f['pic']} from {f['pixels']}px). "
-                    f"As large as fits, never larger")
-            if int(f["pixels"]) < 1600:
+                    f"patch: at {width}px there is {f['band']}px of ground "
+                    f"above the nearest slide. That ground is the way back at "
+                    f"this level — 44px of it, and a ring cannot be used here "
+                    f"because it would swallow the swipe to the next "
+                    f"photograph")
+            if f["fit"] not in ("scale-down", "none"):
                 bad.append(
-                    f"patch: at {width}px the open photograph is "
-                    f"{f['pixels']}px of actual pixels — the bigger copy has "
-                    f"not been swapped in at this level")
+                    f"patch: at {width}px the carousel fits its photographs "
+                    f"with `object-fit: {f['fit']}`. `scale-down` is what "
+                    f"keeps a photograph from being drawn larger than the "
+                    f"pixels it has — `contain` enlarges it to the slide and "
+                    f"`cover` crops it")
 
         if f["fills"] != "y":
             bad.append(f"patch: at {width}px the photograph behind the prints "

@@ -273,7 +273,7 @@
                    own variant and `data-big` says where it is; script
                    swaps it in when the group opens, which keeps it off
                    the first load entirely. #}
-                {% set big = resize_image(path="@/" ~ cov, width=2000, op="fit_width", format="webp", quality=76) %}
+                {% set big = resize_image(path="@/" ~ cov, width=2000, height=2000, op="fit", format="webp", quality=76) %}
                 <summary data-big="{{ big.url }}">{% set im = resize_image(path="@/" ~ cov, width=900, op="fit_width", format="webp", quality=72) %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ cova }}" decoding="async"><span class="shots-name">{{ pr.name }}</span>{# A light on EVERY print once the group is at the front. This is
                      where the next move has to be offered: the reader is
                      looking at five photographs and nothing has told them
@@ -286,7 +286,7 @@
                      is looked AT, so it gets a copy sized for a screen
                      rather than for a strip, loaded when the project
                      opens. #}
-                  {% set full = resize_image(path="@/" ~ ph.file, width=2000, op="fit_width", format="webp", quality=76) %}
+                  {% set full = resize_image(path="@/" ~ ph.file, width=2000, height=2000, op="fit", format="webp", quality=76) %}
                   <img src="{{ shot.url }}" data-big="{{ full.url }}"
                        width="{{ shot.width }}" height="{{ shot.height }}"
                        alt="{{ ph.alt }}" loading="lazy" decoding="async">
@@ -303,7 +303,7 @@
                    own variant and `data-big` says where it is; script
                    swaps it in when the group opens, which keeps it off
                    the first load entirely. #}
-                {% set big = resize_image(path="@/" ~ cov, width=1100, op="fit_width", format="webp", quality=76) %}
+                {% set big = resize_image(path="@/" ~ cov, width=1100, height=1100, op="fit", format="webp", quality=76) %}
                 <summary data-big="{{ big.url }}">{% set im = resize_image(path="@/" ~ cov, width=360, height=480, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="360" height="480" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span>{# A light on EVERY print once the group is at the front. This is
                      where the next move has to be offered: the reader is
                      looking at five photographs and nothing has told them
@@ -316,7 +316,7 @@
                      is looked AT, so it gets a copy sized for a screen
                      rather than for a strip, loaded when the project
                      opens. #}
-                  {% set full = resize_image(path="@/" ~ ph.file, width=2000, op="fit_width", format="webp", quality=76) %}
+                  {% set full = resize_image(path="@/" ~ ph.file, width=2000, height=2000, op="fit", format="webp", quality=76) %}
                   <img src="{{ shot.url }}" data-big="{{ full.url }}"
                        width="{{ shot.width }}" height="{{ shot.height }}"
                        alt="{{ ph.alt }}" loading="lazy" decoding="async">
@@ -333,7 +333,7 @@
                    own variant and `data-big` says where it is; script
                    swaps it in when the group opens, which keeps it off
                    the first load entirely. #}
-                {% set big = resize_image(path="@/" ~ cov, width=1100, op="fit_width", format="webp", quality=76) %}
+                {% set big = resize_image(path="@/" ~ cov, width=1100, height=1100, op="fit", format="webp", quality=76) %}
                 <summary data-big="{{ big.url }}">{% set im = resize_image(path="@/" ~ cov, width=480, height=360, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="480" height="360" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span>{# A light on EVERY print once the group is at the front. This is
                      where the next move has to be offered: the reader is
                      looking at five photographs and nothing has told them
@@ -346,7 +346,7 @@
                      is looked AT, so it gets a copy sized for a screen
                      rather than for a strip, loaded when the project
                      opens. #}
-                  {% set full = resize_image(path="@/" ~ ph.file, width=2000, op="fit_width", format="webp", quality=76) %}
+                  {% set full = resize_image(path="@/" ~ ph.file, width=2000, height=2000, op="fit", format="webp", quality=76) %}
                   <img src="{{ shot.url }}" data-big="{{ full.url }}"
                        width="{{ shot.width }}" height="{{ shot.height }}"
                        alt="{{ ph.alt }}" loading="lazy" decoding="async">
@@ -363,7 +363,7 @@
                    own variant and `data-big` says where it is; script
                    swaps it in when the group opens, which keeps it off
                    the first load entirely. #}
-                {% set big = resize_image(path="@/" ~ cov, width=1100, op="fit_width", format="webp", quality=76) %}
+                {% set big = resize_image(path="@/" ~ cov, width=1100, height=1100, op="fit", format="webp", quality=76) %}
                 <summary data-big="{{ big.url }}">{% set im = resize_image(path="@/" ~ cov, width=400, height=400, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="400" height="400" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span>{# A light on EVERY print once the group is at the front. This is
                      where the next move has to be offered: the reader is
                      looking at five photographs and nothing has told them
@@ -376,7 +376,7 @@
                      is looked AT, so it gets a copy sized for a screen
                      rather than for a strip, loaded when the project
                      opens. #}
-                  {% set full = resize_image(path="@/" ~ ph.file, width=2000, op="fit_width", format="webp", quality=76) %}
+                  {% set full = resize_image(path="@/" ~ ph.file, width=2000, height=2000, op="fit", format="webp", quality=76) %}
                   <img src="{{ shot.url }}" data-big="{{ full.url }}"
                        width="{{ shot.width }}" height="{{ shot.height }}"
                        alt="{{ ph.alt }}" loading="lazy" decoding="async">
@@ -393,7 +393,7 @@
                    own variant and `data-big` says where it is; script
                    swaps it in when the group opens, which keeps it off
                    the first load entirely. #}
-                {% set big = resize_image(path="@/" ~ cov, width=1100, op="fit_width", format="webp", quality=76) %}
+                {% set big = resize_image(path="@/" ~ cov, width=1100, height=1100, op="fit", format="webp", quality=76) %}
                 <summary data-big="{{ big.url }}">{% set im = resize_image(path="@/" ~ cov, width=480, height=320, op="fill", format="webp", quality=70) %}<img src="{{ im.url }}" width="480" height="320" alt="{{ cova }}" loading="lazy" decoding="async"><span class="shots-name">{{ pr.name }}</span>{# A light on EVERY print once the group is at the front. This is
                      where the next move has to be offered: the reader is
                      looking at five photographs and nothing has told them
@@ -406,7 +406,7 @@
                      is looked AT, so it gets a copy sized for a screen
                      rather than for a strip, loaded when the project
                      opens. #}
-                  {% set full = resize_image(path="@/" ~ ph.file, width=2000, op="fit_width", format="webp", quality=76) %}
+                  {% set full = resize_image(path="@/" ~ ph.file, width=2000, height=2000, op="fit", format="webp", quality=76) %}
                   <img src="{{ shot.url }}" data-big="{{ full.url }}"
                        width="{{ shot.width }}" height="{{ shot.height }}"
                        alt="{{ ph.alt }}" loading="lazy" decoding="async">
