@@ -47,9 +47,9 @@
    BOTH BUTTONS, AND TIME TO SEE THEM   1957      59
    HOW WE CAN WORK TOGETHER             2016     140
    THE TWO PHRASES, EXCHANGING PLACES   2156      74
-   THE WORK, AT THREE LEVELS            2230     698
-   THE FORM BEHIND "LET'S TALK"         2928     117
-   PRINT                                3045      40
+   THE WORK, AT THREE LEVELS            2230     713
+   THE FORM BEHIND "LET'S TALK"         2943     117
+   PRINT                                3060      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -2711,6 +2711,18 @@ html.js .shots[open] > .reel {
 .reel .slide { display: contents; }
 
 html.js .shots[open] > .reel .slide {
+  /* THE SLIDE IS WHAT SNAPS, and it snaps centred.
+   *
+   * The alignment was still on the photograph — `start`, which is
+   * right for the card's strip, where photographs are smaller than the
+   * rail and the one that was tapped should sit flush left. Here the
+   * slide is the flex item and the photograph is centred inside it, so
+   * aligning the PHOTOGRAPH's left edge to the screen dragged the
+   * slide out from under it: measured at 1400px, the carousel came to
+   * rest with scrollLeft=100, the picture hard against the left edge
+   * and 200px of ground on the right. Reported as drifting left, and
+   * that is exactly what it was. */
+  scroll-snap-align: center;
   display: grid;
   /* A DEFINITE ROW AND COLUMN. Left to `auto`, the track is sized by
      the photograph inside it — so `max-height: 100%` on that
@@ -2741,6 +2753,9 @@ html.js .shots[open] > .reel .slide {
 }
 
 html.js .shots[open] > .reel .slide img {
+  /* Not a snap target: the slide is. Two of them in the same strip and
+     the browser picks whichever it likes, which is how this drifted. */
+  scroll-snap-align: none;
   /* The element IS the photograph here — no object-fit, so `width` and
      `height` of `auto` under both maxima give the picture its own
      shape, as large as the slide allows and never larger than its own

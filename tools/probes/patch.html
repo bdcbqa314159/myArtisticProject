@@ -76,6 +76,14 @@ SIZES.forEach(([w, h]) => {
               edge: parseFloat(f.contentWindow.getComputedStyle(im).borderTopWidth),
             };
           });
+          /* WHERE IT COMES TO REST. A carousel freshly opened should
+           * be at its start with the first photograph in the middle of
+           * the screen. It was not: the snap alignment was on the
+           * photograph rather than on the slide, so the strip settled
+           * with the picture hard against the left edge. */
+          const first = reel.querySelector("img").getBoundingClientRect();
+          const offCentre = Math.round(Math.abs((first.left - rb.left)
+                                                - (rb.right - first.right)));
           const boxes = [...new Set(slides)];
           out.push(w + ":slides=" + boxes.join(",")
             + ":shapes=" + pictures.length
@@ -86,7 +94,9 @@ SIZES.forEach(([w, h]) => {
                 (p) => p.wide / (rb.width || 1))))
             /* The one honest reason a photograph does not fill its
              * slide: it has run out of its own pixels. */
-            + ":atpixels=" + (pictures.some((p) => p.atPixels) ? "y" : "n"));
+            + ":atpixels=" + (pictures.some((p) => p.atPixels) ? "y" : "n")
+            + ":offcentre=" + offCentre
+            + ":restsat=" + Math.round(reel.scrollLeft));
           if (++done === SIZES.length) say(out.join(" "));
         }, 1200);
       }, 1200);
