@@ -13,6 +13,7 @@ import { splitWords } from "./words.js";
 import { shiftFor } from "./drift.js";
 import { owedBeforeShowing } from "./cover.js";
 import { whileInView } from "./arrive.js";
+import { swapOnArrival } from "./swap.js";
 /* Both failsafes in one place, so the ordering between them is visible.
  * The cover's lives in the inline script in the head and is 6000ms;
  * this one must come after it. */
@@ -726,8 +727,12 @@ function keepOneAddress() {
  * wrap at different widths. Reading it costs one layout, once, before
  * anything has moved.
  *
- * Once, and never again — `unobserve` on the first crossing, and the
- * transition is removed with the class that carried it.
+ * ONCE PER ARRIVAL, and that is not the same as once per page — which
+ * is how "une seule fois … sans boucle" was read, and how it was built.
+ * It still does not loop: nothing moves while the reader is in the
+ * section. It plays when the section arrives, every time it arrives,
+ * like the reveals. `swap.ts` sequences it; `tools/swap-check.mjs`
+ * holds the interrupted case, which is the one that breaks quietly.
  */
 const SWAP_DONE_MS = 1400; // the 820ms journey plus its 480ms delay, rounded up
 function exchangePhrases() {
@@ -775,44 +780,48 @@ function exchangePhrases() {
      * 390px where the letters really had 36px, and the arc came out a
      * third shallower than it needed to be. A Range over the contents
      * reports where the ink actually is. */
-    const ink = document.createRange();
-    ink.selectNodeContents(first);
-    const inked = ink.getBoundingClientRect();
-    const edge = inked.width > 0 ? inked.left : first.getBoundingClientRect().left;
-    const room = edge - 4;
-    const bow = Math.max(0, Math.min(apart * 0.72, room));
-    first.style.setProperty("--from-y", `${apart}px`);
-    first.style.setProperty("--bow", `${bow}px`);
-    second.style.setProperty("--from-y", `${-apart}px`);
-    second.style.setProperty("--bow", `${bow * 0.42}px`);
-    /* Where they wait until the section is reached. The animation's own
-     * first frame is this same position, so nothing jumps when it
-     * starts. */
-    first.style.transform = `translateY(${apart}px)`;
-    second.style.transform = `translateY(${-apart}px)`;
-    const seen = new IntersectionObserver((entries) => {
-        for (const entry of entries) {
-            if (!entry.isIntersecting)
-                continue;
-            seen.unobserve(entry.target);
-            /* The animation carries the whole journey now, so there is no
-             * second write to transition FROM and no layout to force:
-             * adding the class starts it, and its own first frame is where
-             * the phrases already are. */
-            heading.classList.add("swapping");
-            // Take the animation away once it has been spent, so nothing
-            // that moves these phrases later — a resize, a late font —
-            // animates them again. The brief asked for once. The waiting
-            // transform goes in the same breath, so there is no frame
-            // between losing the animation and losing the offset.
-            window.setTimeout(() => {
-                first.style.transform = "";
-                second.style.transform = "";
-                heading.classList.remove("swapping");
-            }, SWAP_DONE_MS);
-        }
-    }, { threshold: 0.6 });
-    seen.observe(heading);
+    /* Where they wait until the section is reached, and where they are
+     * put back once it has gone. The animation's own first frame is this
+     * same position, so nothing jumps when it starts.
+     *
+     * MEASURED EVERY TIME, not once. The distance between the phrases is
+     * what the arc is drawn from, and it changes with the width of the
+     * page and with a font arriving late — so a swap parked at the old
+     * distance would travel the wrong way. Transforms do not affect
+     * layout, so reading `offsetTop` while they are parked is safe. */
+    const park = () => {
+        const gap = second.offsetTop - first.offsetTop;
+        if (gap <= 0)
+            return;
+        const ink = document.createRange();
+        ink.selectNodeContents(first);
+        const inked = ink.getBoundingClientRect();
+        const edge = inked.width > 0 ? inked.left : first.getBoundingClientRect().left;
+        const reach = Math.max(0, Math.min(gap * 0.72, edge - 4));
+        first.style.setProperty("--from-y", `${gap}px`);
+        first.style.setProperty("--bow", `${reach}px`);
+        second.style.setProperty("--from-y", `${-gap}px`);
+        second.style.setProperty("--bow", `${reach * 0.42}px`);
+        first.style.transform = `translateY(${gap}px)`;
+        second.style.transform = `translateY(${-gap}px)`;
+    };
+    /* The sequence is in swap.ts, where the one thing that can silently
+     * break — leaving mid-flight — can be checked. `whileInView` is the
+     * same pair of observers the reveals use: arriving on 60% of the
+     * heading, resetting only once it is entirely out of sight. */
+    const staged = swapOnArrival({
+        park,
+        play: () => heading.classList.add("swapping"),
+        stop: () => heading.classList.remove("swapping"),
+        rest: () => {
+            first.style.transform = "";
+            second.style.transform = "";
+        },
+        after: (ms, run) => window.setTimeout(run, ms),
+        cancel: (timer) => window.clearTimeout(timer),
+    }, SWAP_DONE_MS);
+    park();
+    whileInView([heading], watcher, (_el, on) => staged(on), "0px", 0.6);
 }
 /* ---- the carousel, closed ---------------------------------------------
  * The carousel opens full screen and `<details>` does all of it: the
