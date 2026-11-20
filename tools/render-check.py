@@ -922,6 +922,19 @@ def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
                     f"{f['of']}% of the screen and is not at its own pixels "
                     f"either — so it is neither as large as it could be nor "
                     f"as large as it is")
+            if int(f["offcentre"]) > 2:
+                bad.append(
+                    f"patch: at {width}px the first photograph sits "
+                    f"{f['offcentre']}px off centre. A carousel opens on one "
+                    f"picture in the middle of the screen — and when the snap "
+                    f"alignment was on the photograph instead of the slide it "
+                    f"settled hard against the left edge with the ground all "
+                    f"on one side")
+            if int(f["restsat"]) != 0:
+                bad.append(
+                    f"patch: at {width}px a freshly opened carousel is "
+                    f"already scrolled to {f['restsat']}px rather than resting "
+                    f"at its start")
             if f["framed"] != "y":
                 bad.append(
                     f"patch: at {width}px an open photograph has no hairline "
