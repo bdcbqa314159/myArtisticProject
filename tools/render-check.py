@@ -820,17 +820,24 @@ def check_tint(chrome: str, out: Path, url: str) -> "list[str]":
 
 def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
     (out / "_patch.html").write_text(probe("patch"), encoding="utf-8")
-    said = dom(chrome, url + "/_patch.html", 1450, 950, budget=25000)
+    said = dom(chrome, url + "/_patch.html", 2450, 2050, budget=40000)
     found = re.search(r"PATCH ([^<]*)", said)
     if not found:
         return ["patch: the probe returned no verdict"]
     bad = []
+    # Two readings per width now — the open patchwork, and the main
+    # picture one level further in — each written as `WIDTH:key=value…`.
+    # Merged by width so the assertions below can be read as one set.
+    seen: "dict[str, dict[str, str]]" = {}
     for word in found.group(1).split():
         width, _, rest = word.partition(":")
         if "=" not in rest:
             bad.append(f"patch: at {width}px the probe could not run — {rest}")
             continue
-        f = dict(kv.split("=") for kv in rest.split(":"))
+        seen.setdefault(width, {}).update(
+            dict(kv.split("=") for kv in rest.split(":")))
+
+    for width, f in seen.items():
 
         # 80% of each side. A 3:2 box in a 390x720 screen manages 32% of
         # the height — measured, before it was told to take the screen's
@@ -855,6 +862,39 @@ def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
                 f"patch: at {width}px the open patchwork still carries "
                 f"data-big, so the swap has not happened — the small copy is "
                 f"what is on screen")
+        # ---- and the main picture, one level in --------------------
+        if "of" in f:
+            # As large as the screen allows, UNLESS that would mean
+            # enlarging it — which is the whole bargain: "the maximum,
+            # keeping the quality". On a screen wider than the copy the
+            # photograph stops at its own pixels and is right to.
+            if int(f["of"]) < 97 and f["atpixels"] != "y":
+                bad.append(
+                    f"patch: at {width}px the open photograph takes "
+                    f"{f['of']}% of the room between the bands ({f['pic']} in "
+                    f"{f['screen']}) and is not at its own pixels either. It "
+                    f"was capped at 80vh, which left a fifth of the screen "
+                    f"empty above and below a picture someone opened to look "
+                    f"at")
+            for side in ("above", "below"):
+                if int(f[side]) < 42:
+                    bad.append(
+                        f"patch: at {width}px there is {f[side]}px of ground "
+                        f"{side} the open photograph. That ground is the way "
+                        f"back at this level — 44px of it, and a ring cannot "
+                        f"be used here because it would swallow the swipe to "
+                        f"the next photograph")
+            if f["enlarged"] != "n":
+                bad.append(
+                    f"patch: at {width}px the open photograph is enlarged "
+                    f"past its own pixels ({f['pic']} from {f['pixels']}px). "
+                    f"As large as fits, never larger")
+            if int(f["pixels"]) < 1600:
+                bad.append(
+                    f"patch: at {width}px the open photograph is "
+                    f"{f['pixels']}px of actual pixels — the bigger copy has "
+                    f"not been swapped in at this level")
+
         if f["fills"] != "y":
             bad.append(f"patch: at {width}px the photograph behind the prints "
                        f"does not fill the patchwork ({f['img']} inside it). "
