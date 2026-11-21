@@ -935,6 +935,14 @@ def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
                     f"patch: at {width}px a freshly opened carousel is "
                     f"already scrolled to {f['restsat']}px rather than resting "
                     f"at its start")
+            if "," in f["heights"]:
+                bad.append(
+                    f"patch: at {width}px a project's photographs are "
+                    f"{f['heights']}px tall — different sizes in the same "
+                    f"carousel. They share a horizon: the tallest they can "
+                    f"all be while the widest of them still fits. On a wide "
+                    f"screen the slide's own height does that by itself, "
+                    f"which is why this only ever showed on a phone")
             if f["mounted"] != "y":
                 bad.append(
                     f"patch: at {width}px an open photograph has no white "

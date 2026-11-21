@@ -47,9 +47,9 @@
    BOTH BUTTONS, AND TIME TO SEE THEM   1957      59
    HOW WE CAN WORK TOGETHER             2016     140
    THE TWO PHRASES, EXCHANGING PLACES   2156      74
-   THE WORK, AT THREE LEVELS            2230     750
-   THE FORM BEHIND "LET'S TALK"         2980     117
-   PRINT                                3097      40
+   THE WORK, AT THREE LEVELS            2230     755
+   THE FORM BEHIND "LET'S TALK"         2985     117
+   PRINT                                3102      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -2797,8 +2797,13 @@ html.js .shots[open] > .reel .slide img {
      `height` of `auto` under both maxima give the picture its own
      shape, as large as the slide allows and never larger than its own
      pixels. */
+  /* ONE HEIGHT FOR ALL OF THEM, when the page has measured the
+     project — see `levelTheCarousels`. Without script, or before the
+     measurement, `--horizon` is unset and this is what it was: each
+     photograph as large as the slide allows, which on a phone means an
+     upright one twice the height of a landscape one. */
   width: auto;
-  height: auto;
+  height: var(--horizon, auto);
   max-width: 100%;
   max-height: 100%;
   object-fit: fill;

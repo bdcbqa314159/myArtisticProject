@@ -69,6 +69,7 @@ SIZES.forEach(([w, h]) => {
             const b = im.getBoundingClientRect();
             return {
               wide: Math.round(b.width),
+              tall: Math.round(b.height),
               top: Math.round(b.top - rb.top),
               bottom: Math.round(rb.bottom - b.bottom),
               enlarged: b.width > im.naturalWidth * 1.02,
@@ -96,6 +97,10 @@ SIZES.forEach(([w, h]) => {
             + ":enlarged=" + (pictures.some((p) => p.enlarged) ? "y" : "n")
             + ":framed=" + (pictures.every((p) => p.edge >= 1) ? "y" : "n")
             + ":mounted=" + (pictures.every((p) => p.mount >= 3) ? "y" : "n")
+            /* THE SAME SIZE AS EACH OTHER. One horizon: every
+             * photograph in a project shares a height, whichever way
+             * round its own shape is. */
+            + ":heights=" + [...new Set(pictures.map((p) => p.tall))].join(",")
             + ":of=" + Math.round(100 * Math.max(...pictures.map(
                 (p) => p.wide / (rb.width || 1))))
             /* The one honest reason a photograph does not fill its
