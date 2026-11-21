@@ -47,9 +47,9 @@
    BOTH BUTTONS, AND TIME TO SEE THEM   1957      59
    HOW WE CAN WORK TOGETHER             2016     140
    THE TWO PHRASES, EXCHANGING PLACES   2156      74
-   THE WORK, AT THREE LEVELS            2230     728
-   THE FORM BEHIND "LET'S TALK"         2958     117
-   PRINT                                3075      40
+   THE WORK, AT THREE LEVELS            2230     750
+   THE FORM BEHIND "LET'S TALK"         2980     117
+   PRINT                                3097      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -2451,7 +2451,15 @@ html.js [data-copy] { display: inline-flex; }
 /* A hand near them settles them a little straighter. Not level — level
    would be a grid again, and the whole point is that they are not. */
 @media (hover: hover) {
-  .group summary:hover .fridge > :not(.slot-1) {
+  /* NOT THE ONE THAT IS OPEN. This settles the prints under a hovering
+   hand, and it is more specific than `html.js .shots[open] { transform:
+   none }` — so a print opened while the pointer was still on it kept a
+   rotation, and its carousel is `position: fixed`, which then resolved
+   against the tilted print instead of the screen. Caught by
+   check_fixed: `div.reel-inside-details.shots`, slot-5, open, an 8
+   degree matrix on it. A mouse reader meets this every time, because
+   the pointer is exactly where the click was. */
+.group summary:hover .fridge > :not(.slot-1):not([open]) {
     transform: rotate(calc(var(--tilt, 0deg) * 0.45));
   }
 }
@@ -2637,6 +2645,20 @@ html.js .shots[open] > summary { display: none; }
 html.js .shots[open] {
   position: static;
   transform: none;
+  /* AT ONCE, NOT OVER 420ms. The prints carry a transition on
+     `transform` so they settle under a hovering hand — and the print
+     being OPENED was animating its rotation away while its carousel,
+     which is `position: fixed`, was already on screen. A fixed box
+     inside a transformed ancestor is positioned by that ancestor and
+     rotated with it, so for those 420ms the carousel swung into place
+     at eight degrees instead of covering the screen squarely.
+     
+     Found by check_fixed: `div.reel-inside-details.shots`, slot-5,
+     open, `matrix(0.990268, 0.139173, …)`. It took a change elsewhere
+     to shift the measurement into the window — the fault was there
+     before and only for the first fifth of a second, which is exactly
+     the kind of thing a person sees and cannot name. */
+  transition: none;
 }
 
 /* ---- level three: one project's photographs ------------------------------ */

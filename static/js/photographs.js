@@ -5,9 +5,17 @@
  * the bigger copies at all.
  */
 import { warming, worthWarmingBigCopies } from "./preload.js";
-export const PHOTOGRAPHS = warming((url) => {
+import { within } from "./nearby.js";
+export const PHOTOGRAPHS = warming((url, wanted) => {
     const img = new Image();
     img.decoding = "async";
+    /* A HINT, NOT A QUEUE OF OUR OWN. The browser schedules its own
+     * network: telling it that a warming fetch is low and a wanted one
+     * is high keeps 150 background photographs from being in front of
+     * the one the reader is waiting for. Unknown to Safari, which
+     * ignores it. */
+    img.fetchPriority =
+        wanted ? "high" : "low";
     img.src = url;
     // `decode()` rejects on a broken image, which is what the queue
     // wants to hear; `load` alone would call a half-decodable file
@@ -68,4 +76,45 @@ export function warmTheRest() {
  * failed fetch leaves the small one in place and can be tried again on
  * the next open.
  */
+/* ---- and the queue follows the reader --------------------------------
+ * Warming in the order the page is written is right for someone
+ * reading from the top and wrong for everyone else: open the menu,
+ * jump to Concepts, and the queue is still working through the
+ * references above it — so the photographs arrive while they are being
+ * looked at, which is the slow motion this is for.
+ *
+ * So wherever the reader stops, what is within reach is promoted,
+ * nearest first. `nearby.ts` does the arithmetic; this measures.
+ *
+ * On scroll, but not on every scroll event: the positions only matter
+ * once the reader has stopped somewhere, and a measurement per frame
+ * would be a layout per frame. A quarter of a second after the last
+ * one is soon enough to be ahead of a thumb.
+ */
+const SETTLED_MS = 250;
+export function warmWhatIsNear() {
+    const lazy = [...document.querySelectorAll("img[loading=lazy]")];
+    if (!lazy.length)
+        return;
+    let waiting = 0;
+    const look = () => {
+        const placed = lazy.map((img) => {
+            const box = img.getBoundingClientRect();
+            return {
+                url: img.currentSrc || img.src,
+                top: box.top + window.scrollY,
+                height: box.height,
+            };
+        });
+        /* Three screens rather than two: the sections on this page are
+         * long, and two screens of reach can hold nothing at all between
+         * one reference and the next. */
+        PHOTOGRAPHS.urgent(within(placed, window.scrollY, window.innerHeight, 3));
+    };
+    look();
+    addEventListener("scroll", () => {
+        window.clearTimeout(waiting);
+        waiting = window.setTimeout(look, SETTLED_MS);
+    }, { passive: true });
+}
 //# sourceMappingURL=photographs.js.map
