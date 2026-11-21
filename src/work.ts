@@ -6,6 +6,7 @@
  */
 
 import { PHOTOGRAPHS } from "./photographs.js";
+import { horizonFor } from "./horizon.js";
 
 export function sharpenOnOpen(): void {
   const upgrade = (root: ParentNode, which: string): void => {
@@ -238,4 +239,65 @@ export function placeTheLights(): void {
     light.style.setProperty("--look-x", `${x}%`);
     light.style.setProperty("--look-y", `${y}%`);
   }
+}
+
+/* ---- one horizon for a project's photographs -------------------------
+ * On a wide screen the slide is short and wide, so its height binds
+ * every photograph and they already share one. On a phone the slide is
+ * tall and narrow, the WIDTH binds instead, and an upright photograph
+ * came out twice the height of a landscape one — the same rule, and on
+ * that screen it reads as an accident.
+ *
+ * So the height is chosen: the tallest they can all be while the widest
+ * of them still fits. `horizon.ts` does the arithmetic.
+ *
+ * MEASURED FROM THE MARKUP, not from the pixels. Every photograph
+ * carries `width` and `height` attributes, so the shapes are known
+ * before anything has loaded and the horizon does not change under the
+ * reader when a file arrives. `naturalWidth` is the fallback for
+ * anything that lost its attributes.
+ */
+export function levelTheCarousels(): void {
+  const settle = (shots: HTMLDetailsElement): void => {
+    const reel = shots.querySelector<HTMLElement>(".reel");
+    if (!reel) return;
+    const photographs = [...reel.querySelectorAll<HTMLImageElement>("img")];
+    if (!photographs.length) return;
+
+    const aspects = photographs.map((img) => {
+      const wide = Number(img.getAttribute("width")) || img.naturalWidth;
+      const tall = Number(img.getAttribute("height")) || img.naturalHeight;
+      return tall > 0 ? wide / tall : 0;
+    });
+
+    /* The shortest photograph's own pixels: the horizon may not go
+     * above it, or that one is stretched to meet the others. Read from
+     * the file where it has arrived and from the markup where it has
+     * not — the two agree in shape, and the attributes are there from
+     * the first paint. */
+    const pixels = photographs.map((img) =>
+      img.naturalHeight || Number(img.getAttribute("height")) || 0)
+      .filter((h) => h > 0);
+
+    const slide = reel.querySelector<HTMLElement>(".slide");
+    const box = (slide ?? reel).getBoundingClientRect();
+    const horizon = horizonFor(aspects, box.width, box.height,
+                               pixels.length ? Math.min(...pixels) : Infinity);
+    reel.style.setProperty("--horizon", `${Math.round(horizon)}px`);
+  };
+
+  for (const shots of document.querySelectorAll<HTMLDetailsElement>(".shots")) {
+    shots.addEventListener("toggle", () => {
+      if (shots.open) settle(shots);
+    });
+  }
+
+  /* And again when the screen changes shape, because the horizon is a
+   * measurement of it: a phone turned on its side is a different slide
+   * and a different answer. */
+  addEventListener("resize", () => {
+    for (const shots of document.querySelectorAll<HTMLDetailsElement>(".shots[open]")) {
+      settle(shots);
+    }
+  }, { passive: true });
 }

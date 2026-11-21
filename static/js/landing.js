@@ -26,7 +26,7 @@ import { owedBeforeShowing } from "./cover.js";
 import { reduced } from "./reduced.js";
 import { startMotion, prepareMotion, exchangePhrases, photographsDrift, showTheRelease, softWhileMoving } from "./motion.js";
 import { syncBar, WIDE, markCurrentSection, closeMenuOnNavigate, keepOneAddress, tintOnTheWayIn } from "./nav.js";
-import { closeTheCarousel, sharpenOnOpen, placeTheLights } from "./work.js";
+import { closeTheCarousel, sharpenOnOpen, placeTheLights, levelTheCarousels } from "./work.js";
 import { warmTheRest, warmWhatIsNear } from "./photographs.js";
 /* ---- blocks arrive on scroll -----------------------------------------
  * In two halves, and the split matters.
@@ -150,6 +150,7 @@ start("keeping one address", keepOneAddress);
 start("the photographs drifting", photographsDrift);
 start("the press and release", showTheRelease);
 start("placing the lights", placeTheLights);
+start("levelling the carousels", levelTheCarousels);
 /* LAST, and the ONLY place the page is shown.
  *
  * There must be exactly one of these. There were briefly two — an older
