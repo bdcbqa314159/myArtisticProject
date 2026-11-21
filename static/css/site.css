@@ -47,9 +47,9 @@
    BOTH BUTTONS, AND TIME TO SEE THEM   1957      59
    HOW WE CAN WORK TOGETHER             2016     140
    THE TWO PHRASES, EXCHANGING PLACES   2156      74
-   THE WORK, AT THREE LEVELS            2230     755
-   THE FORM BEHIND "LET'S TALK"         2985     117
-   PRINT                                3102      40
+   THE WORK, AT THREE LEVELS            2230     711
+   THE FORM BEHIND "LET'S TALK"         2941     117
+   PRINT                                3058      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -2937,50 +2937,6 @@ html.js:has(.group[open]) { overflow: hidden; }
   .shots summary img { transition: none; }
 }
 
-/* AS LARGE AS FITS, and no larger.
-   A fixed height here did what it does in the inline reel: a landscape
-   photograph bound by the width sat in a tall box with panel above and
-   below it. Inline that is a steady horizon worth paying for, because
-   neighbours are visible side by side. Full screen there is one
-   photograph and a lot of ground, so nothing is being lined up against
-   anything — let each take the size its own shape asks for. */
-html.js .project[open] > .reel img {
-  height: auto;
-  width: auto;
-  max-height: 80vh;
-  max-width: calc(100vw - var(--gutter) * 2);
-  background: none;
-}
-
-/* The way out, above the sheet it opened. Clicking it closes the
-   <details>, which is what a summary does — no handler, and no second
-   idea about what "close" means. */
-html.js .project[open] > summary {
-  position: fixed;
-  z-index: 60;
-  inset: 0 0 auto auto;
-  padding: calc(var(--gutter) / 1.6);
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-}
-
-html.js .project[open] > summary::after {
-  content: "Close";
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 2px;
-}
-
-@media (hover: hover) {
-  html.js .project[open] > summary:hover::after { color: var(--ink); }
-}
-
-/* The page does not move underneath it. */
-html.js:has(.project[open]) { overflow: hidden; }
 
 /* ============================================================================
    THE FORM BEHIND "LET'S TALK"
