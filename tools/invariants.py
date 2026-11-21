@@ -33,6 +33,23 @@ def read(rel: str) -> str:
 # (what it is, file, pattern, how many there must be, why)
 INVARIANTS = [
     (
+        "every probe's verdict is read from its element, never from the dump",
+        "tools/render-check.py",
+        r"(?m)^(?!\s*said = only_the_verdict\(said\)$)[^\n]*\n"
+        r'\s*found = re\.search\(r"[A-Z]',
+        0,
+        "Each probe ends with something like `textContent = \"PATCH \" + "
+        "s`, and --dump-dom returns the <script> too — so the sentinel "
+        "every check searches for is in the probe's OWN SOURCE. Seventeen "
+        "checks searched the whole dump, which meant a probe that wrote no "
+        "verdict matched its own source instead, and `if not found` — the "
+        "guard all seventeen rely on — could not fire. Measured: with the "
+        "carousel renamed out of the page, the patchwork check reported "
+        "four widths called `\"`, `+`, `s;` and `}`, and the horizon "
+        "check, whose entire subject is that carousel, reported nothing "
+        "wrong at all. Read the element, and only the element.",
+    ),
+    (
         "nothing starts the page without a net",
         "src/landing.ts",
         r"(?m)^[a-z][A-Za-z0-9_]*\(\);$",
