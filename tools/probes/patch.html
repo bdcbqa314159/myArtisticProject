@@ -74,6 +74,11 @@ SIZES.forEach(([w, h]) => {
               enlarged: b.width > im.naturalWidth * 1.02,
               atPixels: b.width >= im.naturalWidth * 0.98,
               edge: parseFloat(f.contentWindow.getComputedStyle(im).borderTopWidth),
+              /* The white mount. A carousel opened from the background
+               * had none, because the prints were getting theirs by
+               * sitting inside a print's slot. */
+              mount: f.contentWindow.getComputedStyle(im).outlineStyle === "none"
+                ? 0 : parseFloat(f.contentWindow.getComputedStyle(im).outlineWidth),
             };
           });
           /* WHERE IT COMES TO REST. A carousel freshly opened should
@@ -90,6 +95,7 @@ SIZES.forEach(([w, h]) => {
             + ":band=" + Math.min(...pictures.map((p) => Math.min(p.top, p.bottom)))
             + ":enlarged=" + (pictures.some((p) => p.enlarged) ? "y" : "n")
             + ":framed=" + (pictures.every((p) => p.edge >= 1) ? "y" : "n")
+            + ":mounted=" + (pictures.every((p) => p.mount >= 3) ? "y" : "n")
             + ":of=" + Math.round(100 * Math.max(...pictures.map(
                 (p) => p.wide / (rb.width || 1))))
             /* The one honest reason a photograph does not fill its

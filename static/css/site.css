@@ -47,9 +47,9 @@
    BOTH BUTTONS, AND TIME TO SEE THEM   1957      59
    HOW WE CAN WORK TOGETHER             2016     140
    THE TWO PHRASES, EXCHANGING PLACES   2156      74
-   THE WORK, AT THREE LEVELS            2230     713
-   THE FORM BEHIND "LET'S TALK"         2943     117
-   PRINT                                3060      40
+   THE WORK, AT THREE LEVELS            2230     728
+   THE FORM BEHIND "LET'S TALK"         2958     117
+   PRINT                                3075      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -2756,6 +2756,21 @@ html.js .shots[open] > .reel .slide img {
   /* Not a snap target: the slide is. Two of them in the same strip and
      the browser picks whichever it likes, which is how this drifted. */
   scroll-snap-align: none;
+  /* THE WHITE MOUNT, ON EVERY OPEN PHOTOGRAPH.
+   *
+   * The prints carry `outline: 3px solid var(--bg)` so they read as
+   * paper lying on the photograph behind them — and that outline was
+   * reaching their carousels by accident, because a carousel opened
+   * from a print is INSIDE that print's slot. The one underneath is
+   * not a print and has no white edge by design, so its carousel had
+   * none either: measured, a print's photograph with a hairline and a
+   * 3px cream mount, the background's with the hairline alone.
+   *
+   * Reported as "the background one has a beautiful carrousel but the
+   * photos does not have frames". So the mount is stated here, where
+   * it applies to every photograph a carousel shows, whichever slot it
+   * was opened from. */
+  outline: 3px solid var(--bg);
   /* The element IS the photograph here — no object-fit, so `width` and
      `height` of `auto` under both maxima give the picture its own
      shape, as large as the slide allows and never larger than its own
