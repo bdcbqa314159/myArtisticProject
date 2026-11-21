@@ -271,7 +271,18 @@ export function levelTheCarousels() {
          * the file where it has arrived and from the markup where it has
          * not — the two agree in shape, and the attributes are there from
          * the first paint. */
-        const pixels = photographs.map((img) => img.naturalHeight || Number(img.getAttribute("height")) || 0)
+        const pixels = photographs.map((img) => 
+        /* THE BIG COPY'S HEIGHT, which is what will be on screen once it
+         * has arrived. `naturalHeight` here is whatever has loaded so
+         * far — at the moment a project opens that is the small copy, and
+         * using it capped the horizon at the small copy's height for
+         * good: measured, 398x266 photographs in an 801px slide on a
+         * 1400px screen. The template says the big copy's height because
+         * the build is the only place that knows it without waiting. */
+        Number(img.dataset["bigH"])
+            || img.naturalHeight
+            || Number(img.getAttribute("height"))
+            || 0)
             .filter((h) => h > 0);
         const slide = reel.querySelector(".slide");
         const box = (slide ?? reel).getBoundingClientRect();

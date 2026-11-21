@@ -40,8 +40,8 @@ ROOT = Path(__file__).resolve().parent.parent
 # the checks now — one function per thing that must be true of the page
 # someone actually receives, and `main` at the end running them.
 from browser import dom, find_chrome                        # noqa: E402
-from variants import (build_live_config, build_with_a_waiting_project,  # noqa: E402
-                      build_with_projects)
+from variants import (build_live_config, build_with_a_small_strip,  # noqa: E402
+                      build_with_a_waiting_project, build_with_projects)
 PORT = 8731
 
 
@@ -847,6 +847,45 @@ def check_tint(chrome: str, out: Path, url: str) -> "list[str]":
 # The open patchwork takes the screen, and its photograph fills it.
 
 
+def check_horizon_ceiling(chrome: str, out: Path, url: str) -> "list[str]":
+    """The horizon is measured against the copy that will be ON SCREEN.
+
+    A project's photographs share a height, and that height may not
+    exceed the pixels the photograph has. The page reads those pixels
+    from `data-big-h` — the copy swapped in when the project opens —
+    because at the moment it measures, only the small copy has loaded.
+
+    Read from the loaded image instead, the ceiling is the SMALL copy's
+    height and the carousel comes out a fraction of its size. It cannot
+    be seen with the stand-ins, whose two copies are identical, so this
+    runs against a build where they differ.
+    """
+    (out / "_patch.html").write_text(probe("patch"), encoding="utf-8")
+    said = dom(chrome, url + "/_patch.html", 1450, 950, budget=30000)
+    found = re.search(r"PATCH ([^<]*)", said)
+    if not found:
+        return ["horizon: the probe returned no verdict"]
+    seen: "dict[str, dict[str, str]]" = {}
+    for word in found.group(1).split():
+        width, _, rest = word.partition(":")
+        if "=" in rest:
+            seen.setdefault(width, {}).update(
+                dict(kv.split("=") for kv in rest.split(":")))
+    bad = []
+    for width, f in seen.items():
+        if "heights" not in f or "owed" not in f:
+            continue
+        tall = int(f["heights"].split(",")[0])
+        if abs(tall - int(f["owed"])) > 2:
+            bad.append(
+                f"horizon: at {width}px, with a strip copy smaller than the "
+                f"one that opens, the photographs are {tall}px tall where "
+                f"the arithmetic says {f['owed']}px. The ceiling is being "
+                f"read from whatever has loaded rather than from the copy "
+                f"that will be on screen")
+    return bad
+
+
 def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
     (out / "_patch.html").write_text(probe("patch"), encoding="utf-8")
     said = dom(chrome, url + "/_patch.html", 2450, 2050, budget=40000)
@@ -935,6 +974,15 @@ def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
                     f"patch: at {width}px a freshly opened carousel is "
                     f"already scrolled to {f['restsat']}px rather than resting "
                     f"at its start")
+            if abs(int(f["heights"].split(",")[0]) - int(f["owed"])) > 2:
+                bad.append(
+                    f"patch: at {width}px the photographs are "
+                    f"{f['heights']}px tall where the arithmetic says "
+                    f"{f['owed']}px — as tall as they can all be while the "
+                    f"widest still fits, and never past the big copy's own "
+                    f"pixels. Reading the ceiling off whatever has loaded "
+                    f"gives the SMALL copy's height and a carousel a third "
+                    f"of the size it should be")
             if "," in f["heights"]:
                 bad.append(
                     f"patch: at {width}px a project's photographs are "
@@ -1542,6 +1590,20 @@ def main() -> int:
                 problems += check_escape(chrome, out, url)
                 problems += check_edges(chrome, out, url)
                 problems += check_cover(chrome, out, url)
+
+            # And with a strip copy smaller than the one that opens,
+            # which is what real photography looks like and the
+            # stand-ins do not.
+            small_root = build_with_a_small_strip(out)
+            made_small = subprocess.run(
+                ["zola", "--root", str(small_root), "build",
+                 "--base-url", url, "-o", str(out), "-f"],
+                capture_output=True, text=True)
+            if made_small.returncode != 0:
+                problems.append("the site does not build with a smaller strip "
+                                "copy:\n" + made_small.stderr[-400:])
+            else:
+                problems += check_horizon_ceiling(chrome, out, url)
 
             live_cfg = build_live_config(out)
             built = subprocess.run(
