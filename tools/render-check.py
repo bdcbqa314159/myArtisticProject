@@ -935,6 +935,13 @@ def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
                     f"patch: at {width}px a freshly opened carousel is "
                     f"already scrolled to {f['restsat']}px rather than resting "
                     f"at its start")
+            if f["mounted"] != "y":
+                bad.append(
+                    f"patch: at {width}px an open photograph has no white "
+                    f"mount. A carousel opened from one of the prints had "
+                    f"one and a carousel opened from the photograph behind "
+                    f"them did not — the prints were passing theirs on by "
+                    f"accident, to the carousels inside their own slots")
             if f["framed"] != "y":
                 bad.append(
                     f"patch: at {width}px an open photograph has no hairline "
