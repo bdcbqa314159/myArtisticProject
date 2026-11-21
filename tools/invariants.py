@@ -216,6 +216,19 @@ INVARIANTS = [
         "notices until it matters.",
     ),
     (
+        "the ground is eager and the prints are not",
+        "templates/index.html",
+        r'\{% if k > 1 %\} loading="lazy"\{% endif %\}',
+        1,
+        "The photograph underneath a patchwork is what a reader sees when "
+        "the card arrives, so it is fetched at once; the four prints on "
+        "top of it can follow. The five blocks that said so were "
+        "collapsed into one, and with them this split nearly went — all "
+        "five eager, 24 more images in front of the cover, and the only "
+        "thing that noticed was a byte-for-byte comparison of the built "
+        "page.",
+    ),
+    (
         "the big copies never invent a pixel",
         "templates/index.html",
         r'op="fit_width", format="webp", quality=76',
