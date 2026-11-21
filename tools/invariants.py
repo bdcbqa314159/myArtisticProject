@@ -90,7 +90,7 @@ INVARIANTS = [
     ),
     (
         "the exchange is taken back after it happens",
-        "src/landing.ts",
+        "src/motion.ts",
         r'classList\.remove\("swapping"\)',
         1,
         "The brief asks for the two phrases to exchange places ONCE, "
