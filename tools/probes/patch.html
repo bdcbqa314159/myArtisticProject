@@ -1,5 +1,18 @@
 <meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
 const out = []; let done = 0;
+/* THE WORK HAPPENS IN NESTED TIMERS, and a `try` around the one that
+ * SCHEDULES them catches nothing: the callback runs later, in its own
+ * task, and a throw inside it escapes to the window. That is not
+ * theoretical — renaming the carousel out of the page made
+ * `reel.querySelector` throw here, `say()` was never reached, and the
+ * verdict element still read `no verdict` while the checks reported
+ * either garbage or success. So every nested step runs inside this. */
+const guard = (w, fn) => () => {
+  try { fn(); } catch (err) {
+    out.push(w + ":threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-"));
+    if (++done === SIZES.length) say(out.join(" "));
+  }
+};
 /* 2400x2000 is here for the photograph's own pixels: a 2000px copy
  * on a wider screen would be enlarged, and nothing below this size
  * can show that. */
@@ -20,7 +33,7 @@ SIZES.forEach(([w, h]) => {
       });
       const g = d.querySelector("details.group");
       g.open = true;
-      setTimeout(() => {
+      setTimeout(guard(w, () => {
         const fr = g.querySelector(".fridge.front").getBoundingClientRect();
         const support = g.querySelector(".fridge.front > .slot-1 img");
         const im = support.getBoundingClientRect();
@@ -52,7 +65,7 @@ SIZES.forEach(([w, h]) => {
          * the only way to tell whether anything is being enlarged. */
         const shots = g.querySelector("details.shots");
         shots.open = true;
-        setTimeout(() => {
+        setTimeout(guard(w, () => {
           const reel = shots.querySelector(".reel");
           const rb = reel.getBoundingClientRect();
 
@@ -130,8 +143,8 @@ SIZES.forEach(([w, h]) => {
             + ":offcentre=" + offCentre
             + ":restsat=" + Math.round(reel.scrollLeft));
           if (++done === SIZES.length) say(out.join(" "));
-        }, 1200);
-      }, 1200);
+        }), 1200);
+      }), 1200);
     } catch (err) {
       out.push(w + ":threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-"));
       if (++done === SIZES.length) say(out.join(" "));

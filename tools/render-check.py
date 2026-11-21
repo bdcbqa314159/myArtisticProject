@@ -102,6 +102,31 @@ def probe(name: str) -> str:
     return page.read_text(encoding="utf-8")
 
 
+def only_the_verdict(said: str) -> str:
+    """Just what the probe WROTE, out of the page the browser handed back.
+
+    THE SENTINEL IS IN THE PROBE'S OWN SOURCE. Every probe ends with
+    something like `textContent = "PATCH " + s`, and `--dump-dom`
+    returns the `<script>` along with everything else — so a probe that
+    produced NO verdict leaves `no verdict` in its element and the
+    literal `"PATCH " + s; }` further down the dump. Searching the whole
+    dump for `PATCH (...)` sailed past the element and matched the
+    SOURCE, which means `if not found` — the guard every one of these
+    checks relies on — could not fire.
+
+    Measured, with the carousel renamed out of the page: the patchwork
+    check reported four widths called `"`, `+`, `s;` and `}`, and the
+    horizon check, whose whole purpose is that carousel, reported
+    nothing wrong at all.
+
+    So the element is read, and only the element. An empty string when
+    it is not there leaves every `if not found` below exactly as it was
+    written, and makes it true.
+    """
+    found = re.findall(r'<p id="?(?:o|out|verdict)"?>([^<]*)</p>', said)
+    return found[0].strip() if found else ""
+
+
 def check(html: str, where: str) -> "list[str]":
     """What must be true of a page a browser has finished with."""
     bad = []
@@ -162,6 +187,7 @@ def check_named_spot(chrome: str, out: Path, url: str) -> "list[str]":
     """A light where its project asked for it, not where it is tidy."""
     (out / "_spot.html").write_text(probe("named-spot"), encoding="utf-8")
     said = dom(chrome, url + "/_spot.html", 1100, 900)
+    said = only_the_verdict(said)
     found = re.search(r"SPOT ([^<]*)", said)
     if not found:
         return ["spot: the probe returned no verdict"]
@@ -195,6 +221,7 @@ def check_edges(chrome: str, out: Path, url: str) -> "list[str]":
     """
     (out / "_edges.html").write_text(probe("edges"), encoding="utf-8")
     said = dom(chrome, url + "/_edges.html", 500, 1000, budget=25000)
+    said = only_the_verdict(said)
     found = re.search(r"EDGES ([^<]*)", said)
     if not found:
         return ["edges: the probe returned no verdict"]
@@ -228,6 +255,7 @@ def check_escape(chrome: str, out: Path, url: str) -> "list[str]":
     # never left its loader — which is what this reported first.
     (out / "_escape.html").write_text(probe("escape"), encoding="utf-8")
     said = dom(chrome, url + "/_escape.html", 500, 1000, budget=22000)
+    said = only_the_verdict(said)
     found = re.search(r"ESCAPE (\{[^<]*\})", said)
     if not found:
         return ["escape: the probe returned no verdict"]
@@ -285,6 +313,7 @@ def check_reach(chrome: str, out: Path, url: str) -> "list[str]":
 
     def verdict(reduced: bool) -> dict:
         said = dom(chrome, url + "/_reach.html", 500, 900, reduced=reduced)
+        said = only_the_verdict(said)
         found = re.search(r"REACH (\{[^<]*\})", said)
         return json.loads(found.group(1)) if found else {}
 
@@ -342,6 +371,7 @@ def check_menu(chrome: str, out: Path, url: str) -> "list[str]":
     # ONCE, not when the scroll lands. Opened on arrival, it would never
     # open here at all.
     said = dom(chrome, url + "/_menu.html", 500, 900)
+    said = only_the_verdict(said)
     found = re.search(r"MENU ([^<]*)", said)
     if not found:
         return ["menu: the probe returned no verdict"]
@@ -383,6 +413,7 @@ def check_marks(chrome: str, out: Path, url: str, css: str) -> "list[str]":
         probe("marks").replace("__PALETTES__", json.dumps([""] + names)),
         encoding="utf-8")
     said = dom(chrome, url + "/_marks.html", 500, 900)
+    said = only_the_verdict(said)
     found = re.search(r"MARKS links=(\d+) ([^<]*)", said)
     if not found:
         return ["marks: the probe returned no verdict"]
@@ -441,6 +472,7 @@ def check_marks_declared(css: str) -> "list[str]":
 def check_arc(chrome: str, out: Path, url: str) -> "list[str]":
     (out / "_arc.html").write_text(probe("arc"), encoding="utf-8")
     said = dom(chrome, url + "/_arc.html", 1000, 900)
+    said = only_the_verdict(said)
     found = re.search(r"ARC ([^<]*)", said)
     if not found:
         return ["arc: the probe returned no verdict"]
@@ -578,6 +610,7 @@ def check_cloud_css(css: str) -> "list[str]":
 def check_cloud(chrome: str, out: Path, url: str, still: bool) -> "list[str]":
     (out / "_cloud.html").write_text(probe("cloud"), encoding="utf-8")
     said = dom(chrome, url + "/_cloud.html", 1000, 900, reduced=still)
+    said = only_the_verdict(said)
     found = re.search(r"CLOUD ([^<]*)", said)
     if not found:
         return ["cloud: the probe returned no verdict"]
@@ -656,6 +689,7 @@ def check_crossing(chrome: str, out: Path, url: str, still: bool) -> "list[str]"
     # which reads as "the probe could not run".
     said = dom(chrome, url + "/_cross.html", 500, 900, reduced=still,
                budget=22000)
+    said = only_the_verdict(said)
     found = re.search(r"CROSS ([^<]*)", said)
     if not found:
         return ["cross: the probe returned no verdict"]
@@ -721,6 +755,7 @@ def check_crossing(chrome: str, out: Path, url: str, still: bool) -> "list[str]"
 def check_document(chrome: str, out: Path, url: str) -> "list[str]":
     (out / "_doc.html").write_text(probe("doc"), encoding="utf-8")
     said = dom(chrome, url + "/_doc.html", 500, 900, budget=20000)
+    said = only_the_verdict(said)
     found = re.search(r"DOC ([^<]*)", said)
     if not found:
         return ["doc: the probe returned no verdict"]
@@ -795,6 +830,7 @@ def check_no_pdf_served(out: Path) -> "list[str]":
 def check_tint(chrome: str, out: Path, url: str) -> "list[str]":
     (out / "_tint.html").write_text(probe("tint"), encoding="utf-8")
     said = dom(chrome, url + "/_tint.html", 500, 900, reduced=True, budget=25000)
+    said = only_the_verdict(said)
     found = re.search(r"TINT ([^<]*)", said)
     if not found:
         return ["tint: the probe returned no verdict"]
@@ -862,16 +898,34 @@ def check_horizon_ceiling(chrome: str, out: Path, url: str) -> "list[str]":
     """
     (out / "_patch.html").write_text(probe("patch"), encoding="utf-8")
     said = dom(chrome, url + "/_patch.html", 1450, 950, budget=30000)
+    said = only_the_verdict(said)
     found = re.search(r"PATCH ([^<]*)", said)
     if not found:
         return ["horizon: the probe returned no verdict"]
     seen: "dict[str, dict[str, str]]" = {}
+    bad = []
     for word in found.group(1).split():
         width, _, rest = word.partition(":")
         if "=" in rest:
             seen.setdefault(width, {}).update(
                 dict(kv.split("=") for kv in rest.split(":")))
-    bad = []
+        else:
+            # The probe reached the carousel and threw, or never reached
+            # it. Either way there is nothing to compare, and this used
+            # to `continue` past it — so renaming the carousel out of the
+            # page left this check, whose entire subject is that
+            # carousel, reporting success.
+            bad.append(f"horizon: at {width}px the probe could not run — "
+                       f"{rest or 'it wrote no reading for this width'}")
+
+    # NOTHING MEASURED IS NOT A PASS. Both loops below are over what the
+    # probe found, and a verdict that carries no widths at all ran none
+    # of them.
+    measured = [f for f in seen.values() if "heights" in f and "owed" in f]
+    if not measured:
+        return bad + ["horizon: the probe measured no carousel at any width, "
+                      "so the ceiling was never compared with the arithmetic"]
+
     for width, f in seen.items():
         if "heights" not in f or "owed" not in f:
             continue
@@ -889,6 +943,7 @@ def check_horizon_ceiling(chrome: str, out: Path, url: str) -> "list[str]":
 def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
     (out / "_patch.html").write_text(probe("patch"), encoding="utf-8")
     said = dom(chrome, url + "/_patch.html", 2450, 2050, budget=40000)
+    said = only_the_verdict(said)
     found = re.search(r"PATCH ([^<]*)", said)
     if not found:
         return ["patch: the probe returned no verdict"]
@@ -1080,6 +1135,7 @@ def check_form_words(html: str, where: str) -> "list[str]":
 def check_fixed(chrome: str, out: Path, url: str) -> "list[str]":
     (out / "_fixed.html").write_text(probe("fixed"), encoding="utf-8")
     said = dom(chrome, url + "/_fixed.html", 500, 900, budget=22000)
+    said = only_the_verdict(said)
     found = re.search(r"FIXED ([^<]*)", said)
     if not found:
         return ["fixed: the probe returned no verdict"]
@@ -1285,6 +1341,7 @@ def check_reopen(chrome: str, out: Path, url: str) -> "list[str]":
         + sec.group(0) + '</main>' + js.group(0) + probe("reopen") + '</html>',
         encoding="utf-8")
     said = dom(chrome, url + "/_reopen.html", 500, 900)
+    said = only_the_verdict(said)
     found = re.search(r"RESULT ([^<]*)", said)
     if not found:
         return ["reopen: the probe returned no verdict"]
@@ -1331,7 +1388,15 @@ def check_reopen(chrome: str, out: Path, url: str) -> "list[str]":
 
 def check_cover(chrome: str, out: Path, url: str) -> "list[str]":
     (out / "_cover.html").write_text(probe("cover"), encoding="utf-8")
-    said = dom(chrome, url + "/_cover.html", 500, 900)
+    # LONGER THAN THE PROBE'S OWN FAILSAFE. The probe gives up watching
+    # after 8s and says what it saw; the default budget here was 3s, so
+    # the clock stopped first and both diagnoses below — "never-covered"
+    # and "never-uncovered" — were unreachable. Renaming `booting` out
+    # of the page proved it: the cover was gone and this reported "the
+    # probe returned no verdict", which is the one message that means
+    # "ask again", not "the page is broken".
+    said = dom(chrome, url + "/_cover.html", 500, 900, budget=12000)
+    said = only_the_verdict(said)
     found = re.search(r"COVERED-FOR ([a-z0-9-]+)", said)
     if not found:
         return ["cover: the probe returned no verdict"]
@@ -1409,6 +1474,7 @@ def check_lights(chrome: str, out: Path, url: str) -> "list[str]":
         + css.group(0) + '<body><p id=out>?</p><main>' + sec.group(0)
         + '</main>' + probe("light") + '</html>', encoding="utf-8")
     said = dom(chrome, url + "/_lights.html", 1100, 1000)
+    said = only_the_verdict(said)
     found = re.search(r"LIGHTS seen=(\d+) hidden=([^<]*)", said)
     if not found:
         return ["lights: the probe returned no verdict"]
@@ -1468,6 +1534,12 @@ def check_live(html: str) -> "list[str]":
 
 
 def main() -> int:
+    # The reader, on the exact shape that fooled it: a probe that wrote
+    # no verdict, with the sentinel sitting in its own source below.
+    assert only_the_verdict(
+        '<p id="o">no verdict</p><script>t = "PATCH " + s;</script>'
+    ) == "no verdict", "only_the_verdict is reading the dump again"
+
     chrome = find_chrome()
     if not chrome:
         print("\n  no Chrome on this machine — render check skipped.")
