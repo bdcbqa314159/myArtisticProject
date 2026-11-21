@@ -189,11 +189,39 @@ def main() -> int:
                                     "a\x07b"),
                 "a control character was accepted as a photograph's description")
 
+        # --- the fence this file is held together by ---------------------
+        # `+++` separates the front matter from the page, and all four
+        # readers of this file find it by splitting on exactly that. A
+        # value carrying one halves the front matter. `commit` already
+        # undid the write — the audit that found this watched it do so —
+        # but what came back named the symptom ("no reference objects at
+        # all") and not the cause, so the guard is here, by name, at
+        # every door.
+        for door, call in (
+            ("a sentence", lambda: edit.set_text("about_title", "a +++ b")),
+            ("an object field", lambda: edit.write("reference", 1, "name", "a +++ b")),
+            ("the configuration",
+             lambda: edit.set_config("extra.contact", "vcard_role", "a +++ b")),
+        ):
+            saying(call, "+++", f"the front-matter fence was accepted into {door}")
+
+        # AND THE REFUSAL CARRIES THE REASON. `commit` runs
+        # `objects.check()` with its printing captured, and the first
+        # complaint becomes the message. Mutation found this unasserted:
+        # break the extraction and every refusal above still refused,
+        # just generically — which is the state the audit started from.
+        ok(edit.surgery.refusal(
+            "\n  CONTENT OBJECTS\n\n    - no pillar objects at all\n"
+           ).endswith("no pillar objects at all"),
+           "a refusal no longer repeats what the checker said, so the panel "
+           "can only report that something was wrong")
+
         # ...and the ordinary ones still are. A refusal that is too broad
         # is its own bug: this is a French site, and the client's own
         # words carry accents, apostrophes and dashes.
         for text in ("Créer, c'est décider", "Déjà — vu", 'He said "oui"',
-                     "a\\b", "Ænigma · 100 %"):
+                     "a\\b", "Ænigma · 100 %", "C++ and the grid",
+                     "a++b"):
             try:
                 edit.set_text("about_title", text)
             except edit.Refused as problem:

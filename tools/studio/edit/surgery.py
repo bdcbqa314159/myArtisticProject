@@ -21,6 +21,8 @@ file — which only works while there is one place to point.
 """
 from __future__ import annotations
 
+import contextlib
+import io
 import os
 import re
 import sys
@@ -88,6 +90,18 @@ def plain(value: str, what: str = "that text") -> str:
             f"{what} contains a character that cannot be written here "
             f"(code {ord(found.group(0))}) — it is usually invisible, and "
             "arrives with text pasted out of another application"
+        )
+    # THE FENCE. `+++` is what separates the front matter from the body,
+    # and every reader of this file — four of them, in two languages —
+    # finds it by splitting on exactly that. A value containing one cuts
+    # the front matter in half: the write was already undone by
+    # `commit`, but the complaint that came back said the references had
+    # all vanished, which is the symptom and not the cause.
+    if "+++" in value:
+        raise Refused(
+            f"{what} contains +++, which is the fence between the front "
+            "matter and the page. Three plus signs in a row cannot be "
+            "written into a value; two can"
         )
     return value
 
@@ -208,6 +222,15 @@ def block_span(fm: str, array: str, which: int) -> "tuple[int, int]":
     return begin, end
 
 
+def refusal(printed: str) -> str:
+    """What to tell the person, out of what the checker printed."""
+    for line in printed.splitlines():
+        said = line.strip()
+        if said.startswith("- "):
+            return f"the result would not pass tools/objects.py: {said[2:]}"
+    return "the result would not pass tools/objects.py"
+
+
 def commit(candidate: str, message: str) -> str:
     """Write, re-check, and undo if the result is not sound.
 
@@ -221,8 +244,17 @@ def commit(candidate: str, message: str) -> str:
     try:
         import objects
 
-        if objects.check() != 0:
-            raise Refused("the result would not pass tools/objects.py")
+        # THE CHECKER ALREADY KNOWS WHY. It prints its complaints and
+        # returns a count, and this used to keep the count and throw the
+        # complaints away — so a person who typed `+++` into a sentence,
+        # which truncates the front matter at its own fence, was told
+        # only that "the result would not pass tools/objects.py". True,
+        # unactionable, and the one thing they needed was on stdout.
+        said = io.StringIO()
+        with contextlib.redirect_stdout(said):
+            sound = objects.check() == 0
+        if not sound:
+            raise Refused(refusal(said.getvalue()))
     except Exception:
         put(CONTENT, original)
         raise

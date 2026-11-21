@@ -202,12 +202,6 @@ def rebuild_list(key: str, name: str, raw: str, pick) -> str:
         raw)
 
 
-def translatable(name: str, raw: str) -> bool:
-    if name in COPIED or name in BRAND_FIELDS:
-        return False
-    return quoted(raw) is not None
-
-
 def scaffold() -> int:
     """Rebuild the French file from the English one, keeping what exists.
 
