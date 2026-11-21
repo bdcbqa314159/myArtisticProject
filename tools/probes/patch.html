@@ -90,6 +90,26 @@ SIZES.forEach(([w, h]) => {
           const first = reel.querySelector("img").getBoundingClientRect();
           const offCentre = Math.round(Math.abs((first.left - rb.left)
                                                 - (rb.right - first.right)));
+          /* WHAT THE HORIZON SHOULD BE, worked out from the markup
+           * rather than from what happens to have loaded.
+           *
+           * The tallest every photograph can be while the widest still
+           * fits the slide, and never taller than the big copy's own
+           * pixels. The page computes the same thing; if it reads the
+           * ceiling off the image that has loaded SO FAR it gets the
+           * small copy's height and the carousel comes out a third of
+           * the size it should — measured, 398x266 in an 801px slide. */
+          const slideBox = reel.querySelector(".slide").getBoundingClientRect();
+          const shapes = [...reel.querySelectorAll("img")].map((im) => ({
+            aspect: (Number(im.getAttribute("width")) || im.naturalWidth)
+                  / (Number(im.getAttribute("height")) || im.naturalHeight || 1),
+            pixels: Number(im.dataset.bigH) || im.naturalHeight || 0,
+          }));
+          const owed = Math.min(
+            slideBox.height,
+            slideBox.width / Math.max(...shapes.map((s) => s.aspect)),
+            Math.min(...shapes.map((s) => s.pixels || Infinity)));
+
           const boxes = [...new Set(slides)];
           out.push(w + ":slides=" + boxes.join(",")
             + ":shapes=" + pictures.length
@@ -101,6 +121,7 @@ SIZES.forEach(([w, h]) => {
              * photograph in a project shares a height, whichever way
              * round its own shape is. */
             + ":heights=" + [...new Set(pictures.map((p) => p.tall))].join(",")
+            + ":owed=" + Math.round(owed)
             + ":of=" + Math.round(100 * Math.max(...pictures.map(
                 (p) => p.wide / (rb.width || 1))))
             /* The one honest reason a photograph does not fill its

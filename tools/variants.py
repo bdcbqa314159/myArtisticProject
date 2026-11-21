@@ -174,3 +174,37 @@ def build_live_config(out: Path) -> Path:
     live = out / "config.live.toml"
     live.write_text(text.replace("live = false", "live = true"), encoding="utf-8")
     return live
+
+
+def build_with_a_small_strip(out: Path) -> Path:
+    """A site whose carousel copies are much smaller than the big ones.
+
+    The stand-in photographs are 1000px, so the copy served in the
+    strip and the bigger copy swapped in when a project opens come out
+    the same size — and a page that reads a photograph's height from
+    whatever has LOADED so far then looks correct, because both
+    answers agree.
+
+    They do not agree with real photography: 1000px in the strip,
+    2000px when opened. This shrinks the strip's copy to 400px so the
+    two differ here as well, which is the only way to see the
+    difference in a check.
+    """
+    root = out.with_name(out.name + "-small-strip")
+    if root.exists():
+        shutil.rmtree(root)
+    root.mkdir(parents=True)
+    for name in ("content", "templates", "static"):
+        shutil.copytree(ROOT / name, root / name,
+                        ignore=shutil.ignore_patterns("processed_images"))
+    shutil.copy2(ROOT / "config.toml", root / "config.toml")
+
+    page = root / "templates" / "index.html"
+    small = 'resize_image(path="@/" ~ ph.file, width=1000, op="fit_width", format="webp", quality=74)'
+    text = page.read_text(encoding="utf-8")
+    if small not in text:
+        raise SystemExit("\n  the carousel's copy is not made the way this "
+                         "variant expects — look at templates/index.html\n")
+    page.write_text(text.replace(small, small.replace("width=1000", "width=400")),
+                    encoding="utf-8")
+    return root

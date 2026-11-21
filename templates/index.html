@@ -294,7 +294,16 @@
                      inside is sized to its own shape, so the hairline
                      ends the PICTURE rather than floating around the
                      screen it is centred in. #}
+                  {# `data-big-h` is the BIG copy's height, and it is here
+                     because the page cannot ask the file: the horizon is
+                     set when a project opens, and at that moment only the
+                     small copy has loaded. Read from the loaded image, the
+                     ceiling was the SMALL copy's height — measured, a
+                     1400px screen showing 398x266 photographs in an 801px
+                     slide. The build knows both sizes; this is the one it
+                     has to say out loud. #}
                   <figure class="slide"><img src="{{ shot.url }}" data-big="{{ full.url }}"
+                       data-big-h="{{ full.height }}"
                        width="{{ shot.width }}" height="{{ shot.height }}"
                        alt="{{ ph.alt }}" loading="lazy" decoding="async"></figure>
                   {%- endif %}{% endfor %}
@@ -331,7 +340,16 @@
                      inside is sized to its own shape, so the hairline
                      ends the PICTURE rather than floating around the
                      screen it is centred in. #}
+                  {# `data-big-h` is the BIG copy's height, and it is here
+                     because the page cannot ask the file: the horizon is
+                     set when a project opens, and at that moment only the
+                     small copy has loaded. Read from the loaded image, the
+                     ceiling was the SMALL copy's height — measured, a
+                     1400px screen showing 398x266 photographs in an 801px
+                     slide. The build knows both sizes; this is the one it
+                     has to say out loud. #}
                   <figure class="slide"><img src="{{ shot.url }}" data-big="{{ full.url }}"
+                       data-big-h="{{ full.height }}"
                        width="{{ shot.width }}" height="{{ shot.height }}"
                        alt="{{ ph.alt }}" loading="lazy" decoding="async"></figure>
                   {%- endif %}{% endfor %}
@@ -368,7 +386,16 @@
                      inside is sized to its own shape, so the hairline
                      ends the PICTURE rather than floating around the
                      screen it is centred in. #}
+                  {# `data-big-h` is the BIG copy's height, and it is here
+                     because the page cannot ask the file: the horizon is
+                     set when a project opens, and at that moment only the
+                     small copy has loaded. Read from the loaded image, the
+                     ceiling was the SMALL copy's height — measured, a
+                     1400px screen showing 398x266 photographs in an 801px
+                     slide. The build knows both sizes; this is the one it
+                     has to say out loud. #}
                   <figure class="slide"><img src="{{ shot.url }}" data-big="{{ full.url }}"
+                       data-big-h="{{ full.height }}"
                        width="{{ shot.width }}" height="{{ shot.height }}"
                        alt="{{ ph.alt }}" loading="lazy" decoding="async"></figure>
                   {%- endif %}{% endfor %}
@@ -405,7 +432,16 @@
                      inside is sized to its own shape, so the hairline
                      ends the PICTURE rather than floating around the
                      screen it is centred in. #}
+                  {# `data-big-h` is the BIG copy's height, and it is here
+                     because the page cannot ask the file: the horizon is
+                     set when a project opens, and at that moment only the
+                     small copy has loaded. Read from the loaded image, the
+                     ceiling was the SMALL copy's height — measured, a
+                     1400px screen showing 398x266 photographs in an 801px
+                     slide. The build knows both sizes; this is the one it
+                     has to say out loud. #}
                   <figure class="slide"><img src="{{ shot.url }}" data-big="{{ full.url }}"
+                       data-big-h="{{ full.height }}"
                        width="{{ shot.width }}" height="{{ shot.height }}"
                        alt="{{ ph.alt }}" loading="lazy" decoding="async"></figure>
                   {%- endif %}{% endfor %}
@@ -442,7 +478,16 @@
                      inside is sized to its own shape, so the hairline
                      ends the PICTURE rather than floating around the
                      screen it is centred in. #}
+                  {# `data-big-h` is the BIG copy's height, and it is here
+                     because the page cannot ask the file: the horizon is
+                     set when a project opens, and at that moment only the
+                     small copy has loaded. Read from the loaded image, the
+                     ceiling was the SMALL copy's height — measured, a
+                     1400px screen showing 398x266 photographs in an 801px
+                     slide. The build knows both sizes; this is the one it
+                     has to say out loud. #}
                   <figure class="slide"><img src="{{ shot.url }}" data-big="{{ full.url }}"
+                       data-big-h="{{ full.height }}"
                        width="{{ shot.width }}" height="{{ shot.height }}"
                        alt="{{ ph.alt }}" loading="lazy" decoding="async"></figure>
                   {%- endif %}{% endfor %}

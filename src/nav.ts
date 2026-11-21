@@ -217,7 +217,7 @@ export function closeMenuOnNavigate(): void {
  * twice quickly should animate twice, and a transition that is already
  * at its end does nothing.
  */
-export const PRESS_MS = 140;
+const PRESS_MS = 140;
 
 
 
@@ -242,7 +242,7 @@ export const PRESS_MS = 140;
 const VEIL_IN_MS = 240;      // matches the stylesheet's going
 const VEIL_OUT_MS = 520;     // and its arriving
 
-export function crossTo(top: number, onDone: () => void): void {
+function crossTo(top: number, onDone: () => void): void {
   const root = document.documentElement;
 
   // Nothing to hide behind: go straight there.
