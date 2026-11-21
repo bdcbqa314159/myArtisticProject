@@ -41,6 +41,7 @@
  */
 export function warming(fetch, idle, width = 4, tiers = 3) {
     const state = new Map();
+    const urgentlyWanted = new Set();
     const lanes = Array.from({ length: tiers }, () => []);
     let running = 0;
     let pumping = false;
@@ -62,7 +63,10 @@ export function warming(fetch, idle, width = 4, tiers = 3) {
                 return;
             state.set(url, "loading");
             running += 1;
-            fetch(url).then(() => { state.set(url, "done"); }, () => { state.set(url, "failed"); }).then(() => {
+            /* `wanted` is true for what the reader is looking at or about to
+             * reach. The page turns it into a fetch priority: warming must
+             * never be in front of something being waited for. */
+            fetch(url, urgentlyWanted.has(url)).then(() => { state.set(url, "done"); }, () => { state.set(url, "failed"); }).then(() => {
                 running -= 1;
                 /* One failure must not stop the queue, and one success must not
                  * run the rest of it inside this callback — `pump` is called
@@ -100,7 +104,10 @@ export function warming(fetch, idle, width = 4, tiers = 3) {
                 soon();
         },
         urgent(urls) {
-            if (put(urls, 0).length)
+            const added = put(urls, 0);
+            for (const url of added)
+                urgentlyWanted.add(url);
+            if (added.length)
                 pump();
         },
         inFlight: () => running,

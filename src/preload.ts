@@ -40,7 +40,7 @@
  * — a Map of 300 short strings is the whole footprint.
  */
 
-export type Fetch = (url: string) => Promise<void>;
+export type Fetch = (url: string, wanted: boolean) => Promise<void>;
 export type Idle = (run: () => void) => void;
 
 export type Ready = "queued" | "loading" | "done" | "failed";
@@ -65,6 +65,7 @@ export function warming(
   tiers = 3,
 ): Warming {
   const state = new Map<string, Ready>();
+  const urgentlyWanted = new Set<string>();
   const lanes: string[][] = Array.from({ length: tiers }, () => []);
   let running = 0;
   let pumping = false;
@@ -86,7 +87,10 @@ export function warming(
       if (!url) return;
       state.set(url, "loading");
       running += 1;
-      fetch(url).then(
+      /* `wanted` is true for what the reader is looking at or about to
+       * reach. The page turns it into a fetch priority: warming must
+       * never be in front of something being waited for. */
+      fetch(url, urgentlyWanted.has(url)).then(
         () => { state.set(url, "done"); },
         () => { state.set(url, "failed"); },
       ).then(() => {
@@ -126,7 +130,9 @@ export function warming(
       if (put(urls, tier).length) soon();
     },
     urgent(urls) {
-      if (put(urls, 0).length) pump();
+      const added = put(urls, 0);
+      for (const url of added) urgentlyWanted.add(url);
+      if (added.length) pump();
     },
     inFlight: () => running,
     waiting: () => lanes.reduce(

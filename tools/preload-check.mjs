@@ -178,6 +178,24 @@ function hand() {
   is(h.asked, ["probably-next", "rest"], "then the rest of the page");
 }
 
+/* ---- the fetcher is told how badly it is wanted --------------------- */
+{
+  const asked = [];
+  const idles = [];
+  const w = warming((url, wanted) => { asked.push(url + (wanted ? "!" : "")); return Promise.resolve(); },
+                    (run) => idles.push(run), 4);
+
+  w.warm(["background"]);
+  idles.shift()();
+  is(asked, ["background"], "a warmed photograph is fetched without a flag — "
+     + "the page turns that into a low fetch priority, so 150 of them are "
+     + "never in front of the one being waited for");
+
+  asked.length = 0;
+  w.urgent(["wanted"]);
+  is(asked, ["wanted!"], "and what the reader is looking at is flagged");
+}
+
 /* ---- and whether the big copies are warmed at all ------------------- */
 {
   ok(worthWarmingBigCopies(undefined),

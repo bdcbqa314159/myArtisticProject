@@ -49,6 +49,7 @@ jobs:
       - run: node tools/arrive-check.mjs     # a reveal plays on every arrival
       - run: node tools/swap-check.mjs       # and so does the exchange of the two phrases
       - run: node tools/preload-check.mjs    # the warming queue holds its order and width
+      - run: node tools/nearby-check.mjs     # and it follows the reader down the page
       - run: python3 tools/icons.py          # favicon, touch icon, share image
       - run: python3 tools/vcard.py          # the saveable contact, or nothing at all
       - run: python3 tools/theme.py --check  # the stylesheet matches the decisions in config

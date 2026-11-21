@@ -30,7 +30,7 @@ import { startMotion, prepareMotion, exchangePhrases, photographsDrift,
 import { syncBar, WIDE, markCurrentSection, closeMenuOnNavigate,
          keepOneAddress, tintOnTheWayIn } from "./nav.js";
 import { closeTheCarousel, sharpenOnOpen, placeTheLights } from "./work.js";
-import { warmTheRest } from "./photographs.js";
+import { warmTheRest, warmWhatIsNear } from "./photographs.js";
 
 
 /* ---- blocks arrive on scroll -----------------------------------------
@@ -154,6 +154,7 @@ start("the phrases exchanging", exchangePhrases);
 start("closing the carousel", closeTheCarousel);
 start("the bigger copies", sharpenOnOpen);
 start("warming the rest", warmTheRest);
+start("warming what is near", warmWhatIsNear);
 start("keeping one address", keepOneAddress);
 start("the photographs drifting", photographsDrift);
 start("the press and release", showTheRelease);
