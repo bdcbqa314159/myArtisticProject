@@ -60,7 +60,12 @@ export function warmTheRest(): void {
   PHOTOGRAPHS.warm(page, 1);
 
   const line = (navigator as unknown as { connection?: Line }).connection;
-  if (!worthWarmingBigCopies(line)) return;
+  /* Asked of the browser rather than of a user-agent string: a coarse
+   * pointer on a small screen. It only decides anything when the
+   * connection says nothing at all, which is every iPhone. */
+  const phoneLike = matchMedia("(pointer: coarse)").matches
+    && Math.min(window.innerWidth, window.innerHeight) <= 600;
+  if (!worthWarmingBigCopies(line, phoneLike)) return;
 
   const bigger = [...document.querySelectorAll<HTMLElement>("[data-big]")]
     .map((el) => el.dataset["big"] || "");
@@ -121,8 +126,22 @@ export function warmWhatIsNear(): void {
     });
     /* Three screens rather than two: the sections on this page are
      * long, and two screens of reach can hold nothing at all between
-     * one reference and the next. */
-    PHOTOGRAPHS.urgent(within(placed, window.scrollY, window.innerHeight, 3));
+     * one reference and the next.
+     *
+     * TIER 1, NOT TIER 0. This asked for all of it URGENTLY, which is
+     * the tier meaning "the reader is looking at this" — and three
+     * screens of this page is almost all of it: measured at the middle
+     * of the real page, 148 of the 150 photographs are within reach.
+     * So nearly every photograph was being marked as the one being
+     * waited for, which made the mark worth nothing in two ways. The
+     * browser was told 148 fetches were all `fetchPriority: high`, and
+     * a project the reader then opened joined the back of that queue —
+     * the opposite of what `work.ts` says happens when it opens one.
+     *
+     * Tier 1 is this exactly: what the reader is probably about to
+     * reach. It still goes before the rest of the page, still nearest
+     * first, and it is no longer in front of what they actually did. */
+    PHOTOGRAPHS.warm(within(placed, window.scrollY, window.innerHeight, 3), 1);
   };
 
   look();

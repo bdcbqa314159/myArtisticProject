@@ -90,16 +90,24 @@ def palettes() -> "dict[str, dict[str, str]]":
             if sel == '[data-palette="cool"]':
                 dark.update(declarations(body))
 
-    if THEME.exists():
-        theme = THEME.read_text(encoding="utf-8")
-        for sel, body in re.findall(
-                r"(?m)^(:root|\[data-palette=\"cool\"\])\s*\{([^}]*)\}", theme):
-            said = declarations(body)
-            if sel == ":root":
-                cream.update(said)
-            else:
-                cool.update(said)
-                dark.update(said)          # same specificity, later sheet
+    # TRACKED, so absent means gone. This stood down quietly and
+    # measured whatever palettes the stylesheet happened to carry, which
+    # on a page whose grounds live in theme.css is most of the subject.
+    if not THEME.exists():
+        raise SystemExit(
+            f"\n  {THEME.name} is not there, and it is a tracked file. The "
+            f"palettes come from it — without it this would check contrast "
+            f"against colours the page does not use.\n")
+
+    theme = THEME.read_text(encoding="utf-8")
+    for sel, body in re.findall(
+            r"(?m)^(:root|\[data-palette=\"cool\"\])\s*\{([^}]*)\}", theme):
+        said = declarations(body)
+        if sel == ":root":
+            cream.update(said)
+        else:
+            cool.update(said)
+            dark.update(said)              # same specificity, later sheet
 
     return {"cream": cream, "cool": cool, "cool in a dark browser": dark}
 

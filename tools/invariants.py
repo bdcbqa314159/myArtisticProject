@@ -33,6 +33,20 @@ def read(rel: str) -> str:
 # (what it is, file, pattern, how many there must be, why)
 INVARIANTS = [
     (
+        "what is merely NEAR the reader is warmed, never demanded",
+        "src/photographs.ts",
+        r"PHOTOGRAPHS\.urgent\(within\(",
+        0,
+        "Tier 0 means `the reader is looking at this`, and the page "
+        "turns it into fetchPriority: high. This promoted everything "
+        "within three screens to it — measured at the middle of the real "
+        "page, 148 of the 150 photographs — so the browser was told "
+        "almost every fetch was the urgent one, and a project the reader "
+        "opened joined the BACK of that queue, which is the opposite of "
+        "what src/work.ts says happens. Near is tier 1: before the rest "
+        "of the page, behind what was actually asked for.",
+    ),
+    (
         "every probe's verdict is read from its element, never from the dump",
         "tools/render-check.py",
         r"(?m)^(?!\s*said = only_the_verdict\(said\)$)[^\n]*\n"
