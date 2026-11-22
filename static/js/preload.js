@@ -92,9 +92,28 @@ export function warming(fetch, idle, width = 4, tiers = 3) {
             // `failed` is retried: a url that failed while the page was
             // loading may well work when the reader actually needs it.
             state.set(url, "queued");
-            lanes[Math.min(Math.max(tier, 0), tiers - 1)]?.push(url);
             added.push(url);
         }
+        const lane = lanes[Math.min(Math.max(tier, 0), tiers - 1)];
+        /* TIER 0 GOES TO THE FRONT OF TIER 0.
+         *
+         * Appending was right while nothing else used this tier, and the
+         * check that protected it queued the other work one tier DOWN — so
+         * "the reader's own request jumps the queue, however long the queue
+         * is" was true of the fixture and not of the page. Measured on the
+         * real page: 148 of the 150 photographs are within three screens of
+         * the middle of it, and all of them were being promoted here, so a
+         * project the reader opened joined the back of a queue of 148.
+         *
+         * The most recent thing asked for is the thing being waited for, so
+         * it goes first — and a project's own photographs keep their order
+         * among themselves, which is why this is one `unshift` of the whole
+         * set and not one per url.
+         */
+        if (tier <= 0)
+            lane?.unshift(...added);
+        else
+            lane?.push(...added);
         return added;
     };
     return {
@@ -128,14 +147,30 @@ export function warming(fetch, idle, width = 4, tiers = 3) {
  *  Information API — the answer is yes: that is the desktop case and
  *  the one where it costs least.
  */
-export function worthWarmingBigCopies(line) {
-    if (!line)
-        return true;
-    if (line.saveData)
+export function worthWarmingBigCopies(line, phoneLike = false) {
+    if (line?.saveData)
         return false;
-    const kind = line.effectiveType;
-    if (!kind)
-        return true;
-    return kind === "4g" || kind === "5g";
+    /* A MEASUREMENT BEATS A GUESS. A browser that reports the line is
+     * believed, whatever shape the device is: a phone on 4g was always
+     * allowed these, and that has not changed. */
+    const kind = line?.effectiveType;
+    if (kind)
+        return kind === "4g" || kind === "5g";
+    /* AND WHERE NOTHING IS SAID, THE SHAPE OF THE DEVICE IS THE SIGNAL.
+     *
+     * This returned `true` — reasoned as "no API means desktop, where it
+     * costs least". Safari is the browser with no Network Information
+     * API, and Safari is also every iPhone, so the one case this function
+     * exists to prevent — 8.3MB of photographs nobody asked for, on a
+     * phone with an allowance — was the case it allowed. The client
+     * approves this page on a phone.
+     *
+     * A coarse pointer on a small screen is a phone as far as a browser
+     * will admit. Nothing is lost by waiting: the big copy is still
+     * fetched the moment a reference or a project is opened, which is
+     * `work.ts`, and that path is urgent. What stops is the speculative
+     * 8.3MB for photographs that may never be looked at.
+     */
+    return !phoneLike;
 }
 //# sourceMappingURL=preload.js.map

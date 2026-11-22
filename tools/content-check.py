@@ -356,6 +356,36 @@ def main() -> int:
                         "repository is public"
                     )
 
+    # ---- AND SOMEBODY ELSE'S PROPERTY --------------------------------
+    # The typeface is licensed and this repository is public, so a
+    # committed webfont is redistribution — the one mistake here that
+    # costs money rather than embarrassment.
+    #
+    # .gitignore covers /static/fonts/ and explains why, and .gitignore
+    # is a courtesy: `git add -f` walks past it, and a font that arrives
+    # in static/img/ beside the brand marks, or next to a dossier, was
+    # never covered by it at all. So the FILES are checked, wherever they
+    # are. Unlike the tripwire above this one needs nothing from _ref: it
+    # is armed everywhere, including CI and a fresh clone.
+    FOUNDRY = (".woff", ".woff2", ".otf", ".ttf", ".ttc", ".eot",
+               ".pfa", ".pfb", ".dfont")
+    owned = [
+        rel for rel in subprocess.run(
+            ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True
+        ).stdout.split()
+        if rel.lower().endswith(FOUNDRY)
+    ]
+    if owned:
+        print("\n  A LICENSED TYPEFACE IS TRACKED — do not commit\n")
+        for rel in owned:
+            print(f"    - {rel}")
+        print("\n      This repository is public, so committing a webfont is")
+        print("      redistributing somebody else's property. The faces belong")
+        print("      in _dropin/static/fonts/, which is ignored; the generated")
+        print("      static/css/fonts.css is tracked because naming a family")
+        print("      and a path is not the font.\n")
+        return 1
+
     if leaks:
         print("\n  PROTECTED TERMS IN TRACKED FILES — do not commit\n")
         for l in leaks:

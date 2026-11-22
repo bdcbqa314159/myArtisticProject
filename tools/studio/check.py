@@ -463,7 +463,14 @@ def main() -> int:
     # screen — which is the usual way a handover document turns into a
     # lie, and the reason OBJECTS.md is generated rather than written.
     guide = ROOT / "GUIDE.fr.md"
-    if guide.exists():
+    # TRACKED, so absent means gone rather than not-yet-written — and a
+    # guard that carries on would take this whole assertion with it in
+    # silence, which is the shape audit five spent its time on.
+    if not guide.exists():
+        bad.append("GUIDE.fr.md is not there, so nothing checked that the "
+                   "guide still describes the panel a client is being "
+                   "walked through")
+    else:
         quoted = set(re.findall(r"«\s*(.*?)\s*»", guide.read_text(encoding="utf-8")))
         for phrase in sorted(quoted):
             # Typographic quotes are the guide's; the source uses plain

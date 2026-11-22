@@ -95,6 +95,42 @@ function hand() {
   is(h.asked, ["one", "opened", "two"], "and then the warming carries on");
 }
 
+/* ---- a queue that is ITSELF urgent ---------------------------------- */
+{
+  /* The case above passes for a reason that does not hold on the page:
+   * the queue it jumps is in a LOWER tier. Measured on the real page,
+   * 148 of the 150 photographs are within three screens of the middle
+   * of it — and those were all being promoted to this same tier, so
+   * what the reader actually opened joined the back of a queue of 148
+   * and "jumps the queue" meant nothing. */
+  const h = hand();
+  const w = warming(h.fetch, (run) => run(), 1);
+
+  w.urgent(["near-1", "near-2", "near-3"]);
+  is(h.asked, ["near-1"], "one lane, one fetch");
+  w.urgent(["opened"]);
+  await h.done("near-1");
+  is(h.asked, ["near-1", "opened"],
+     "what the reader just opened is next, even when the queue it joins "
+     + "is itself urgent — the most recent thing asked for is the thing "
+     + "being waited for");
+  await h.done("opened");
+  is(h.asked, ["near-1", "opened", "near-2"],
+     "and the rest of that tier carries on behind it, in its own order");
+}
+
+/* ---- several at once keep their order ------------------------------- */
+{
+  const h = hand();
+  const w = warming(h.fetch, (run) => run(), 1);
+  w.urgent(["a", "b", "c"]);
+  await h.done("a");
+  await h.done("b");
+  is(h.asked, ["a", "b", "c"],
+     "a project's photographs are fetched in the order they are in, not "
+     + "reversed by going to the front");
+}
+
 /* ---- urgent does not wait for idle ---------------------------------- */
 {
   const h = hand();
@@ -199,9 +235,23 @@ function hand() {
 /* ---- and whether the big copies are warmed at all ------------------- */
 {
   ok(worthWarmingBigCopies(undefined),
-     "a browser that says nothing about the connection — Safari has no "
-     + "Network Information API — gets the big copies. That is the desktop "
-     + "case, where they cost least");
+     "a browser that says nothing about the connection and is not "
+     + "phone-shaped — desktop Safari has no Network Information API — "
+     + "gets the big copies, where they cost least");
+  ok(!worthWarmingBigCopies(undefined, true),
+     "and a PHONE that says nothing does not. Safari is the browser with "
+     + "no Network Information API and Safari is also every iPhone, so "
+     + "`nothing said` used to mean `desktop` on the one device this is "
+     + "meant to protect — 8.3MB of photographs nobody asked for, on the "
+     + "device the page is approved on");
+  ok(!worthWarmingBigCopies({}, true),
+     "an empty hint from a phone is the same case: nothing was measured");
+  ok(worthWarmingBigCopies({ effectiveType: "4g" }, true),
+     "but a phone that MEASURES 4g still gets them — a measurement beats "
+     + "a guess about the shape of the device, and that was always allowed");
+  ok(!worthWarmingBigCopies({ saveData: true }, false),
+     "and data saver refuses them with no connection class at all, which "
+     + "the early return used to skip past");
   ok(worthWarmingBigCopies({ effectiveType: "4g" }), "a fast connection: yes");
   ok(!worthWarmingBigCopies({ saveData: true, effectiveType: "4g" }),
      "data saver says no, however fast the connection is — it is the one "
