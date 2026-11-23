@@ -125,25 +125,36 @@ function splitHeadlines(): void {
  * harmless under the cover; letting them play is not, because an
  * animation nobody can see has simply been spent. */
 function releaseHeadlines(): void {
-  for (const h of document.querySelectorAll<HTMLElement>(".split")) {
-    if (h.tagName === "H1") {
-      // The hero headline is above the fold by definition, so it goes on
-      // the next frame rather than waiting for an observer.
-      //
-      // Not a micro-optimisation: on a cold Safari launch the page can
-      // still be hidden when the observer would have run, and callbacks
-      // are deferred until it is visible — which showed up as a blank
-      // headline for the first seconds. A portfolio handed to someone on
-      // a phone cannot open on an empty hero.
-      requestAnimationFrame(() => h.classList.add("in"));
-    } else {
-      // Below the fold, wait for the reader to arrive — and arrive
-      // again. A tenth of the headline in view is enough, and no
-      // margin: a headline is short, and the words should not start
-      // before it is on screen.
-      whileInView([h], watcher, released, "0px", 0.1);
-    }
+  const heads = [...document.querySelectorAll<HTMLElement>(".split")];
+
+  // THE HERO DOES NOT WAIT FOR AN OBSERVER.
+  //
+  // It is above the fold by definition, and this is not a
+  // micro-optimisation: on a cold Safari launch the page can still be
+  // hidden when the observer would have run, and callbacks are deferred
+  // until it is visible — which showed up as a blank headline for the
+  // first seconds. A portfolio handed to someone on a phone cannot open
+  // on an empty hero. So it is released on the next frame.
+  for (const h of heads) {
+    if (h.tagName === "H1") requestAnimationFrame(() => h.classList.add("in"));
   }
+
+  /* AND EVERY HEADLINE PLAYS AGAIN ON EVERY ARRIVAL — THE HERO TOO.
+   *
+   * The hero was released by that frame and by nothing else: never
+   * observed, so a reader who scrolled back to the top found it already
+   * in place and saw nothing, while every headline below it played
+   * again. The client noticed, and it reads exactly as the reveals did
+   * before they were fixed — alive the first time, dead on the way back.
+   *
+   * These are two different jobs and the hero needs both. Releasing it
+   * early is about a page that may still be hidden; observing it is
+   * about a reader coming back to the top.
+   *
+   * A tenth of the headline in view is enough, and no margin: a headline
+   * is short, and the words should not start before it is on screen.
+   */
+  whileInView(heads, watcher, released, "0px", 0.1);
 
   // Failsafe: whatever happens to the observers, nothing stays
   // invisible.

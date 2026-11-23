@@ -33,6 +33,19 @@ def read(rel: str) -> str:
 # (what it is, file, pattern, how many there must be, why)
 INVARIANTS = [
     (
+        "every headline is observed, the hero included",
+        "src/motion.ts",
+        r"whileInView\(heads, watcher, released",
+        1,
+        "The hero was special-cased: released on the next frame — which "
+        "it must be, because a cold Safari launch can still have the page "
+        "hidden when an observer would run — and then observed by "
+        "NOTHING. So a reader coming back to the top found it already in "
+        "place and saw no motion, while every headline below it played "
+        "again. Releasing early and observing are two jobs and the hero "
+        "needs both; this is the second one, over the whole set.",
+    ),
+    (
         "what is merely NEAR the reader is warmed, never demanded",
         "src/photographs.ts",
         r"PHOTOGRAPHS\.urgent\(within\(",
