@@ -1463,6 +1463,62 @@ def check_takes_turns(css: str) -> "list[str]":
     return []
 
 
+def check_unspent(chrome: str, out: Path, url: str) -> "list[str]":
+    """Motion nobody has reached yet is still waiting for them.
+
+    THE BUG THIS IS FOR. The failsafe that guarantees nothing stays
+    invisible used to add `in` to every `.split` and every `.reveal` on
+    the page at 7s, wherever they were. The page is 9000px, so every
+    reader arrived at a heading whose motion had already been spent off
+    screen: nothing to transition, the words simply in place. Scrolling
+    away and back played it — leaving is a real intersection change, so
+    the class came off — which is how it was reported: "Formats in
+    development does not animate on the first land; you have to go up
+    and down to trigger it".
+
+    So this loads the page, leaves it exactly where it opens, waits past
+    the failsafe, and asks whether a heading at the BOTTOM of the page
+    has been released. Nothing about animation timing is asserted — that
+    is flaky under a virtual clock and deliberately left alone (see
+    check() above) — only that something thousands of pixels away has
+    not been marked as arrived.
+    """
+    waits = re.search(r"MOTION_FAILSAFE_MS = (\d+)",
+                      (ROOT / "src" / "motion.ts").read_text(encoding="utf-8"))
+    if not waits:
+        return ["unspent: src/motion.ts no longer names MOTION_FAILSAFE_MS, so "
+                "this check cannot know how long to wait"]
+    budget = int(waits.group(1)) + 5000
+
+    said = dom(chrome, url, 390, 720, budget=budget)
+
+    # The last display headline in the document, whatever it is called:
+    # the bottom of the page is the one place a 720px viewport certainly
+    # has not been.
+    last = None
+    for m in re.finditer(r"<h2\b[^>]*>", said):
+        found = re.search(r'class=(?:"([^"]*)"|([^\s>]+))', m.group(0))
+        if found and "split" in (found.group(1) or found.group(2) or ""):
+            last = found.group(1) or found.group(2)
+    if last is None:
+        return ["unspent: no split headline in the page at all, so nothing "
+                "here measured anything — the words are not being split, or "
+                "the script did not run"]
+
+    if re.search(r"\bin\b", last):
+        marked = len(re.findall(r'class="[^"]*\bin\b', said)) \
+            + len(re.findall(r"class=in\b", said))
+        return [
+            f"unspent: the last headline on the page is already released "
+            f"({last!r}) with the page never scrolled, {int(waits.group(1))}ms "
+            f"after it loaded — {marked} block(s) marked as arrived. Its "
+            f"motion has been spent where nobody could see it, so the reader "
+            f"who scrolls down to it will see nothing move, and will only get "
+            f"it by scrolling away and coming back"
+        ]
+    return []
+
+
 def check_lights(chrome: str, out: Path, url: str) -> "list[str]":
     page = (out / "index.html").read_text(encoding="utf-8")
     css = re.search(r'<link[^>]*site\.css[^>]*>', page)
@@ -1573,6 +1629,7 @@ def main() -> int:
             # Every light on the real page, in all six arrangements —
             # the probe build below has only one reference with
             # projects, so it would exercise one of the six.
+            problems += check_unspent(chrome, out, url)
             problems += check_lights(chrome, out, url)
 
             # Contact in the band ends at the form, and the shape that

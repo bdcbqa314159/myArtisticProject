@@ -27,7 +27,17 @@ function markReveals() {
 /* What `whileInView` needs from this page: a real observer, and what
  * "marked" means here — the class both reveals are driven by. */
 export const watcher = (cb, options) => new IntersectionObserver(cb, options);
+/* HAVE THE OBSERVERS SPOKEN AT ALL?
+ *
+ * `released` is what they call. The leaving observer reports every
+ * element that is NOT on screen as soon as it is observed — an
+ * IntersectionObserver always delivers a first observation — so on any
+ * browser that has one this is true within a tick of `startMotion()`.
+ * The failsafe below uses it to tell "the reader simply has not got
+ * there yet" from "nothing is watching". */
+let observersSpoke = false;
 export const released = (el, on) => {
+    observersSpoke = true;
     el.classList.toggle("in", on);
 };
 /* Two observers for the whole page: one for arriving, one for leaving.
@@ -138,21 +148,60 @@ function releaseHeadlines() {
      * A tenth of the headline in view is enough, and no margin: a headline
      * is short, and the words should not start before it is on screen.
      */
+    keepNothingInvisible();
     whileInView(heads, watcher, released, "0px", 0.1);
-    // Failsafe: whatever happens to the observers, nothing stays
-    // invisible.
-    //
-    // AFTER the cover's own failsafe, deliberately. The inline script in
-    // the head uncovers the page at 6s if this script never got that far;
-    // firing this at 4s would release the motion while the cover is still
-    // up, spending it on a page nobody can see — which is the exact
-    // failure the motion was moved out of the cover to avoid.
-    setTimeout(() => {
-        for (const h of document.querySelectorAll(".split"))
-            h.classList.add("in");
-        for (const el of document.querySelectorAll(".reveal"))
-            el.classList.add("in");
-    }, MOTION_FAILSAFE_MS);
+}
+/* ---- the failsafe: nothing stays invisible -----------------------------
+ *
+ * WHAT IT USED TO DO, AND THE BUG THAT CAME OF IT. At 7s it added `in`
+ * to every `.split` and every `.reveal` on the page, wherever they were.
+ * Anyone who took longer than that to scroll down — and the page is
+ * 9000px, so that is everyone — arrived at a heading whose motion had
+ * already been spent off screen: the class was there, so there was
+ * nothing to transition, and the words were simply in place. Scrolling
+ * away and back played it, because leaving is a real intersection change
+ * and the class came off. Reported from the page as "Formats in
+ * development does not animate on the first land; you have to go up and
+ * down".
+ *
+ * Measured, at the top of the page with nothing scrolled: at a 6s
+ * virtual-time budget that heading is `split reveal`, and at 9s it is
+ * `split reveal in`. Moving this constant to 20s leaves it unreleased at
+ * 12s, which is the proof it was this and not an observer.
+ *
+ * WHAT IT DOES NOW. If the observers have spoken, nothing — they will
+ * release each block as the reader reaches it, which is the whole
+ * design. If they have NOT, only what is on screen is released, and it
+ * keeps watch so that whatever the reader scrolls to is released too.
+ * Nothing is ever shown before it has been looked at, and nothing is
+ * left invisible either.
+ *
+ * STILL AFTER THE COVER'S OWN FAILSAFE, deliberately: the inline script
+ * in the head uncovers the page at 6s if this script never got that
+ * far, and firing at 4s would release the motion while the cover is
+ * still up — spending it on a page nobody can see, which is the exact
+ * failure the motion was moved out of the cover to avoid.
+ *
+ * ARMED BEFORE THE OBSERVERS ARE SET UP, also deliberately. It used to
+ * be the last statement of `releaseHeadlines`, after the call that
+ * builds them — so if that call ever threw, the failsafe for it was
+ * never armed at all.
+ */
+function keepNothingInvisible() {
+    const showWhatIsOnScreen = () => {
+        if (observersSpoke)
+            return;
+        for (const el of document.querySelectorAll(".split, .reveal")) {
+            const box = el.getBoundingClientRect();
+            if (box.top < window.innerHeight && box.bottom > 0)
+                el.classList.add("in");
+        }
+        /* Nothing is watching, so this is now the only thing that will
+         * release anything. A page the reader keeps scrolling must not stop
+         * at the first screenful. */
+        setTimeout(showWhatIsOnScreen, MOTION_FAILSAFE_MS);
+    };
+    setTimeout(showWhatIsOnScreen, MOTION_FAILSAFE_MS);
 }
 /* ---- the bar ----------------------------------------------------------
  * Above 800px the maquette's bar is an inline row of links; below it,
