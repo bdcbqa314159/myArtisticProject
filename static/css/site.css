@@ -30,26 +30,26 @@
 
    section                              line   lines
    ----------------------------------  -----  ------
-   FOUNDATION                             55     156
-   THE FURNITURE                         211     323
-   GRIDS, CARDS AND THE SHOWREEL SLOT    534     175
-   CROSSING BETWEEN SECTIONS             709      58
-   A DOCUMENT BEHIND A CONCEPT           767     108
-   THE FIELDS THE WORK SITS IN           875     549
-   MOTION                               1424      62
-   WIDER                                1486      51
-   THE LOADER                           1537      96
-   THE MENU, BELOW THE BREAKPOINT       1633      46
-   OFFSETS                              1679     173
-   OFFSETS, SECOND ATTEMPT              1852      31
-   CENTRED SECTION HEADINGS             1883      40
-   FULL-BLEED PHOTOGRAPHS               1923      34
-   BOTH BUTTONS, AND TIME TO SEE THEM   1957      59
-   HOW WE CAN WORK TOGETHER             2016     140
-   THE TWO PHRASES, EXCHANGING PLACES   2156      74
-   THE WORK, AT THREE LEVELS            2230     763
-   THE FORM BEHIND "LET'S TALK"         2993     117
-   PRINT                                3110      40
+   FOUNDATION                             55     180
+   THE FURNITURE                         235     323
+   GRIDS, CARDS AND THE SHOWREEL SLOT    558     175
+   CROSSING BETWEEN SECTIONS             733      58
+   A DOCUMENT BEHIND A CONCEPT           791     108
+   THE FIELDS THE WORK SITS IN           899     549
+   MOTION                               1448      62
+   WIDER                                1510      51
+   THE LOADER                           1561      96
+   THE MENU, BELOW THE BREAKPOINT       1657      46
+   OFFSETS                              1703     173
+   OFFSETS, SECOND ATTEMPT              1876      31
+   CENTRED SECTION HEADINGS             1907      40
+   FULL-BLEED PHOTOGRAPHS               1947      34
+   BOTH BUTTONS, AND TIME TO SEE THEM   1981      59
+   HOW WE CAN WORK TOGETHER             2040     140
+   THE TWO PHRASES, EXCHANGING PLACES   2180      74
+   THE WORK, AT THREE LEVELS            2254     763
+   THE FORM BEHIND "LET'S TALK"         3017     117
+   PRINT                                3134      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -185,6 +185,30 @@ button { font: inherit; cursor: pointer; }
    giving nothing back is worse than the rectangle. */
 a, button, summary, label, input { -webkit-tap-highlight-color: transparent; }
 img { max-width: 100%; height: auto; display: block; }
+
+/* AN IMAGE THAT NEVER ARRIVED, MADE QUIET.
+   
+   A failed <img> draws the browser's own broken-image glyph and, beside
+   it, the whole `alt` attribute — and 163 of this page's images carry a
+   full sentence there. Landing on a cold cache with a few requests
+   dropped looked like a broken site rather than a loading one.
+   
+   Measured, three ways, in a browser: untouched it draws the glyph AND
+   the sentence; `color: transparent` removes the sentence and leaves
+   the glyph; `content: url()` pointing at a real image removes both and
+   lets the box show the ground. So it is the third.
+   
+   A FILE, not a `data:` URI: the policy here is `img-src 'self'`, and
+   the page would rather spend 68 bytes than an exception in its own
+   policy. The pixel is transparent so that each of the three palettes
+   shows its own ground through it.
+   
+   `src/photographs.ts` adds this class, and only after asking for the
+   image twice more. */
+img.lost {
+  content: url("../img/blank.png");
+  background: var(--panel);
+}
 
 /* <figure> carries 1em/40px of UA margin, and a list used as a grid
    carries 40px of padding and a marker. Both wreck a grid quietly —

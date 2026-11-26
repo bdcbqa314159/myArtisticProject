@@ -1,0 +1,41 @@
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+/* AN IMAGE THAT FAILS, ON THE REAL PAGE.
+ *
+ * Measured in a browser before any of this was written: a failed <img>
+ * draws the broken-image glyph AND the whole `alt` attribute, and this
+ * page's alt attributes are sentences. So a cold landing that dropped a
+ * few requests read as a broken site.
+ *
+ * This points a real photograph at a file that is not there and asks
+ * what the page does about it: whether it asks again, and whether the
+ * box ends up quiet rather than torn. The waits are the policy's own
+ * (900ms, then 1800ms), so it watches for longer than that.
+ */
+const f = document.createElement("iframe");
+f.width = 390; f.height = 720; f.style.border = 0; f.src = "/";
+document.body.appendChild(f);
+const guard = (fn) => () => {
+  try { fn(); } catch (err) {
+    say("threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-"));
+  }
+};
+f.addEventListener("load", () => setTimeout(guard(() => {
+  const d = f.contentDocument, w = f.contentWindow;
+  const img = d.querySelector("img");
+  if (!img) return say("no-image-on-the-page");
+  let asked = 0;
+  /* Every request for the missing file, counted: the page is supposed
+   * to ask again rather than leave it torn. */
+  img.addEventListener("error", () => { asked += 1; });
+  img.src = "/this-photograph-is-not-here.webp";
+  setTimeout(guard(() => {
+    const cs = w.getComputedStyle(img);
+    say("asked=" + asked
+      + " lost=" + (img.classList.contains("lost") ? "y" : "n")
+      + " content=" + (cs.content && cs.content !== "normal" && cs.content !== "none"
+          ? "replaced" : "none")
+      + " ground=" + (cs.backgroundColor === "rgba(0, 0, 0, 0)" ? "none" : "yes"));
+  }), 4200);
+}), 1500));
+function say(s) { document.getElementById("o").textContent = "LOST " + s; }
+</script>

@@ -52,6 +52,12 @@ def classes_in(text: str) -> "set[str]":
 
 def main() -> int:
     css = re.sub(r"/\*.*?\*/", "", SHEET.read_text(encoding="utf-8"), flags=re.S)
+    # AND THE CONTENTS OF url(). A file extension looks exactly like a
+    # class to the selector reader below — `url("../img/blank.png")`
+    # was reported as the stylesheet styling `.png`, which is a dead
+    # class that cannot be found anywhere, which is this check's own
+    # failure message. Comments go for the same reason; so do these.
+    css = re.sub(r"url\([^)]*\)", "url()", css)
     scripts = " ".join(p.read_text(encoding="utf-8") for p in (ROOT / "src").glob("*.ts"))
     # Tera first: a class attribute is often half template —
     # `class="meta{% if not w.verified %} role-unverified{% endif %}"` —

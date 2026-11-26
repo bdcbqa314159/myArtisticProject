@@ -5,6 +5,7 @@
  * the bigger copies at all.
  */
 import { warming, worthWarmingBigCopies } from "./preload.js";
+import { recovering } from "./lost.js";
 import { within } from "./nearby.js";
 export const PHOTOGRAPHS = warming((url, wanted) => {
     const img = new Image();
@@ -135,5 +136,75 @@ export function warmWhatIsNear() {
         window.clearTimeout(waiting);
         waiting = window.setTimeout(look, SETTLED_MS);
     }, { passive: true });
+}
+/* ---- and one that did not arrive --------------------------------------
+ *
+ * A failed <img> draws the browser's broken-image glyph and the whole
+ * of its `alt` beside it. 163 of this page's images carry a sentence
+ * there, so a few dropped requests on a cold landing read as a broken
+ * page rather than a loading one — which is exactly how it was
+ * reported, from the deployed site, on a phone.
+ *
+ * Every one of those 266 files answers correctly when asked, so nothing
+ * is missing: what fails is the landing, where the document asks for
+ * 167 images at once and the warming queue asks for the rest. A phone
+ * under that pressure drops some, and nothing ever asked again.
+ *
+ * ERROR DOES NOT BUBBLE, so this listens in the capture phase on the
+ * document and catches every image, including the ones that are not in
+ * the page yet when this runs.
+ *
+ * The policy — how many times, how long between — is `lost.ts`, driven
+ * exactly in tools/lost-check.mjs. What is here is only the page's half
+ * of it: re-assigning `src` runs the image loading algorithm again even
+ * when the value has not changed, and the class is what puts a clear
+ * pixel in the box so a reader sees ground rather than a torn page.
+ */
+const named = new WeakMap();
+let counted = 0;
+const nameOf = (img) => {
+    let key = named.get(img);
+    if (!key) {
+        key = `img-${++counted}`;
+        named.set(img, key);
+    }
+    return key;
+};
+export function askAgainForWhatFailed() {
+    const waiting = new Map();
+    const again = recovering({
+        retry(key, wait) {
+            const img = waiting.get(key);
+            if (!img)
+                return;
+            window.setTimeout(() => {
+                const url = img.getAttribute("src");
+                if (url)
+                    img.src = url;
+            }, wait);
+        },
+        giveUp(key) {
+            waiting.get(key)?.classList.add("lost");
+        },
+    });
+    document.addEventListener("error", (event) => {
+        const img = event.target;
+        if (!(img instanceof HTMLImageElement))
+            return;
+        const key = nameOf(img);
+        waiting.set(key, img);
+        again.failed(key);
+    }, true);
+    /* It arrived after all — which happens on the second ask, and also
+     * when a bigger copy replaces a small one that had failed. The class
+     * comes off with it, or the box would stay blank over a photograph
+     * that is now perfectly good. */
+    document.addEventListener("load", (event) => {
+        const img = event.target;
+        if (!(img instanceof HTMLImageElement))
+            return;
+        img.classList.remove("lost");
+        again.arrived(nameOf(img));
+    }, true);
 }
 //# sourceMappingURL=photographs.js.map
