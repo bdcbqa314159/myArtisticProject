@@ -81,6 +81,11 @@ SLOTS = {
     "display":   ("display.woff2", "serif", 400, "the display face"),
     "text":      ("text.woff2", "sans", 400, "the text face"),
     "text-bold": ("text-bold.woff2", "sans", 700, "the text face in bold"),
+    # The second display face, for the stretches a headline marks with
+    # `((two parens))`. Optional like every other slot: no file, no
+    # rule, and the page sets those stretches in the first face.
+    "display-other": ("display-other.woff2", "other", 400,
+                      "the second display face"),
 }
 
 # A family name, and nothing that could end a declaration or start a

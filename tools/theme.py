@@ -102,7 +102,13 @@ def build() -> str:
     rules: "list[tuple[str, list[str]]]" = []
 
     top = []
-    for field, prop in (("serif", "--serif"), ("sans", "--sans")):
+    # `other` is the second display face: the designer's direction is a
+    # headline carrying two typefaces, and `((marked))` stretches of a
+    # sentence are set in this one. Left blank it never appears, and
+    # site.css keeps `--other-face: var(--serif)` — the mechanism in
+    # place, nothing changed on the page.
+    for field, prop in (("serif", "--serif"), ("sans", "--sans"),
+                        ("other", "--other-face")):
         got = clean(f"theme.{field}", fonts.get(field, ""), "font")
         if got:
             top.append(f"  {prop}: {got};")

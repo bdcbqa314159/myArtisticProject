@@ -59,6 +59,13 @@ def main() -> int:
     # failure message. Comments go for the same reason; so do these.
     css = re.sub(r"url\([^)]*\)", "url()", css)
     scripts = " ".join(p.read_text(encoding="utf-8") for p in (ROOT / "src").glob("*.ts"))
+    # THE SCRIPTS' COMMENTS ARE NOT THE SCRIPT. This read the raw text,
+    # so a class NAMED in a comment — `a <span class="other-face">
+    # around the words` — counted as a class the script puts on the
+    # page. Removing every line that really inserted it left this check
+    # green, which is the whole failure it exists to prevent.
+    scripts = re.sub(r"/\*.*?\*/", " ", scripts, flags=re.S)
+    scripts = re.sub(r"(?m)^\s*//.*$", " ", scripts)
     # Tera first: a class attribute is often half template —
     # `class="meta{% if not w.verified %} role-unverified{% endif %}"` —
     # and an extractor that cannot read that reports live classes as
@@ -66,9 +73,21 @@ def main() -> int:
     # it in its first week.
     templates = " ".join(p.read_text(encoding="utf-8")
                          for p in (ROOT / "templates").glob("*.html"))
+    # COMMENTS TOO. A class named only in a `{# ... #}` block is a class
+    # nobody renders — and this check passed on exactly that: a comment
+    # explaining `<span class="other-face">` was the only reason the
+    # class looked alive, while the markup that really inserts it was
+    # being stripped as a Tera expression two lines below.
+    templates = re.sub(r"\{#.*?#\}", " ", templates, flags=re.S)
+    inserted = set(re.findall(r'class=\\"([a-z0-9 -]+)\\"', templates))
     templates = re.sub(r"\{%.*?%\}|\{\{.*?\}\}", " ", templates, flags=re.S)
 
     present = classes_in(templates)
+    # ...AND THE CLASSES A TEMPLATE EXPRESSION PUTS THERE. A filter
+    # chain that inserts markup writes its class with escaped quotes
+    # inside a Tera string, which the stripping above removes wholesale.
+    for names in inserted:
+        present |= set(names.split())
     present |= set(re.findall(r'classList\.(?:add|remove|toggle|contains)\("([a-z-]+)"',
                               scripts))
     present |= set(re.findall(r'className = "([a-z0-9 -]+)"', scripts)

@@ -153,7 +153,40 @@
 <section id="approach" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">Approach</p>
-    <h2 data-edit="approach_title">{{ e.approach_title }}</h2>
+{#- TWO FACES IN ONE SENTENCE.
+
+     The designer's direction is a headline carrying two typefaces, so
+     a field may mark a stretch of itself with `((like this))` and it
+     arrives as `<span class="other-face">`.
+
+     WHY THE SAFETY IS AT THE GATE AND NOT IN THIS CHAIN. The obvious
+     order — `escape`, then insert the span, then `safe` — does not
+     work, and it was measured rather than assumed: this Tera escapes
+     the span THIS TEMPLATE inserted, so the page shows the tag as
+     text. Dropping the `escape` makes the span live and leaves whatever
+     the client typed unescaped with it.
+
+     So the rule moved to where values are written instead:
+     `tools/markers.py` refuses `<` and `>` in any field, and both the
+     studio panel and the launch gate enforce it. Measured across the
+     content and the configuration: 1043 string values, none of which
+     contains either character, so nothing real is being given up.
+
+     `&` is the one character that still needs handling, because five
+     values legitimately carry one ("Live Performance & Artistic
+     Direction") and `safe` would stop it being escaped. The chain
+     escapes it first, by hand, with the same filter.
+
+     With `<` impossible and `&` handled, the only markup that can
+     reach the page is the span below.
+
+     There is no macro to put this behind: this Zola has neither
+     `{% macro %}` nor `{% import %}`, both tested. So it is repeated,
+     once per headline, deliberately.
+
+     `src/motion.ts` reads the span back when it splits a headline into
+     words, so a mixed line keeps its word-by-word entrance. -#}
+    <h2 data-edit="approach_title">{{ e.approach_title | replace(from="&", to="&amp;") | replace(from="((", to="<span class=\"other-face\">") | replace(from="))", to="</span>") | safe }}</h2>
     <div class="section-intro"><p class="muted">{{ id.approach_lead }}</p></div>
 
     {# No video yet, so no player and no decorative play button — the
@@ -178,7 +211,7 @@
 <section id="services" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">Expertise</p>
-    <h2 data-edit="services_title">{{ e.services_title }}</h2>
+    <h2 data-edit="services_title">{{ e.services_title | replace(from="&", to="&amp;") | replace(from="((", to="<span class=\"other-face\">") | replace(from="))", to="</span>") | safe }}</h2>
     <ol class="grid three">
       {% for s in e.services %}
       <li class="card">
@@ -204,7 +237,7 @@
 <section id="work" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">Selected Work</p>
-    <h2 data-edit="work_title">{{ e.work_title }}</h2>
+    <h2 data-edit="work_title">{{ e.work_title | replace(from="&", to="&amp;") | replace(from="((", to="<span class=\"other-face\">") | replace(from="))", to="</span>") | safe }}</h2>
     <div class="section-intro"><p class="muted" data-edit="work_lead">{{ e.work_lead }}</p></div>
 
     <ol class="grid two">
@@ -381,7 +414,7 @@
 <section id="concepts" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">Original Concepts</p>
-    <h2 data-edit="concepts_title">{{ e.concepts_title }}</h2>
+    <h2 data-edit="concepts_title">{{ e.concepts_title | replace(from="&", to="&amp;") | replace(from="((", to="<span class=\"other-face\">") | replace(from="))", to="</span>") | safe }}</h2>
     <div class="section-intro"><p class="muted" data-edit="concepts_lead">{{ e.concepts_lead }}</p></div>
     <ol class="grid three">
       {% for c in e.concepts %}
@@ -487,7 +520,7 @@
 <section id="about" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">About</p>
-    <h2 data-edit="about_title">{{ e.about_title }}</h2>
+    <h2 data-edit="about_title">{{ e.about_title | replace(from="&", to="&amp;") | replace(from="((", to="<span class=\"other-face\">") | replace(from="))", to="</span>") | safe }}</h2>
     <div class="about">
       <div>
         <p class="lead">{{ id.about_lead }}</p>
@@ -516,7 +549,7 @@
 <section class="contact" id="contact" tabindex="-1">
   <div class="wrap">
     <p class="eyebrow">Contact</p>
-    <h2 data-edit="contact_title">{{ e.contact_title }}</h2>
+    <h2 data-edit="contact_title">{{ e.contact_title | replace(from="&", to="&amp;") | replace(from="((", to="<span class=\"other-face\">") | replace(from="))", to="</span>") | safe }}</h2>
     <div class="section-intro"><p class="muted" data-edit="contact_lead">{{ e.contact_lead }}</p></div>
     <div class="actions">
       {# The way through, whether or not an address is ever configured.

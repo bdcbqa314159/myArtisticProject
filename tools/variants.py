@@ -176,6 +176,46 @@ def build_live_config(out: Path) -> Path:
     return live
 
 
+def build_with_two_faces(out: Path) -> Path:
+    """A site whose headline carries two typefaces.
+
+    The designer's direction is one sentence set in two faces, marked
+    in the content with `((two parens))`. Nothing in the real content
+    uses it yet — that is the point of the request, to leave the room
+    without showing it — so the only way to check that a mixed headline
+    still plays word by word is to make one.
+    """
+    root = out.with_name(out.name + "-two-faces")
+    if root.exists():
+        shutil.rmtree(root)
+    root.mkdir(parents=True)
+    for name in ("content", "templates", "static"):
+        shutil.copytree(ROOT / name, root / name,
+                        ignore=shutil.ignore_patterns("processed_images"))
+    shutil.copy2(ROOT / "config.toml", root / "config.toml")
+
+    page = root / "content" / "_index.md"
+    text = page.read_text(encoding="utf-8")
+    found = re.search(r'(?m)^approach_title = "([^"]*)"', text)
+    if not found:
+        raise SystemExit("\n  no approach_title to mark up — look at "
+                         "content/_index.md\n")
+    words = found.group(1).split()
+    if len(words) < 2:
+        raise SystemExit("\n  the headline is too short to set part of it in "
+                         "another face\n")
+    # The LAST word, and the one before it left alone: that way the
+    # check can tell a headline that was split from one that was not,
+    # and a face that was carried from one that was dropped.
+    words[-1] = f"(({words[-1]}))"
+    page.write_text(
+        text[:found.start()]
+        + f'approach_title = "{" ".join(words)}"'
+        + text[found.end():],
+        encoding="utf-8")
+    return root
+
+
 def build_with_a_small_strip(out: Path) -> Path:
     """A site whose carousel copies are much smaller than the big ones.
 

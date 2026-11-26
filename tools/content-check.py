@@ -26,6 +26,7 @@ become errors and the build stops.
 """
 
 import re
+import markers
 import subprocess
 import sys
 from pathlib import Path
@@ -355,6 +356,26 @@ def main() -> int:
                         f"{rel} contains a protected term ({t!r}) — this "
                         "repository is public"
                     )
+
+    # ---- WHAT THE PAGE CAN BE ASKED TO SET ---------------------------
+    # The same rule the studio panel applies as a value is typed, asked
+    # again of the file itself — because a file can be edited by hand,
+    # and an unclosed `((` would set the rest of the page in the second
+    # typeface. `tools/markers.py` owns the rule; this is the gate.
+    import re as _re
+    crooked = []
+    for name, body in (("content/_index.md", fm),
+                       ("config.toml", (ROOT / "config.toml").read_text(encoding="utf-8"))):
+        for key, value in _re.findall(r'(?m)^\s*([a-z_]+)\s*=\s*"((?:[^"\\]|\\.)*)"', body):
+            said = markers.trouble(value, f"{name}: {key}")
+            if said:
+                crooked.append(said)
+    if crooked:
+        print("\n  A VALUE THE PAGE CANNOT SET\n")
+        for c in crooked:
+            print(f"    - {c}")
+        print()
+        return 1
 
     # ---- AND SOMEBODY ELSE'S PROPERTY --------------------------------
     # The typeface is licensed and this repository is public, so a

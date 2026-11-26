@@ -1,0 +1,44 @@
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+/* A HEADLINE IN TWO FACES, STILL PLAYING WORD BY WORD.
+ *
+ * The splitter used to refuse any heading containing an element — a
+ * link, an <em> — because rebuilding arbitrary inline markup word-wise
+ * is a parser. A headline carrying a second typeface contains exactly
+ * one kind of element, so it is now read as a sequence of runs instead.
+ *
+ * What must hold, and what this asks the page:
+ *   - the headline was split at all (the motion needs the boxes);
+ *   - the second face survived the splitting;
+ *   - the sentence still reads as the sentence that was written —
+ *     a screen reader must not hear it come apart;
+ *   - and the marked word is ONE box, not two, or a line could break
+ *     inside a word.
+ */
+const f = document.createElement("iframe");
+f.width = 900; f.height = 800; f.style.border = 0; f.src = "/";
+document.body.appendChild(f);
+f.addEventListener("load", () => setTimeout(() => {
+  try {
+    const d = f.contentDocument;
+    const h = d.querySelector("#approach h2, section h2");
+    if (!h) return say("no-headline");
+    const boxes = h.querySelectorAll(".w");
+    const faces = h.querySelectorAll(".other-face");
+    /* The box that holds the second face, and how many boxes it
+     * spans: a word that straddles the two faces must stay one. */
+    const holders = new Set();
+    faces.forEach((el) => {
+      const box = el.closest(".w");
+      if (box) holders.add(box);
+    });
+    say("split=" + (h.classList.contains("split") ? "y" : "n")
+      + " boxes=" + boxes.length
+      + " faces=" + faces.length
+      + " holders=" + holders.size
+      + " text=" + encodeURIComponent(h.textContent.trim()));
+  } catch (err) {
+    say("threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-"));
+  }
+}, 2200));
+function say(s) { document.getElementById("o").textContent = "FACES " + s; }
+</script>
