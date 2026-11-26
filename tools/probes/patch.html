@@ -53,7 +53,13 @@ SIZES.forEach(([w, h]) => {
            * is the only honest way to ask whether that happened — the
            * URL is a content hash and says nothing. */
           + ":natural=" + support.naturalWidth
-          + ":waiting=" + (support.closest("summary").dataset.big ? "y" : "n"));
+          + ":waiting=" + (support.closest("summary").dataset.big ? "y" : "n")
+          /* THE GROUND'S OWN EDGE, at the front. Every picture on the
+           * page carries the same hairline and this one must not, here:
+           * at full bleed it draws a line along all four edges of the
+           * screen. */
+          + ":ground=" + Math.round(parseFloat(
+              f.contentWindow.getComputedStyle(support).borderTopWidth) || 0));
 
         /* AND THE PICTURES, one level further in.
          *

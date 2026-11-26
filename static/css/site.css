@@ -47,9 +47,9 @@
    BOTH BUTTONS, AND TIME TO SEE THEM   1957      59
    HOW WE CAN WORK TOGETHER             2016     140
    THE TWO PHRASES, EXCHANGING PLACES   2156      74
-   THE WORK, AT THREE LEVELS            2230     737
-   THE FORM BEHIND "LET'S TALK"         2967     117
-   PRINT                                3084      40
+   THE WORK, AT THREE LEVELS            2230     763
+   THE FORM BEHIND "LET'S TALK"         2993     117
+   PRINT                                3110      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -2644,6 +2644,22 @@ html.js .group[open] > .group-front .fridge > .slot-1 > summary > img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* AND NO EDGE, HERE AND ONLY HERE.
+     
+     Every picture on the page carries the same hairline — that is the
+     uniform contour, and on the card this photograph carries it too,
+     where it is the ground of an arrangement with four prints on top of
+     it and reads as one picture among several. It stays there.
+     
+     At the front it is the whole screen. `--edge` then draws a 1px line
+     along all four edges of the phone, and a photograph asked to be
+     full bleed arrives with a frame around the screen itself. Measured:
+     the box is exactly 390x720 on a 390x720 screen, and 1px of each
+     side of it was border.
+     
+     So the ground loses its edge at the front. The prints keep theirs,
+     which is what tells them apart from what they are lying on. */
+  border: 0;
 }
 
 /* NO CLOSE BUTTON. The ground around the work is the way out.
@@ -2708,6 +2724,16 @@ html.js .shots[open] > .reel {
   inset: 0;
   z-index: 70;
   margin: 0;
+  /* THE SAME STATED HEIGHT AS THE PATCHWORK IT OPENS FROM.
+     
+     `inset: 0` asks for the layout viewport, which on iOS is the screen
+     without the toolbar — the toolbar is drawn over it rather than
+     shrinking it. The patchwork one level out was left short by exactly
+     that and had to be told its height in `dvh`; this is the same
+     fixed, full-screen box with the same exposure, and it was left on
+     `inset` only because it had not been seen to misbehave. Being
+     unobserved is not the same as being right. */
+  height: 100dvh;
   /* THE BAND, ON ALL FOUR SIDES. It was `0 var(--gutter)`: 23px at the
      sides and nothing at all above or below, so the only ground to
      press for the way back was a sliver beside the photograph. The
