@@ -47,9 +47,9 @@
    BOTH BUTTONS, AND TIME TO SEE THEM   2010      59
    HOW WE CAN WORK TOGETHER             2069     140
    THE TWO PHRASES, EXCHANGING PLACES   2209      74
-   THE WORK, AT THREE LEVELS            2283     780
-   THE FORM BEHIND "LET'S TALK"         3063     117
-   PRINT                                3180      40
+   THE WORK, AT THREE LEVELS            2283     818
+   THE FORM BEHIND "LET'S TALK"         3101     117
+   PRINT                                3218      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -2541,10 +2541,41 @@ html.js [data-copy] { display: inline-flex; }
    the same rule that has already caught this page twice. */
 html.js .group[open] > .group-front {
   position: fixed;
-  inset: 0;
+  /* ANCHORED AT THE TOP, WITH A HEIGHT. NOT BOTH ENDS AND A HEIGHT.
+     
+     This was `inset: 0` plus `height`, which is over-constrained —
+     three values where two decide — and the comment below used to say
+     `bottom` is the one that gives way. That was an assumption, never
+     tested on a device, and the phone says otherwise: the photograph
+     kept shrinking as the toolbar slid in, which is what happens if
+     `bottom` wins and the height is ignored.
+     
+     So there is nothing left to resolve. Top, left and right pin three
+     edges; the height decides the fourth. */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: auto;
   z-index: 50;
   display: grid;
   place-items: center;
+  /* AN OPAQUE GROUND OF ITS OWN.
+     
+     The layer behind the photograph is `color-mix(--bg 62%, transparent)`
+     — 38% see-through, because it is a blurred ground and that is what
+     makes the blur visible. Which means any strip the photograph does
+     not cover is not blank: it is a window onto the page underneath.
+     Reported from the phone as bites of the front page showing while
+     the toolbar slides in.
+     
+     At full bleed the photograph covers all of this and none of it is
+     ever seen. That is exactly why it must be here: it is what the
+     reader sees in the moments when the geometry is in motion and the
+     photograph has not caught up — iOS moves fixed elements while its
+     toolbar animates, and nothing a stylesheet says prevents that.
+     The worst case becomes a band of the page's own ground instead of
+     a view of the page itself. */
+  background: var(--bg);
   /* THE HEIGHT IS STATED, NOT INFERRED FROM `inset`.
      
      `inset: 0` asks the browser for the layout viewport, and on iOS
@@ -2583,10 +2614,12 @@ html.js .group[open] > .group-front {
      four sides and Escape still closes, so the way out is never gone —
      but it is narrower by one edge, and that is the trade.
      
-     A browser that does not know `lvh` drops this line and keeps the
-     behaviour `inset: 0` gives it. Over-constrained with `inset: 0`,
-     so `bottom` is the declaration that gives way — the box is 100lvh
-     from the top. */
+     A browser that does not know `lvh` falls back to the line above it,
+     which is why both are written: `100vh` is the old unit and on iOS
+     it has always meant the toolbar-hidden screen, which is the same
+     answer. Nothing is over-constrained now, so the height is the
+     height. */
+  height: 100vh;
   height: 100lvh;
   /* FULL BLEED, both surfaces. There was a gutter here — 23px on a
      phone, 64px on a wide screen — so the photograph that supports the
@@ -2665,7 +2698,12 @@ html.js .group[open] > .group-front > .way-out {
 html.js .group[open] > .group-front::before {
   content: "";
   position: fixed;
-  inset: 0;
+  /* PAST EVERY TOOLBAR STATE. Sized to the layout viewport, this
+     stopped exactly where the photograph used to stop, so the two
+     agreed about where the screen ended and both were wrong together.
+     120px is more than any phone's chrome; it is a blurred ground, so
+     what hangs off the screen costs nothing and is never seen. */
+  inset: -120px 0;
   z-index: -1;
   backdrop-filter: blur(16px) saturate(0.85);
   background: color-mix(in oklch, var(--bg) 62%, transparent);
