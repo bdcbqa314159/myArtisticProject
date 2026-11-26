@@ -216,12 +216,38 @@ def main() -> int:
            "a refusal no longer repeats what the checker said, so the panel "
            "can only report that something was wrong")
 
+        # --- two faces in one sentence -----------------------------------
+        # A field may mark a stretch of itself with `((two parens))` and
+        # the template turns it into one span. That is only safe while
+        # nothing else in a value can be markup, so the angle brackets
+        # are refused here rather than escaped later — measured first:
+        # 1043 string values across the content and the configuration,
+        # not one of which contains either character.
+        for door, call in (
+            ("a sentence", lambda: edit.set_text("about_title", "A <b>bold</b> idea")),
+            ("an object field", lambda: edit.write("reference", 1, "name", "a > b")),
+            ("the configuration",
+             lambda: edit.set_config("extra.contact", "vcard_role", "<span>")),
+        ):
+            saying(call, "angle brackets", f"markup was accepted into {door}")
+
+        saying(lambda: edit.set_text("about_title", "Ideas become ((experiences."),
+               "never closes",
+               "a stretch opened in the second face and never closed was "
+               "accepted — everything after it would be set in that face")
+        saying(lambda: edit.set_text("about_title", "Ideas )) become"),
+               "without opening",
+               "a stray closing marker was accepted")
+        saying(lambda: edit.set_text("about_title", "((one ((inside another))))"),
+               "inside another", "nested markers were accepted")
+
         # ...and the ordinary ones still are. A refusal that is too broad
         # is its own bug: this is a French site, and the client's own
         # words carry accents, apostrophes and dashes.
         for text in ("Créer, c'est décider", "Déjà — vu", 'He said "oui"',
                      "a\\b", "Ænigma · 100 %", "C++ and the grid",
-                     "a++b"):
+                     "a++b", "Ideas become ((experiences)).",
+                     "Deux ((visages)) dans une ((phrase)).", "Art & Design"):
             try:
                 edit.set_text("about_title", text)
             except edit.Refused as problem:

@@ -161,6 +161,7 @@ vcard_url = ""         # optional
 [extra.theme]
 serif = ""             # the display face, e.g. "Canela, Georgia, serif"
 sans  = ""             # everything else
+other = ""             # the second display face, for ((marked)) words
 
 # The palette the page arrives in, and stays in until Selected Work.
 [extra.theme.cream]

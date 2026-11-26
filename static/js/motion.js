@@ -85,21 +85,51 @@ function observeReveals() {
  * the bottom edge, then released. The stagger is in CSS (nth-child), not
  * here, so no inline style is written and the CSP needs no exception.
  *
- * Only ever applied to headings whose content is plain text. A heading
- * containing a link or an <em> is left exactly as the author wrote it —
- * rebuilding arbitrary inline markup word-wise is a parser, and a
- * headline is not worth a parser.
+ * TWO FACES, AND NOTHING ELSE. A headline may carry one kind of
+ * element: a `<span class="other-face">` around the words the designer
+ * wants in the second typeface. Anything else — a link, an <em> —
+ * leaves the heading exactly as it was written, because rebuilding
+ * arbitrary inline markup word-wise is a parser, and a headline is not
+ * worth a parser.
+ *
+ * The span is not a special case bolted on: the heading is read as a
+ * sequence of RUNS, a word may straddle two of them, and `words.ts`
+ * does the arithmetic. The box still goes around the whole word, so a
+ * line can never break inside one.
  */
+const OTHER_FACE = "other-face";
+/** What a headline is made of, or null if it holds markup this cannot
+ *  take apart. */
+function runsOf(h) {
+    const runs = [];
+    for (const node of Array.from(h.childNodes)) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            runs.push({ text: node.textContent ?? "" });
+            continue;
+        }
+        /* One element, one class, no children of its own. A nested span
+         * would be a tree, and a tree is the parser this is avoiding. */
+        if (node instanceof HTMLElement
+            && node.tagName === "SPAN"
+            && node.classList.contains(OTHER_FACE)
+            && node.childElementCount === 0) {
+            runs.push({ text: node.textContent ?? "", other: true });
+            continue;
+        }
+        return null;
+    }
+    return runs;
+}
 function splitHeadlines() {
     // DOM surgery only. Nothing is released here — see releaseHeadlines().
     for (const h of document.querySelectorAll("h1, section h2")) {
-        if (h.childElementCount > 0)
+        const runs = runsOf(h);
+        if (!runs)
             continue;
-        const text = h.textContent;
-        if (!text || !text.trim())
+        if (!runs.some((r) => r.text.trim()))
             continue;
         const frag = document.createDocumentFragment();
-        for (const part of splitWords(text)) {
+        for (const part of splitWords(runs)) {
             if ("space" in part) {
                 frag.append(part.space);
                 continue;
@@ -108,7 +138,19 @@ function splitHeadlines() {
             box.className = "w";
             const inner = document.createElement("span");
             inner.className = "wi";
-            inner.textContent = part.word;
+            /* A word is its own little sequence of runs: "experi" in one face
+             * and "ences" in the other is one word, one box, two spans. */
+            for (const run of part.word) {
+                if (run.other) {
+                    const face = document.createElement("span");
+                    face.className = OTHER_FACE;
+                    face.textContent = run.text;
+                    inner.append(face);
+                }
+                else {
+                    inner.append(run.text);
+                }
+            }
             box.append(inner);
             frag.append(box);
         }

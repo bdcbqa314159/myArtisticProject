@@ -30,26 +30,26 @@
 
    section                              line   lines
    ----------------------------------  -----  ------
-   FOUNDATION                             55     180
-   THE FURNITURE                         235     323
-   GRIDS, CARDS AND THE SHOWREEL SLOT    558     175
-   CROSSING BETWEEN SECTIONS             733      58
-   A DOCUMENT BEHIND A CONCEPT           791     108
-   THE FIELDS THE WORK SITS IN           899     549
-   MOTION                               1448      62
-   WIDER                                1510      51
-   THE LOADER                           1561      96
-   THE MENU, BELOW THE BREAKPOINT       1657      46
-   OFFSETS                              1703     173
-   OFFSETS, SECOND ATTEMPT              1876      31
-   CENTRED SECTION HEADINGS             1907      40
-   FULL-BLEED PHOTOGRAPHS               1947      34
-   BOTH BUTTONS, AND TIME TO SEE THEM   1981      59
-   HOW WE CAN WORK TOGETHER             2040     140
-   THE TWO PHRASES, EXCHANGING PLACES   2180      74
-   THE WORK, AT THREE LEVELS            2254     763
-   THE FORM BEHIND "LET'S TALK"         3017     117
-   PRINT                                3134      40
+   FOUNDATION                             55     209
+   THE FURNITURE                         264     323
+   GRIDS, CARDS AND THE SHOWREEL SLOT    587     175
+   CROSSING BETWEEN SECTIONS             762      58
+   A DOCUMENT BEHIND A CONCEPT           820     108
+   THE FIELDS THE WORK SITS IN           928     549
+   MOTION                               1477      62
+   WIDER                                1539      51
+   THE LOADER                           1590      96
+   THE MENU, BELOW THE BREAKPOINT       1686      46
+   OFFSETS                              1732     173
+   OFFSETS, SECOND ATTEMPT              1905      31
+   CENTRED SECTION HEADINGS             1936      40
+   FULL-BLEED PHOTOGRAPHS               1976      34
+   BOTH BUTTONS, AND TIME TO SEE THEM   2010      59
+   HOW WE CAN WORK TOGETHER             2069     140
+   THE TWO PHRASES, EXCHANGING PLACES   2209      74
+   THE WORK, AT THREE LEVELS            2283     763
+   THE FORM BEHIND "LET'S TALK"         3046     117
+   PRINT                                3163      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -98,6 +98,26 @@
 
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --sans:  system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+
+  /* THE SECOND FACE, AND THE ROOM LEFT FOR IT.
+     
+     The direction the client's designer is going is one sentence
+     carrying two typefaces. A field marks a stretch of itself with
+     `((like this))` and the template turns it into `.other-face`.
+     
+     Both of these default to what the line already uses, so the
+     mechanism is in place and nothing on the page looks any different
+     until there is a face to point it at — which is the whole request:
+     leave the space, do not show it yet. When the second face is
+     dropped into `_dropin/static/fonts/`, `tools/fonts.py` writes the
+     family into fonts.css and this is where it lands.
+     
+     The colour is here for the same reason. A designer mixing faces
+     usually wants to mix weight or colour with them, and a second
+     token costs nothing while an inline style would cost an exception
+     in the content policy. */
+  --other-face: var(--serif);
+  --other-ink: inherit;
 
   /* The editorial signature, as two numbers: labels wide, display tight. */
   --track-label: 0.24em;
@@ -184,6 +204,15 @@ button { font: inherit; cursor: pointer; }
    a state we draw ourselves, because taking the feedback away and
    giving nothing back is worse than the rectangle. */
 a, button, summary, label, input { -webkit-tap-highlight-color: transparent; }
+/* A stretch of a sentence in the second face. The only element a
+   headline may contain: `src/motion.ts` reads it back when it splits
+   the line into words, so a mixed headline keeps its word-by-word
+   entrance, and anything else in a heading leaves that heading alone. */
+.other-face {
+  font-family: var(--other-face);
+  color: var(--other-ink);
+}
+
 img { max-width: 100%; height: auto; display: block; }
 
 /* AN IMAGE THAT NEVER ARRIVED, MADE QUIET.

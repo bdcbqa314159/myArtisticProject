@@ -41,7 +41,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # someone actually receives, and `main` at the end running them.
 from browser import dom, find_chrome                        # noqa: E402
 from variants import (build_live_config, build_with_a_small_strip,  # noqa: E402
-                      build_with_a_waiting_project, build_with_projects)
+                      build_with_a_waiting_project, build_with_projects, build_with_two_faces)
 PORT = 8731
 
 
@@ -937,6 +937,62 @@ def check_horizon_ceiling(chrome: str, out: Path, url: str) -> "list[str]":
                 f"the arithmetic says {f['owed']}px. The ceiling is being "
                 f"read from whatever has loaded rather than from the copy "
                 f"that will be on screen")
+    return bad
+
+
+def check_two_faces(chrome: str, out: Path, url: str) -> "list[str]":
+    """A headline set in two typefaces still plays word by word.
+
+    The splitter refused any heading containing an element, so the
+    first version of this feature would have bought the designer two
+    faces at the cost of the headline's entrance — on the display
+    lines, which is exactly where both live. It reads runs now.
+
+    Run against a build whose headline is marked up, because nothing in
+    the real content uses the markers yet: the request was to leave the
+    room, not to fill it.
+    """
+    (out / "_faces.html").write_text(probe("faces"), encoding="utf-8")
+    said = dom(chrome, url + "/_faces.html", 900, 900, budget=20000)
+    said = only_the_verdict(said)
+    found = re.search(r"FACES ([^<]*)", said)
+    if not found:
+        return ["faces: the probe returned no verdict"]
+    verdict = found.group(1).strip()
+    if "=" not in verdict:
+        return [f"faces: the probe could not run — {verdict}"]
+    f = dict(kv.split("=", 1) for kv in verdict.split())
+
+    bad = []
+    if f["split"] != "y":
+        bad.append(
+            "faces: a headline carrying a second typeface was not split into "
+            "words at all, so it has lost its entrance — which is the trade "
+            "this was written to avoid")
+    if int(f["boxes"]) < 2:
+        bad.append(f"faces: {f['boxes']} word box(es) in the headline, so "
+                   f"nothing was taken apart")
+    if int(f["faces"]) < 1:
+        bad.append(
+            "faces: the second typeface did not survive being split into "
+            "words — the span the template inserted is gone, so the "
+            "headline is back to one face")
+    if f.get("holders") != "1":
+        bad.append(
+            f"faces: the marked word spans {f.get('holders')} boxes. A word "
+            f"is one box however many faces it is set in, or a line can "
+            f"break inside it")
+
+    # And it still reads as what was written.
+    import urllib.parse
+    text = urllib.parse.unquote(f.get("text", ""))
+    if "((" in text or "))" in text:
+        bad.append(f"faces: the markers are still in the page ({text!r}) — a "
+                   f"reader is being shown the notation instead of the "
+                   f"typeface")
+    if not text.endswith("."):
+        bad.append(f"faces: the headline no longer ends as it was written "
+                   f"({text!r}), so something was lost in the splitting")
     return bad
 
 
@@ -1884,6 +1940,20 @@ def main() -> int:
             # And with a strip copy smaller than the one that opens,
             # which is what real photography looks like and the
             # stand-ins do not.
+            # A headline in two typefaces. Nothing in the real content
+            # is marked up — the request was to leave the room, not to
+            # fill it — so the check needs a build that uses it.
+            faces_root = build_with_two_faces(out)
+            made_faces = subprocess.run(
+                ["zola", "--root", str(faces_root), "build",
+                 "--base-url", url, "-o", str(out), "-f"],
+                capture_output=True, text=True)
+            if made_faces.returncode != 0:
+                problems.append("the site does not build with a headline in "
+                                "two faces:\n" + made_faces.stderr[-400:])
+            else:
+                problems += check_two_faces(chrome, out, url)
+
             small_root = build_with_a_small_strip(out)
             made_small = subprocess.run(
                 ["zola", "--root", str(small_root), "build",

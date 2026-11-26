@@ -34,6 +34,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
+import markers                                              # noqa: E402
 import objects                                              # noqa: E402
 
 
@@ -97,6 +98,15 @@ def plain(value: str, what: str = "that text") -> str:
     # the front matter in half: the write was already undone by
     # `commit`, but the complaint that came back said the references had
     # all vanished, which is the symptom and not the cause.
+    # WHAT MAY BE WRITTEN AT ALL. One rule, in `tools/markers.py`, so
+    # the panel and the launch gate cannot drift apart about it: no
+    # angle brackets, and `((two faces))` marked in pairs. The template
+    # turns those markers into a span, which is only safe because
+    # nothing else here can be markup.
+    said = markers.trouble(value, what)
+    if said:
+        raise Refused(said)
+
     if "+++" in value:
         raise Refused(
             f"{what} contains +++, which is the fence between the front "
