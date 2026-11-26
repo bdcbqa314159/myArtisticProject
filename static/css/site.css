@@ -47,9 +47,9 @@
    BOTH BUTTONS, AND TIME TO SEE THEM   1957      59
    HOW WE CAN WORK TOGETHER             2016     140
    THE TWO PHRASES, EXCHANGING PLACES   2156      74
-   THE WORK, AT THREE LEVELS            2230     711
-   THE FORM BEHIND "LET'S TALK"         2941     117
-   PRINT                                3058      40
+   THE WORK, AT THREE LEVELS            2230     737
+   THE FORM BEHIND "LET'S TALK"         2967     117
+   PRINT                                3084      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -2492,6 +2492,32 @@ html.js .group[open] > .group-front {
   z-index: 50;
   display: grid;
   place-items: center;
+  /* THE HEIGHT IS STATED, NOT INFERRED FROM `inset`.
+     
+     `inset: 0` asks the browser for the layout viewport, and on iOS
+     that is the screen WITHOUT the toolbar — the bar of buttons at the
+     bottom of Safari, back/forward/share/bookmarks/tabs. The toolbar
+     does not shrink that viewport, it is drawn over it. So a patchwork
+     opened while the toolbar was showing was laid out against metrics
+     that did not match the screen, and it stayed that way: the page
+     cannot be scrolled while the front is open, so nothing ever
+     prompted a relayout. Reported from a phone — "scroll to make the
+     toolbar appear, then tap the photograph and it is not full screen,
+     and it stays short until I close and reopen it".
+     
+     `dvh` is the unit that knows about the toolbar: it follows the
+     viewport that is actually visible, in or out. Edge to edge in both
+     states, which is what full bleed has to mean on a phone.
+     
+     NOT `svh`, which is the toolbar-showing size always — constant, but
+     it leaves a strip of ground at the bottom whenever the toolbar is
+     hidden, and that is the gutter this rule exists to have removed.
+     
+     A browser that does not know `dvh` drops this line and gets exactly
+     the behaviour it had before, which is why there is no fallback
+     above it. Over-constrained with `inset: 0`, so `bottom` is the
+     declaration that gives way — the box is 100dvh from the top. */
+  height: 100dvh;
   /* FULL BLEED, both surfaces. There was a gutter here — 23px on a
      phone, 64px on a wide screen — so the photograph that supports the
      arrangement stopped short of every edge and the ground showed

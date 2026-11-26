@@ -1,0 +1,61 @@
+<meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
+/* THE OPEN PATCHWORK, ACROSS A CHANGE OF VIEWPORT.
+ *
+ * To the page, the browser toolbar arriving is the visible viewport
+ * getting shorter. That is what this does: it opens the patchwork and
+ * changes the height around it, in both orders — the toolbar arriving
+ * after the tap, and the toolbar already there when the tap lands,
+ * which is the one that was reported broken on a phone.
+ *
+ * WHAT THIS CANNOT SEE, said plainly so nobody trusts it too far: iOS
+ * does not shrink the layout viewport when its toolbar appears, it
+ * draws the toolbar OVER it, and headless Chrome has no toolbar at all.
+ * So the iOS fault itself is invisible here. What is checked is the
+ * thing that must hold for the fix to be possible at all — that the
+ * photograph's height follows the viewport rather than being fixed at
+ * whatever it was when the front opened.
+ */
+const out = [];
+const RUNS = [[390, 720, 650, "arrives-after"],
+              [390, 650, 650, "already-there"]];
+let done = 0;
+const guard = (label, fn) => () => {
+  try { fn(); } catch (err) {
+    out.push(label + ":threw-" + String(err.message).replace(/[^A-Za-z0-9]+/g, "-"));
+    if (++done === RUNS.length) say(out.join(" "));
+  }
+};
+RUNS.forEach(([w, hOpen, hAfter, label]) => {
+  const f = document.createElement("iframe");
+  f.width = w; f.height = hOpen; f.style.border = 0; f.src = "/";
+  document.body.appendChild(f);
+  f.addEventListener("load", () => setTimeout(guard(label, () => {
+    const d = f.contentDocument, wv = f.contentWindow;
+    /* The reveal's transform is the containing block for the fixed
+     * front; caught mid-flight it reads as a box inside the card. */
+    d.querySelectorAll(".reveal").forEach((e) => {
+      e.style.transition = "none";
+      e.classList.add("in");
+    });
+    const g = d.querySelector("details.group");
+    g.open = true;
+    setTimeout(guard(label, () => {
+      f.height = hAfter;
+      setTimeout(guard(label, () => {
+        const front = g.querySelector(".group-front .fridge");
+        const img = g.querySelector(".group-front .fridge > .slot-1 img");
+        const fb = front.getBoundingClientRect();
+        const ib = img.getBoundingClientRect();
+        out.push(label
+          + ":screen=" + wv.innerWidth + "x" + wv.innerHeight
+          + ":front=" + Math.round(fb.width) + "x" + Math.round(fb.height)
+          + ":photo=" + Math.round(ib.width) + "x" + Math.round(ib.height)
+          + ":tall=" + Math.round(100 * ib.height / wv.innerHeight)
+          + ":wide=" + Math.round(100 * ib.width / wv.innerWidth));
+        if (++done === RUNS.length) say(out.join(" "));
+      }), 600);
+    }), 800);
+  }), 1500));
+});
+function say(s) { document.getElementById("o").textContent = "TOOLBAR " + s; }
+</script>
