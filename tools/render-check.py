@@ -940,6 +940,61 @@ def check_horizon_ceiling(chrome: str, out: Path, url: str) -> "list[str]":
     return bad
 
 
+def check_toolbar(chrome: str, out: Path, url: str) -> "list[str]":
+    """The open patchwork follows the screen it is on.
+
+    To the page, the browser toolbar arriving is the visible viewport
+    getting shorter — so this opens the patchwork and changes the height
+    around it, both before and after the tap.
+
+    WHAT IT CANNOT SEE. iOS does not shrink the layout viewport when its
+    toolbar appears; it draws the toolbar over it, and headless Chrome
+    has no toolbar to begin with. The fault this was written for — a
+    patchwork opened while the toolbar was showing, laid out against
+    metrics that did not match the screen and left that way because an
+    open front cannot be scrolled — is invisible here and was verified
+    on a phone. What this holds is the precondition for the fix: the
+    photograph's height follows the viewport instead of being frozen at
+    whatever it was when the front opened.
+    """
+    (out / "_toolbar.html").write_text(probe("toolbar"), encoding="utf-8")
+    said = dom(chrome, url + "/_toolbar.html", 500, 1000, budget=30000)
+    said = only_the_verdict(said)
+    found = re.search(r"TOOLBAR ([^<]*)", said)
+    if not found:
+        return ["toolbar: the probe returned no verdict"]
+
+    bad = []
+    seen = 0
+    for word in found.group(1).split():
+        label, _, rest = word.partition(":")
+        if "=" not in rest:
+            bad.append(f"toolbar: the {label} run could not complete — "
+                       f"{rest or 'it wrote no reading'}")
+            continue
+        f = dict(kv.split("=") for kv in rest.split(":"))
+        seen += 1
+        # MATCHES THE SCREEN, not merely covers it. A frozen box is
+        # wrong in both directions and which one you get depends on
+        # which way the viewport moved: too short leaves ground at the
+        # bottom, which is how this was reported, and too tall pushes
+        # the way-out band off the screen entirely. `>= 99` passed a
+        # box 110% of the screen's height, so it is a range.
+        tall, wide = int(f["tall"]), int(f["wide"])
+        if not (99 <= tall <= 101) or not (99 <= wide <= 101):
+            bad.append(
+                f"toolbar: with the viewport changed {label.replace('-', ' ')} "
+                f"the tap, the open patchwork is {wide}% wide and {tall}% tall "
+                f"on a {f['screen']} screen (photograph {f['photo']}, box "
+                f"{f['front']}). It is not following the screen, so on a phone "
+                f"it keeps whatever the screen was when it opened — the fault "
+                f"this exists for, reported as 'not full screen, and it stays "
+                f"short until I close and reopen it'")
+    if seen == 0 and not bad:
+        return ["toolbar: the probe measured nothing at either order"]
+    return bad
+
+
 def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
     (out / "_patch.html").write_text(probe("patch"), encoding="utf-8")
     said = dom(chrome, url + "/_patch.html", 2450, 2050, budget=40000)
@@ -1646,6 +1701,7 @@ def main() -> int:
             problems += check_tint(chrome, out, url)
             problems += check_fixed(chrome, out, url)
             problems += check_patchwork(chrome, out, url)
+            problems += check_toolbar(chrome, out, url)
             problems += check_no_pdf_served(out)
             problems += check_crossing(chrome, out, url, False)
             problems += check_crossing(chrome, out, url, True)
