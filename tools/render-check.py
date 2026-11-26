@@ -966,14 +966,46 @@ def check_toolbar(chrome: str, out: Path, url: str) -> "list[str]":
 
     bad = []
     seen = 0
+    told = set()
     for word in found.group(1).split():
         label, _, rest = word.partition(":")
+        told.add(label)
         if "=" not in rest:
             bad.append(f"toolbar: the {label} run could not complete — "
                        f"{rest or 'it wrote no reading'}")
             continue
         f = dict(kv.split("=") for kv in rest.split(":"))
         seen += 1
+
+        # ---- the carousel, one level in ---------------------------
+        # Nobody had checked this one: it is the same fixed full-screen
+        # box as the patchwork, and it was left on `inset: 0` purely
+        # because it had not been seen to misbehave.
+        if label == "carousel":
+            if not (99 <= int(f["boxtall"]) <= 101):
+                bad.append(
+                    f"toolbar: after the screen changed, the open carousel's "
+                    f"box is {f['boxtall']}% of its height ({f['box']} on a "
+                    f"{f['screen']} screen) — it is keeping the screen it "
+                    f"opened with")
+            if f["fits"] != "y":
+                bad.append(
+                    f"toolbar: after the screen changed, the carousel's "
+                    f"photograph is {f['photo']}px tall on a {f['screen']} "
+                    f"screen — taller than the screen, so part of the "
+                    f"photograph someone opened to look at is off it")
+            if int(f["band"]) < 42:
+                bad.append(
+                    f"toolbar: after the screen changed, there is "
+                    f"{f['band']}px of ground above or below the carousel's "
+                    f"photograph. That ground is the way back out at this "
+                    f"level, and a shorter screen must not eat it")
+            if f["sizes"] != "1":
+                bad.append(
+                    f"toolbar: after the screen changed, the carousel's "
+                    f"photographs are no longer one height "
+                    f"({f['sizes']} different) — swiping would jump")
+            continue
         # MATCHES THE SCREEN, not merely covers it. A frozen box is
         # wrong in both directions and which one you get depends on
         # which way the viewport moved: too short leaves ground at the
@@ -990,8 +1022,16 @@ def check_toolbar(chrome: str, out: Path, url: str) -> "list[str]":
                 f"it keeps whatever the screen was when it opened — the fault "
                 f"this exists for, reported as 'not full screen, and it stays "
                 f"short until I close and reopen it'")
+    # EVERY RUN REPORTS, or the silence is the finding. A run that
+    # simply never appears in the verdict leaves its assertions
+    # unexecuted and the check still green.
+    missing = {"arrives-after", "already-there", "carousel"} - told
+    if missing:
+        bad.append(
+            f"toolbar: {', '.join(sorted(missing))} wrote no reading at all, "
+            f"so nothing was measured for it")
     if seen == 0 and not bad:
-        return ["toolbar: the probe measured nothing at either order"]
+        return ["toolbar: the probe measured nothing at any order"]
     return bad
 
 
@@ -1038,6 +1078,20 @@ def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
         # `tools/content-check.py` asks it where the rest of the launch
         # gate lives. What still belongs here is that the swap happened
         # at all, below.
+        # FULL BLEED MEANS NO FRAME EITHER. The hairline every picture
+        # on the page carries is right on the card, where this
+        # photograph is the ground of an arrangement and one picture
+        # among several. At the front it is the screen, and the same
+        # 1px traces all four edges of the phone — which is not a
+        # photograph filling the screen, it is a photograph with a
+        # border around the screen. The card's edge is unchanged and
+        # still checked by check_edges.
+        if f.get("ground") not in (None, "0"):
+            bad.append(
+                f"patch: at {width}px the open patchwork's background "
+                f"photograph has a {f['ground']}px edge. At full bleed that "
+                f"line runs along all four edges of the screen — the prints "
+                f"on top keep theirs, the ground it is lying on must not")
         if f.get("waiting") != "n":
             bad.append(
                 f"patch: at {width}px the open patchwork still carries "

@@ -1,23 +1,29 @@
 <meta charset=utf-8><body style=margin:0><p id=o>no verdict</p><script>
-/* THE OPEN PATCHWORK, ACROSS A CHANGE OF VIEWPORT.
+/* THE OPEN LEVELS, ACROSS A CHANGE OF VIEWPORT.
  *
  * To the page, the browser toolbar arriving is the visible viewport
- * getting shorter. That is what this does: it opens the patchwork and
- * changes the height around it, in both orders — the toolbar arriving
- * after the tap, and the toolbar already there when the tap lands,
- * which is the one that was reported broken on a phone.
+ * getting shorter. That is what this does: it opens a level and changes
+ * the height around it, in both orders — the toolbar arriving after the
+ * tap, and the toolbar already there when the tap lands, which is the
+ * one that was reported broken on a phone ("the background image goes
+ * back with borders").
+ *
+ * Three runs: the patchwork both ways round, and the carousel one level
+ * in, which nobody had checked.
  *
  * WHAT THIS CANNOT SEE, said plainly so nobody trusts it too far: iOS
  * does not shrink the layout viewport when its toolbar appears, it
  * draws the toolbar OVER it, and headless Chrome has no toolbar at all.
  * So the iOS fault itself is invisible here. What is checked is the
- * thing that must hold for the fix to be possible at all — that the
- * photograph's height follows the viewport rather than being fixed at
- * whatever it was when the front opened.
+ * precondition for the fix — that these boxes follow the screen rather
+ * than keeping whatever it was when they opened.
  */
 const out = [];
-const RUNS = [[390, 720, 650, "arrives-after"],
-              [390, 650, 650, "already-there"]];
+const RUNS = [
+  [390, 720, 650, "arrives-after", false],
+  [390, 650, 650, "already-there", false],
+  [390, 720, 650, "carousel", true],
+];
 let done = 0;
 const guard = (label, fn) => () => {
   try { fn(); } catch (err) {
@@ -25,7 +31,7 @@ const guard = (label, fn) => () => {
     if (++done === RUNS.length) say(out.join(" "));
   }
 };
-RUNS.forEach(([w, hOpen, hAfter, label]) => {
+RUNS.forEach(([w, hOpen, hAfter, label, deep]) => {
   const f = document.createElement("iframe");
   f.width = w; f.height = hOpen; f.style.border = 0; f.src = "/";
   document.body.appendChild(f);
@@ -39,21 +45,55 @@ RUNS.forEach(([w, hOpen, hAfter, label]) => {
     });
     const g = d.querySelector("details.group");
     g.open = true;
+
     setTimeout(guard(label, () => {
-      f.height = hAfter;
+      const shots = deep ? g.querySelector(".group-front details.shots") : null;
+      if (deep) {
+        if (!shots) throw new Error("no project to open");
+        shots.open = true;
+      }
       setTimeout(guard(label, () => {
-        const front = g.querySelector(".group-front .fridge");
-        const img = g.querySelector(".group-front .fridge > .slot-1 img");
-        const fb = front.getBoundingClientRect();
-        const ib = img.getBoundingClientRect();
-        out.push(label
-          + ":screen=" + wv.innerWidth + "x" + wv.innerHeight
-          + ":front=" + Math.round(fb.width) + "x" + Math.round(fb.height)
-          + ":photo=" + Math.round(ib.width) + "x" + Math.round(ib.height)
-          + ":tall=" + Math.round(100 * ib.height / wv.innerHeight)
-          + ":wide=" + Math.round(100 * ib.width / wv.innerWidth));
-        if (++done === RUNS.length) say(out.join(" "));
-      }), 600);
+        f.height = hAfter;                       // the toolbar arrives
+        setTimeout(guard(label, () => {
+          const screen = wv.innerWidth + "x" + wv.innerHeight;
+          if (deep) {
+            const reel = shots.querySelector(".reel");
+            const rb = reel.getBoundingClientRect();
+            const shown = [...reel.querySelectorAll("img")]
+              .map((im) => im.getBoundingClientRect())
+              .filter((b) => b.width > 1);
+            const tallest = Math.max(...shown.map((b) => b.height));
+            const heights = [...new Set(shown.map((b) => Math.round(b.height)))];
+            /* The ground above and below the nearest photograph: the
+             * way back out at this level, and the thing most likely to
+             * be eaten when the screen gets shorter. */
+            const band = Math.min(...shown.map(
+              (b) => Math.min(b.top - rb.top, rb.bottom - b.bottom)));
+            out.push(label
+              + ":screen=" + screen
+              + ":box=" + Math.round(rb.width) + "x" + Math.round(rb.height)
+              + ":boxtall=" + Math.round(100 * rb.height / wv.innerHeight)
+              + ":photo=" + Math.round(tallest)
+              + ":fits=" + (tallest <= wv.innerHeight + 1 ? "y" : "n")
+              + ":band=" + Math.round(band)
+              + ":sizes=" + heights.length);
+          } else {
+            const front = g.querySelector(".group-front .fridge");
+            const img = g.querySelector(".group-front .fridge > .slot-1 img");
+            const fb = front.getBoundingClientRect();
+            const ib = img.getBoundingClientRect();
+            out.push(label
+              + ":screen=" + screen
+              + ":front=" + Math.round(fb.width) + "x" + Math.round(fb.height)
+              + ":photo=" + Math.round(ib.width) + "x" + Math.round(ib.height)
+              + ":tall=" + Math.round(100 * ib.height / wv.innerHeight)
+              + ":wide=" + Math.round(100 * ib.width / wv.innerWidth)
+              + ":ground=" + Math.round(parseFloat(
+                  wv.getComputedStyle(img).borderTopWidth) || 0));
+          }
+          if (++done === RUNS.length) say(out.join(" "));
+        }), 600);
+      }), deep ? 900 : 0);
     }), 800);
   }), 1500));
 });
