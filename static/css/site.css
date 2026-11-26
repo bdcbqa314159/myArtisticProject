@@ -47,9 +47,9 @@
    BOTH BUTTONS, AND TIME TO SEE THEM   2010      59
    HOW WE CAN WORK TOGETHER             2069     140
    THE TWO PHRASES, EXCHANGING PLACES   2209      74
-   THE WORK, AT THREE LEVELS            2283     818
-   THE FORM BEHIND "LET'S TALK"         3101     117
-   PRINT                                3218      40
+   THE WORK, AT THREE LEVELS            2283     842
+   THE FORM BEHIND "LET'S TALK"         3125     117
+   PRINT                                3242      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -2744,7 +2744,31 @@ html.js .group[open] > .group-front .fridge {
    its own 3:2 shape at the top of a full-height box and the four prints
    scattered over empty ground below it. Every link in the chain has to
    be told to stretch, not just the ends. */
-html.js .group[open] > .group-front .fridge > .slot-1,
+/* THE GROUND IS BIGGER THAN THE SCREEN, AND THAT IS THE WHOLE POINT.
+   
+   Four attempts at this sized the photograph to a viewport — `inset: 0`,
+   then `dvh`, then `lvh` — and every one of them left the photograph
+   answering to the browser's toolbar. It shrank when the bar arrived,
+   or a gap opened under it, and the page showed through. Asked for
+   plainly, twice: a full picture in the background, not challenged by
+   the toolbar.
+   
+   So it stops answering. The ground hangs 72px past the top and the
+   bottom of its box — more than any phone's chrome, and more than the
+   distance iOS shifts a fixed element while that chrome animates. It
+   is `object-fit: cover`, so the overhang is crop, which is what cover
+   does anyway; nothing is distorted and nothing is ever short.
+   
+   WHY ONLY THIS SLOT. The four prints are placed in percentages inside
+   `.fridge` and their arrangement is the composition — moving or
+   resizing that box would move them against each other. The ground is
+   not part of that arrangement, it is what the arrangement lies on, so
+   it is the one thing that can break out of the box without changing
+   the picture. */
+html.js .group[open] > .group-front .fridge > .slot-1 {
+  inset: -72px 0;
+  height: auto;
+}
 html.js .group[open] > .group-front .fridge > .slot-1 > summary {
   height: 100%;
 }
