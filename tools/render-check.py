@@ -1130,15 +1130,26 @@ def check_toolbar(chrome: str, out: Path, url: str) -> "list[str]":
         # the way-out band off the screen entirely. `>= 99` passed a
         # box 110% of the screen's height, so it is a range.
         tall, wide = int(f["tall"]), int(f["wide"])
-        if not (99 <= tall <= 101) or not (99 <= wide <= 101):
+        box = int(f.get("boxtall", 0))
+        # THE GROUND COVERS; THE BOX MATCHES. The photograph is bigger
+        # than the screen on purpose — sized to a viewport it answers to
+        # the toolbar, which is the fault this file is named after — so
+        # only the floor is asserted for it. The box is what must follow
+        # the screen rather than keeping whatever it opened with.
+        if not (99 <= box <= 101):
+            bad.append(
+                f"toolbar: with the viewport changed {label.replace('-', ' ')} "
+                f"the tap, the open patchwork's BOX is {box}% of the screen "
+                f"({f['front']} on a {f['screen']} screen) — it is keeping "
+                f"the screen it opened with")
+        if tall < 99 or wide < 99:
             bad.append(
                 f"toolbar: with the viewport changed {label.replace('-', ' ')} "
                 f"the tap, the open patchwork is {wide}% wide and {tall}% tall "
                 f"on a {f['screen']} screen (photograph {f['photo']}, box "
-                f"{f['front']}). It is not following the screen, so on a phone "
-                f"it keeps whatever the screen was when it opened — the fault "
-                f"this exists for, reported as 'not full screen, and it stays "
-                f"short until I close and reopen it'")
+                f"{f['front']}). The ground must cover the screen whatever the "
+                f"browser's chrome is doing — short is the fault that was "
+                f"reported four times over")
     # EVERY RUN REPORTS, or the silence is the finding. A run that
     # simply never appears in the verdict leaves its assertions
     # unexecuted and the check still green.
@@ -1305,9 +1316,22 @@ def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
 
         if f["fills"] != "y":
             bad.append(f"patch: at {width}px the photograph behind the prints "
-                       f"does not fill the patchwork ({f['img']} inside it). "
+                       f"does not cover the patchwork ({f['img']} inside it). "
                        f"At the front a <summary> sits between the slot and "
                        f"the image, and a percentage height dies on it")
+        # AND IT HANGS PAST THE BOX, deliberately. Four attempts sized
+        # this photograph to a viewport and every one left it answering
+        # to the browser's toolbar — shrinking as the bar arrived, or a
+        # gap opening beneath it with the page showing through. The
+        # overhang is what stops the question being asked: more than any
+        # phone's chrome, and more than the distance iOS shifts a fixed
+        # element while that chrome animates.
+        if int(f.get("over", 0)) < 100:
+            bad.append(
+                f"patch: at {width}px the ground hangs only {f.get('over')}px "
+                f"past the box it fills. A phone's toolbar is around 40px and "
+                f"iOS moves fixed elements while it animates — this is the "
+                f"margin that keeps the photograph from ever being short")
     return bad
 
 

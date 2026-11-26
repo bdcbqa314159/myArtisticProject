@@ -43,8 +43,17 @@ SIZES.forEach(([w, h]) => {
           // slot is an <li> with the image as its child; at the front a
           // <summary> sits between them and a percentage height dies on
           // it, leaving the photograph at its own 3:2 at the top.
-          + ":fills=" + ((Math.abs(im.width - fr.width) < 3
-                       && Math.abs(im.height - fr.height) < 3) ? "y" : "n")
+            /* THE PHOTOGRAPH MUST COVER THE PATCHWORK'S BOX — and it
+             * is allowed to be bigger. This asked it to MATCH the box,
+             * which caught the real fault (at the front a <summary>
+             * sits between the slot and the image, a percentage height
+             * dies on it, and the photograph sat at its own 3:2 at the
+             * top) and also refused the ground that now hangs past the
+             * screen so no toolbar can expose anything behind it.
+             * Short is the fault. Bigger is the fix. */
+            + ":fills=" + ((im.width >= fr.width - 1
+                         && im.height >= fr.height - 1) ? "y" : "n")
+            + ":over=" + Math.round(im.height - fr.height)
           + ":img=" + Math.round(im.width) + "x" + Math.round(im.height)
           /* AND HOW MANY PIXELS THERE ACTUALLY ARE. The box filling the
            * screen says nothing about the photograph in it: the card's
