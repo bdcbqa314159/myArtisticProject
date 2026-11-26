@@ -47,9 +47,9 @@
    BOTH BUTTONS, AND TIME TO SEE THEM   2010      59
    HOW WE CAN WORK TOGETHER             2069     140
    THE TWO PHRASES, EXCHANGING PLACES   2209      74
-   THE WORK, AT THREE LEVELS            2283     763
-   THE FORM BEHIND "LET'S TALK"         3046     117
-   PRINT                                3163      40
+   THE WORK, AT THREE LEVELS            2283     780
+   THE FORM BEHIND "LET'S TALK"         3063     117
+   PRINT                                3180      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -2558,19 +2558,36 @@ html.js .group[open] > .group-front {
      toolbar appear, then tap the photograph and it is not full screen,
      and it stays short until I close and reopen it".
      
-     `dvh` is the unit that knows about the toolbar: it follows the
-     viewport that is actually visible, in or out. Edge to edge in both
-     states, which is what full bleed has to mean on a phone.
+     THREE UNITS, AND THE ONLY ONE THAT IS RIGHT HERE.
      
-     NOT `svh`, which is the toolbar-showing size always — constant, but
-     it leaves a strip of ground at the bottom whenever the toolbar is
-     hidden, and that is the gutter this rule exists to have removed.
+       svh  the screen with the toolbar SHOWN — the smallest
+       lvh  the screen with the toolbar HIDDEN — the largest, and it
+            does not change as the toolbar slides
+       dvh  whatever is visible at this instant
      
-     A browser that does not know `dvh` drops this line and gets exactly
-     the behaviour it had before, which is why there is no fallback
-     above it. Over-constrained with `inset: 0`, so `bottom` is the
-     declaration that gives way — the box is 100dvh from the top. */
-  height: 100dvh;
+     This was `dvh` first, and `dvh` is wrong for a photograph that is
+     meant to be the screen: it follows the visible viewport, so the
+     moment the toolbar slides in the photograph SHRINKS away from it
+     and the ground shows where it used to be. Reported from the phone,
+     twice, in the same words both times — the background goes back
+     with borders.
+     
+     `lvh` is the screen as though the toolbar were not there. The
+     photograph is full bleed and stays full bleed; when the toolbar
+     appears it is simply drawn OVER the bottom of it, which is what
+     "full screen" means to the person holding the phone and what it
+     has meant on every other surface of this page.
+     
+     What it costs, said out loud: the 44px band at the BOTTOM edge is
+     under the toolbar while the toolbar is showing. The band is on all
+     four sides and Escape still closes, so the way out is never gone —
+     but it is narrower by one edge, and that is the trade.
+     
+     A browser that does not know `lvh` drops this line and keeps the
+     behaviour `inset: 0` gives it. Over-constrained with `inset: 0`,
+     so `bottom` is the declaration that gives way — the box is 100lvh
+     from the top. */
+  height: 100lvh;
   /* FULL BLEED, both surfaces. There was a gutter here — 23px on a
      phone, 64px on a wide screen — so the photograph that supports the
      arrangement stopped short of every edge and the ground showed
