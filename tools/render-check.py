@@ -1046,6 +1046,91 @@ def check_lost(chrome: str, out: Path, url: str) -> "list[str]":
     return bad
 
 
+# Surfaces that cover the screen and are MEANT to be seen through, with
+# the reason. Everything else that covers the screen must be opaque and
+# must not be sized by the browser's chrome.
+SEE_THROUGH_ON_PURPOSE = {
+    ".veil": "the crossing veil — a blur over the page for a few hundred "
+             "milliseconds while a jump happens, which is the whole effect. "
+             "It holds no photograph and takes no pointer events.",
+}
+
+
+def check_full_screen_surfaces(site_css: str) -> "list[str]":
+    """Every surface that covers the screen obeys the same two rules.
+
+    THIS EXISTS BECAUSE ONE BUG WAS REPORTED FIVE TIMES. The open
+    patchwork's photograph was challenged by Safari's toolbar — it
+    shrank when the bar slid in, and the page showed through the gap —
+    and each fix addressed the surface that had been reported rather
+    than asking what was true of all of them. The carousel and the
+    document had both faults the whole time.
+
+    ONE: the height must not depend on the browser's chrome. `dvh` IS
+    the chrome by definition, and `inset: 0` with a height as well is
+    over-constrained — the browser decides which to drop, and on a
+    phone it decided differently than in every browser used to check
+    it.
+
+    TWO: the ground must be opaque. A see-through backdrop turns every
+    pixel the surface fails to cover into a window onto the page
+    underneath, so the smallest slip becomes the front page showing
+    through instead of nothing at all.
+
+    Read from the stylesheet rather than a browser: the fault only
+    appears on a real phone, so the only thing that can be checked
+    everywhere is the rule itself.
+    """
+    bad = []
+    # COMMENTS FIRST. The rule below is explained in a comment that
+    # names `inset: 0` and `100dvh` as the things not to do, and the
+    # first version of this check read those words as declarations and
+    # failed on the very rules that obey it. Three checks in this
+    # repository have now been fooled by a comment; strip them before
+    # reading anything.
+    site_css = re.sub(r"/\*.*?\*/", " ", site_css, flags=re.S)
+    for m in re.finditer(r"(?m)^([^\n{}]+)\{([^}]*)\}", site_css):
+        selector, body = m.group(1).strip(), m.group(2)
+        if not re.search(r"(?m)^\s*position:\s*fixed", body):
+            continue
+        # Covers the screen? Either pinned on all sides, or pinned at the
+        # top with a viewport height.
+        covers = ("inset: 0" in body
+                  or re.search(r"(?m)^\s*height:\s*100[ds]?[lv]?vh", body))
+        if not covers:
+            continue
+        name = selector.split()[-1].split(">")[-1].strip()
+        allowed = next((k for k in SEE_THROUGH_ON_PURPOSE if k in selector), None)
+
+        if re.search(r"(?m)^\s*height:\s*100dvh", body):
+            bad.append(
+                f"surfaces: {name} is sized with `100dvh`, which is the "
+                f"browser's toolbar by definition — it shrinks the moment the "
+                f"bar slides in. Anchor it at the top with `100lvh`")
+
+        has_height = re.search(r"(?m)^\s*height:\s*\S", body)
+        if "inset: 0" in body and has_height:
+            bad.append(
+                f"surfaces: {name} pins both ends with `inset: 0` AND sets a "
+                f"height. That is over-constrained, the browser picks which "
+                f"to drop, and a phone picked differently from every browser "
+                f"this was checked in")
+
+        ground = re.search(r"(?m)^\s*background:\s*([^;]+);", body)
+        if ground and "transparent" in ground.group(1) and not allowed:
+            bad.append(
+                f"surfaces: {name} has a see-through ground "
+                f"({ground.group(1).strip()[:48]}). Every pixel it fails to "
+                f"cover becomes a window onto the page underneath — which is "
+                f"how the front page kept showing behind the photographs. "
+                f"Paint the blur in a layer behind it instead")
+        if ground is None and not allowed:
+            bad.append(
+                f"surfaces: {name} covers the screen with no ground of its "
+                f"own, so whatever it does not cover is the page itself")
+    return bad
+
+
 def check_toolbar(chrome: str, out: Path, url: str) -> "list[str]":
     """The open patchwork follows the screen it is on.
 
@@ -1903,6 +1988,7 @@ def main() -> int:
             problems += check_menu(chrome, out, url)
             problems += check_reach(chrome, out, url)
             site_css = Path("static/css/site.css").read_text(encoding="utf-8")
+            problems += check_full_screen_surfaces(site_css)
             problems += check_shape_css(site_css)
             problems += check_takes_turns(site_css)
             problems += check_marks_declared(site_css)

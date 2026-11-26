@@ -33,20 +33,21 @@ def read(rel: str) -> str:
 # (what it is, file, pattern, how many there must be, why)
 INVARIANTS = [
     (
-        "the open patchwork is the whole screen, toolbar or no toolbar",
+        "nothing that covers the screen is sized by the browser's toolbar",
         "static/css/site.css",
-        r"height: 100lvh;",
-        1,
-        "Three units and only one is right here: `svh` is the screen "
-        "with the toolbar shown, `lvh` without it, `dvh` whatever is "
-        "visible this instant. A full-bleed photograph wants `lvh` — it "
-        "stays the size of the screen and the toolbar is drawn over it. "
-        "`dvh` was tried and reported straight back from the phone: the "
-        "photograph shrinks away from the toolbar as it slides in and "
-        "the ground shows where it was. No check can catch this — "
-        "inside the iframe the probes use there is no browser chrome, "
-        "so all three units resolve to the same number — which is "
-        "exactly why it is written down here.",
+        r"(?m)^\s*height:\s*100dvh",
+        0,
+        "`dvh` IS the toolbar: it is whatever is visible at this "
+        "instant, so a surface sized in it shrinks the moment the bar "
+        "slides in and the page shows through the gap. That was "
+        "reported five times over — about the patchwork, then the "
+        "carousel, then the document, which all had it. `lvh` is the "
+        "screen as though the chrome were not there and does not "
+        "change. This counts the unit across the whole stylesheet "
+        "because it is cheap and runs without a browser; "
+        "`check_full_screen_surfaces` in tools/render-check.py asks the "
+        "fuller question of every surface, including whether its ground "
+        "is opaque.",
     ),
     (
         "every headline is observed, the hero included",

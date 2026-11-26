@@ -34,22 +34,22 @@
    THE FURNITURE                         264     323
    GRIDS, CARDS AND THE SHOWREEL SLOT    587     175
    CROSSING BETWEEN SECTIONS             762      58
-   A DOCUMENT BEHIND A CONCEPT           820     108
-   THE FIELDS THE WORK SITS IN           928     549
-   MOTION                               1477      62
-   WIDER                                1539      51
-   THE LOADER                           1590      96
-   THE MENU, BELOW THE BREAKPOINT       1686      46
-   OFFSETS                              1732     173
-   OFFSETS, SECOND ATTEMPT              1905      31
-   CENTRED SECTION HEADINGS             1936      40
-   FULL-BLEED PHOTOGRAPHS               1976      34
-   BOTH BUTTONS, AND TIME TO SEE THEM   2010      59
-   HOW WE CAN WORK TOGETHER             2069     140
-   THE TWO PHRASES, EXCHANGING PLACES   2209      74
-   THE WORK, AT THREE LEVELS            2283     842
-   THE FORM BEHIND "LET'S TALK"         3125     117
-   PRINT                                3242      40
+   A DOCUMENT BEHIND A CONCEPT           820     120
+   THE FIELDS THE WORK SITS IN           940     549
+   MOTION                               1489      62
+   WIDER                                1551      51
+   THE LOADER                           1602      96
+   THE MENU, BELOW THE BREAKPOINT       1698      46
+   OFFSETS                              1744     173
+   OFFSETS, SECOND ATTEMPT              1917      31
+   CENTRED SECTION HEADINGS             1948      40
+   FULL-BLEED PHOTOGRAPHS               1988      34
+   BOTH BUTTONS, AND TIME TO SEE THEM   2022      59
+   HOW WE CAN WORK TOGETHER             2081     140
+   THE TWO PHRASES, EXCHANGING PLACES   2221      74
+   THE WORK, AT THREE LEVELS            2295     862
+   THE FORM BEHIND "LET'S TALK"         3157     117
+   PRINT                                3274      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -874,7 +874,20 @@ html.js.crossing.arrived .veil {
 
 html.js .dossier[open] > .leaves {
   position: fixed;
-  inset: 0;
+  /* THE SAME RULE AS THE PATCHWORK IT OPENS FROM.
+     
+     Two properties, and both were missing here while five rounds were
+     spent on the level above. ONE: the height does not depend on the
+     browser's chrome — `dvh` IS the chrome by definition, so a surface
+     sized in it shrinks the moment the bar slides in. TWO: the ground
+     is opaque, because a see-through backdrop turns every pixel this
+     surface fails to cover into a window onto the page underneath. */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: auto;
+  height: 100vh;
+  height: 100lvh;
   z-index: 70;
   display: flex;
   flex-direction: column;
@@ -885,8 +898,7 @@ html.js .dossier[open] > .leaves {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: clamp(1rem, 5vw, 3rem) var(--gutter);
-  backdrop-filter: blur(16px) saturate(0.85);
-  background: color-mix(in oklch, var(--bg) 72%, transparent);
+  background: var(--bg);
 }
 
 html.js .dossier[open] > .leaves .leaf {
@@ -2705,8 +2717,12 @@ html.js .group[open] > .group-front::before {
      what hangs off the screen costs nothing and is never seen. */
   inset: -120px 0;
   z-index: -1;
-  backdrop-filter: blur(16px) saturate(0.85);
-  background: color-mix(in oklch, var(--bg) 62%, transparent);
+  /* OPAQUE, NOT A BLUR.
+     This was 62% of the ground over a blur, so everything it failed
+     to cover was a window onto the page — which is what `bits of the
+     front page` are. A blur is only visible if something shows
+     through it, and nothing may show through here. */
+  background: var(--bg);
 }
 
 /* `96vw` ignored the padding around it, so on a phone the group was
@@ -2766,7 +2782,12 @@ html.js .group[open] > .group-front .fridge {
    it is the one thing that can break out of the box without changing
    the picture. */
 html.js .group[open] > .group-front .fridge > .slot-1 {
-  inset: -72px 0;
+  /* 200px, NOT 72. The 72 was guessed from a simulator whose
+     toolbar is 40px tall. Measured off a photograph of the real
+     phone — address bar at the top, floating toolbar at the bottom
+     — the chrome there is about 127px, so the overhang was always
+     short of it. This is that number with room to spare. */
+  inset: -200px 0;
   height: auto;
 }
 html.js .group[open] > .group-front .fridge > .slot-1 > summary {
@@ -2853,7 +2874,18 @@ html.js .shots[open] > summary .shots-name { display: block; }
    on this box, unlike the one above: nothing inside it is fixed. */
 html.js .shots[open] > .reel {
   position: fixed;
-  inset: 0;
+  /* THE SAME RULE AS THE PATCHWORK IT OPENS FROM.
+     
+     Two properties, and both were missing here while five rounds were
+     spent on the level above. ONE: the height does not depend on the
+     browser's chrome — `dvh` IS the chrome by definition, so a surface
+     sized in it shrinks the moment the bar slides in. TWO: the ground
+     is opaque, because a see-through backdrop turns every pixel this
+     surface fails to cover into a window onto the page underneath. */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: auto;
   z-index: 70;
   margin: 0;
   /* THE SAME STATED HEIGHT AS THE PATCHWORK IT OPENS FROM.
@@ -2865,7 +2897,8 @@ html.js .shots[open] > .reel {
      fixed, full-screen box with the same exposure, and it was left on
      `inset` only because it had not been seen to misbehave. Being
      unobserved is not the same as being right. */
-  height: 100dvh;
+  height: 100vh;
+  height: 100lvh;
   /* THE BAND, ON ALL FOUR SIDES. It was `0 var(--gutter)`: 23px at the
      sides and nothing at all above or below, so the only ground to
      press for the way back was a sliver beside the photograph. The
@@ -2892,8 +2925,7 @@ html.js .shots[open] > .reel {
   box-sizing: border-box;
   padding: var(--way-out) 0;
   align-items: center;
-  backdrop-filter: blur(16px) saturate(0.85);
-  background: color-mix(in oklch, var(--bg) 62%, transparent);
+  background: var(--bg);
   scroll-padding-inline: 0;
 }
 
