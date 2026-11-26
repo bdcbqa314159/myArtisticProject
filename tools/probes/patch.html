@@ -59,7 +59,22 @@ SIZES.forEach(([w, h]) => {
            * at full bleed it draws a line along all four edges of the
            * screen. */
           + ":ground=" + Math.round(parseFloat(
-              f.contentWindow.getComputedStyle(support).borderTopWidth) || 0));
+              f.contentWindow.getComputedStyle(support).borderTopWidth) || 0)
+          /* WHAT IS BEHIND THE PHOTOGRAPH. The blurred layer is 38%
+           * see-through by design, so any strip the photograph does not
+           * cover is a window onto the page underneath — which is what
+           * a reader saw while the toolbar slid in. The front needs a
+           * ground of its own that nothing can be seen through. */
+          + ":behind=" + (function () {
+              var bg = f.contentWindow.getComputedStyle(
+                g.querySelector(".group-front")).backgroundColor;
+              var n = (bg.match(/[\d.]+/g) || []).map(Number);
+              /* rgb() is opaque; rgba() carries the alpha fourth. The
+               * question is answered here rather than by handing a
+               * colour string to another language to take apart. */
+              var alpha = n.length > 3 ? n[3] : 1;
+              return alpha >= 1 ? "opaque" : "see-through-" + alpha;
+            })());
 
         /* AND THE PICTURES, one level further in.
          *

@@ -1209,6 +1209,22 @@ def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
                 f"photograph has a {f['ground']}px edge. At full bleed that "
                 f"line runs along all four edges of the screen — the prints "
                 f"on top keep theirs, the ground it is lying on must not")
+        # NOTHING IS SEEN THROUGH THE FRONT. `rgba(…,0)` means a
+        # transparent ground, and the layer behind the photograph is
+        # deliberately 38% see-through — it is a blur, that is the
+        # point. So any strip the photograph does not cover shows the
+        # page itself, which is what the reader saw while the toolbar
+        # slid in and the fixed box had not caught up. iOS moves fixed
+        # elements during that animation and no stylesheet prevents it;
+        # what a stylesheet can do is make the worst case a band of
+        # ground instead of a view of the page.
+        if f.get("behind") != "opaque":
+            bad.append(
+                f"patch: at {width}px the open patchwork has nothing opaque "
+                f"behind the photograph ({f.get('behind')}). The blurred "
+                f"layer is "
+                f"see-through by design, so any strip the photograph does "
+                f"not cover becomes a window onto the page underneath")
         if f.get("waiting") != "n":
             bad.append(
                 f"patch: at {width}px the open patchwork still carries "
