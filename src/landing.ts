@@ -31,7 +31,8 @@ import { syncBar, WIDE, markCurrentSection, closeMenuOnNavigate,
          keepOneAddress, tintOnTheWayIn } from "./nav.js";
 import { closeTheCarousel, sharpenOnOpen, placeTheLights,
          levelTheCarousels } from "./work.js";
-import { warmTheRest, warmWhatIsNear } from "./photographs.js";
+import { warmTheRest, warmWhatIsNear,
+         askAgainForWhatFailed } from "./photographs.js";
 
 
 /* ---- blocks arrive on scroll -----------------------------------------
@@ -154,6 +155,7 @@ start("softening while moving", softWhileMoving);
 start("the phrases exchanging", exchangePhrases);
 start("closing the carousel", closeTheCarousel);
 start("the bigger copies", sharpenOnOpen);
+start("asking again for what failed", askAgainForWhatFailed);
 start("warming the rest", warmTheRest);
 start("warming what is near", warmWhatIsNear);
 start("keeping one address", keepOneAddress);

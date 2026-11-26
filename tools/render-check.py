@@ -940,6 +940,56 @@ def check_horizon_ceiling(chrome: str, out: Path, url: str) -> "list[str]":
     return bad
 
 
+def check_lost(chrome: str, out: Path, url: str) -> "list[str]":
+    """A photograph that fails leaves ground, not a torn page.
+
+    Reported from the deployed site on a phone: torn-page icons on a
+    cold landing. Measured in a browser, the two states are nothing
+    alike — an image still LOADING draws nothing at all, while an image
+    that FAILED draws the glyph and the whole of its `alt`, and 163 of
+    this page's images carry a sentence there.
+
+    Every file the live site serves answers correctly, so nothing is
+    missing; what fails is the landing, where the document asks for 167
+    images while the warming queue asks for the rest. So the page asks
+    again, twice, and only then puts a clear pixel in the box.
+    """
+    (out / "_lost.html").write_text(probe("lost"), encoding="utf-8")
+    said = dom(chrome, url + "/_lost.html", 500, 900, budget=20000)
+    said = only_the_verdict(said)
+    found = re.search(r"LOST ([^<]*)", said)
+    if not found:
+        return ["lost: the probe returned no verdict"]
+    verdict = found.group(1).strip()
+    if "=" not in verdict:
+        return [f"lost: the probe could not run — {verdict}"]
+    f = dict(kv.split("=") for kv in verdict.split())
+
+    bad = []
+    if int(f["asked"]) < 2:
+        bad.append(
+            f"lost: a photograph that failed was asked for {f['asked']} "
+            f"time(s). A request dropped in the crowd of a cold landing "
+            f"clears on the second ask, and nothing else on the page ever "
+            f"asks again")
+    if f["lost"] != "y":
+        bad.append(
+            "lost: a photograph that failed every time is not marked, so "
+            "the browser is left drawing its own broken-image glyph and the "
+            "whole alt sentence beside it")
+    if f["content"] != "replaced":
+        bad.append(
+            f"lost: the failed photograph still draws its own content "
+            f"({verdict}). `content: url()` with a real file is what "
+            f"removes the glyph — `color: transparent` removes the words "
+            f"and leaves the torn page, which was measured")
+    if f["ground"] != "yes":
+        bad.append(
+            "lost: the failed photograph has no ground behind it, so it is "
+            "a hole in the page rather than a quiet panel")
+    return bad
+
+
 def check_toolbar(chrome: str, out: Path, url: str) -> "list[str]":
     """The open patchwork follows the screen it is on.
 
@@ -1756,6 +1806,7 @@ def main() -> int:
             problems += check_fixed(chrome, out, url)
             problems += check_patchwork(chrome, out, url)
             problems += check_toolbar(chrome, out, url)
+            problems += check_lost(chrome, out, url)
             problems += check_no_pdf_served(out)
             problems += check_crossing(chrome, out, url, False)
             problems += check_crossing(chrome, out, url, True)

@@ -32,6 +32,16 @@ PAPER = (0xF4, 0xF5, 0xF7)
 INK = (0x14, 0x17, 0x1C)
 
 
+def chunk(kind: bytes, data: bytes) -> bytes:
+    """One PNG chunk: length, kind, body, checksum."""
+    return (
+        struct.pack(">I", len(data))
+        + kind
+        + data
+        + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+    )
+
+
 def png(path: Path, w: int, h: int, pixel) -> None:
     """Write an RGB PNG. `pixel(x, y)` returns an (r, g, b) tuple."""
     rows = bytearray()
@@ -39,14 +49,6 @@ def png(path: Path, w: int, h: int, pixel) -> None:
         rows.append(0)                       # filter type 0, none
         for x in range(w):
             rows.extend(pixel(x, y))
-
-    def chunk(kind: bytes, data: bytes) -> bytes:
-        return (
-            struct.pack(">I", len(data))
-            + kind
-            + data
-            + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
-        )
 
     path.write_bytes(
         b"\x89PNG\r\n\x1a\n"
@@ -122,6 +124,36 @@ FAVICON = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
 """
 
 
+def blank(path: Path) -> None:
+    """One transparent pixel, for an image that never arrived.
+
+    WHAT IT IS FOR. When an image fails — a phone that dropped it, a
+    connection that gave up — the browser draws its own broken-image
+    glyph and, next to it, the whole `alt` sentence. This page carries
+    163 images whose alt text is a full sentence, so a bad landing on a
+    cold cache became a column of torn pages and French prose. Measured
+    in a browser: a failed image draws the glyph AND the sentence;
+    `color: transparent` removes the sentence and leaves the glyph;
+    `content: url()` pointing at a real image removes both, leaving the
+    box to show the ground behind it.
+
+    So it has to be a FILE. The policy is `img-src 'self'`, which
+    refuses a `data:` URI, and the page would rather have 68 bytes than
+    an exception in its own policy.
+
+    TRANSPARENT, not the colour of the ground: there are three palettes
+    and the ground is a custom property. One clear pixel is right in all
+    of them.
+    """
+    clear = chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0))
+    path.write_bytes(
+        b"\x89PNG\r\n\x1a\n"
+        + clear
+        + chunk(b"IDAT", zlib.compress(bytes([0, 0, 0, 0, 0]), 9))
+        + chunk(b"IEND", b"")
+    )
+
+
 def main() -> int:
     STATIC.mkdir(exist_ok=True)
 
@@ -155,6 +187,10 @@ def main() -> int:
         # would be a worse answer than none.
         png(STATIC / "og.png", 1200, 630, mark(1200, 630, 0.26))
         drawn.append("og.png")
+
+    # Not a mark and never seen: the stand-in for an image that failed.
+    (STATIC / "img").mkdir(parents=True, exist_ok=True)
+    blank(STATIC / "img" / "blank.png")
 
     for f in ("favicon.svg", "icon-180.png", "og.png"):
         p = STATIC / f
