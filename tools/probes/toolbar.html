@@ -86,6 +86,13 @@ RUNS.forEach(([w, hOpen, hAfter, label, deep]) => {
               + ":screen=" + screen
               + ":front=" + Math.round(fb.width) + "x" + Math.round(fb.height)
               + ":photo=" + Math.round(ib.width) + "x" + Math.round(ib.height)
+              /* THE BOX follows the screen — that is the thing that
+               * must not be frozen at whatever the screen was when the
+               * front opened. THE GROUND only has to cover it, and it
+               * deliberately overhangs: a photograph sized to a
+               * viewport is a photograph that answers to the toolbar,
+               * which is the whole fault. */
+              + ":boxtall=" + Math.round(100 * fb.height / wv.innerHeight)
               + ":tall=" + Math.round(100 * ib.height / wv.innerHeight)
               + ":wide=" + Math.round(100 * ib.width / wv.innerWidth)
               + ":ground=" + Math.round(parseFloat(
