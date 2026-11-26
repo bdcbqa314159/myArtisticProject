@@ -1053,15 +1053,26 @@ def check_toolbar(chrome: str, out: Path, url: str) -> "list[str]":
     getting shorter — so this opens the patchwork and changes the height
     around it, both before and after the tap.
 
-    WHAT IT CANNOT SEE. iOS does not shrink the layout viewport when its
-    toolbar appears; it draws the toolbar over it, and headless Chrome
-    has no toolbar to begin with. The fault this was written for — a
-    patchwork opened while the toolbar was showing, laid out against
-    metrics that did not match the screen and left that way because an
-    open front cannot be scrolled — is invisible here and was verified
-    on a phone. What this holds is the precondition for the fix: the
-    photograph's height follows the viewport instead of being frozen at
-    whatever it was when the front opened.
+    WHAT IT CANNOT SEE, twice over.
+
+    First, iOS does not shrink the layout viewport when its toolbar
+    appears; it draws the toolbar over it, and headless Chrome has no
+    toolbar at all. The original fault — a patchwork opened while the
+    toolbar was showing and left at the wrong size, because an open
+    front cannot be scrolled and nothing prompted a relayout — is
+    invisible here and was verified on a phone.
+
+    Second, and worth knowing before trusting this: inside an iframe
+    there is no browser chrome, so `svh`, `lvh` and `dvh` all resolve to
+    the same number. This check CANNOT tell which unit the stylesheet
+    uses — and the difference between them is the whole of the bug it
+    is named after. `dvh` made the photograph shrink away from the
+    toolbar; `lvh` keeps it the size of the screen and lets the toolbar
+    draw over it. An invariant holds the unit, because this cannot.
+
+    What this does hold is the precondition for either: the
+    photograph's height follows the box it is in rather than being
+    frozen at whatever the screen was when the front opened.
     """
     (out / "_toolbar.html").write_text(probe("toolbar"), encoding="utf-8")
     said = dom(chrome, url + "/_toolbar.html", 500, 1000, budget=30000)

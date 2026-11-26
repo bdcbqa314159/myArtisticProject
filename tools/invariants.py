@@ -33,6 +33,22 @@ def read(rel: str) -> str:
 # (what it is, file, pattern, how many there must be, why)
 INVARIANTS = [
     (
+        "the open patchwork is the whole screen, toolbar or no toolbar",
+        "static/css/site.css",
+        r"height: 100lvh;",
+        1,
+        "Three units and only one is right here: `svh` is the screen "
+        "with the toolbar shown, `lvh` without it, `dvh` whatever is "
+        "visible this instant. A full-bleed photograph wants `lvh` — it "
+        "stays the size of the screen and the toolbar is drawn over it. "
+        "`dvh` was tried and reported straight back from the phone: the "
+        "photograph shrinks away from the toolbar as it slides in and "
+        "the ground shows where it was. No check can catch this — "
+        "inside the iframe the probes use there is no browser chrome, "
+        "so all three units resolve to the same number — which is "
+        "exactly why it is written down here.",
+    ),
+    (
         "every headline is observed, the hero included",
         "src/motion.ts",
         r"whileInView\(heads, watcher, released",
