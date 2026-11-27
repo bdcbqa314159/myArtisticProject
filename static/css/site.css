@@ -47,9 +47,9 @@
    BOTH BUTTONS, AND TIME TO SEE THEM   2022      59
    HOW WE CAN WORK TOGETHER             2081     140
    THE TWO PHRASES, EXCHANGING PLACES   2221      74
-   THE WORK, AT THREE LEVELS            2295     862
-   THE FORM BEHIND "LET'S TALK"         3157     117
-   PRINT                                3274      40
+   THE WORK, AT THREE LEVELS            2295     877
+   THE FORM BEHIND "LET'S TALK"         3172     117
+   PRINT                                3289      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -2750,6 +2750,21 @@ html.js .group[open] > .group-front .fridge {
   height: 100%;
   max-height: none;
   aspect-ratio: auto;
+  /* AND IT MUST NOT CLIP, HERE.
+     
+     `.fridge { overflow: clip }` is right on the card: the prints are
+     rotated and have to stay inside the patchwork's box. At the front
+     it silently destroyed the fix below it — the ground is given
+     `inset: -200px 0` so it hangs past the screen and no toolbar can
+     expose anything behind it, and the clip cut that overhang off at
+     the box edge. Two releases of "the ground overhangs now" did
+     nothing at all.
+     
+     The check did not catch it either: `getBoundingClientRect()`
+     reports the LAYOUT box, which really was 200px bigger, while the
+     painted pixels were being thrown away. It measured a number that
+     was true and meaningless. */
+  overflow: visible;
 }
 
 /* ...AND THE PHOTOGRAPH BEHIND THEM FILLS IT.
