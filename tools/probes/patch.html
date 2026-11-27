@@ -54,6 +54,30 @@ SIZES.forEach(([w, h]) => {
             + ":fills=" + ((im.width >= fr.width - 1
                          && im.height >= fr.height - 1) ? "y" : "n")
             + ":over=" + Math.round(im.height - fr.height)
+            /* AND WHETHER THE OVERHANG IS ACTUALLY PAINTED. The box
+             * above is the LAYOUT box: a clipping ancestor throws the
+             * overhanging pixels away and `getBoundingClientRect` never
+             * mentions it. `.fridge { overflow: clip }` did exactly
+             * that for two releases while this check reported a healthy
+             * 200px of ground that nobody could see. */
+            + ":clipped=" + (function () {
+                /* Only as far as the fixed element. Overflow on
+                 * anything ABOVE a `position: fixed` box does not clip
+                 * it — the page sets `overflow: hidden` on <body> while
+                 * a patchwork is open, and walking past the front
+                 * reported that as the culprit. */
+                var a = support.parentElement, cut = "n";
+                while (a && a !== d.documentElement) {
+                  var s = f.contentWindow.getComputedStyle(a);
+                  if (s.overflow !== "visible") {
+                    cut = (a.className || "").split(" ")[0] || a.tagName;
+                    break;
+                  }
+                  if (s.position === "fixed") break;
+                  a = a.parentElement;
+                }
+                return cut;
+              })()
           + ":img=" + Math.round(im.width) + "x" + Math.round(im.height)
           /* AND HOW MANY PIXELS THERE ACTUALLY ARE. The box filling the
            * screen says nothing about the photograph in it: the card's

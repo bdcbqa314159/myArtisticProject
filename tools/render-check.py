@@ -1411,6 +1411,17 @@ def check_patchwork(chrome: str, out: Path, url: str) -> "list[str]":
         # overhang is what stops the question being asked: more than any
         # phone's chrome, and more than the distance iOS shifts a fixed
         # element while that chrome animates.
+        # A CLIPPED OVERHANG IS NOT AN OVERHANG. `.fridge` carries
+        # `overflow: clip` for the card, where rotated prints must stay
+        # inside the box — and at the front it quietly deleted the
+        # ground's overhang while the measurement below still reported
+        # it, because a layout box knows nothing about clipping.
+        if f.get("clipped", "n") != "n":
+            bad.append(
+                f"patch: at {width}px the ground's overhang is thrown away "
+                f"by `{f['clipped']}`, which clips. The pixels that are "
+                f"supposed to cover whatever the browser's chrome does are "
+                f"never painted, and the box measurement cannot see it")
         if int(f.get("over", 0)) < 100:
             bad.append(
                 f"patch: at {width}px the ground hangs only {f.get('over')}px "
