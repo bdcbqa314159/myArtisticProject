@@ -59,16 +59,27 @@
    un-hide the page anyway. A portfolio must never stay blank. */
 setTimeout(function(){d.classList.remove("booting")},6000)})(document.documentElement)
 </script>
-<link rel="stylesheet" href="{{ get_url(path='css/site.css') }}">
+{#- EVERY ONE OF THESE CARRIES A HASH.
+
+     `get_url(..., cachebust=true)` appends the file's own hash, so a
+     deploy changes the URL and a browser cannot serve the old one.
+
+     Without it these are stable addresses and GitHub Pages sends
+     `Cache-Control: max-age=600` — ten minutes during which a phone
+     that has already seen the page re-renders new HTML against the OLD
+     stylesheet. An evening was spent on a fix that was live on the
+     server and not on the phone looking at it. The photographs never
+     had this problem because Zola content-hashes them already. -#}
+<link rel="stylesheet" href="{{ get_url(path='css/site.css', cachebust=true) }}">
 {# AFTER the stylesheet, so the graphiste's decisions win over its
    defaults. Generated from [extra.theme] in config.toml by
    tools/theme.py; empty until someone decides something, and then it
    is nothing but custom properties. #}
-<link rel="stylesheet" href="{{ get_url(path='css/theme.css') }}">
+<link rel="stylesheet" href="{{ get_url(path='css/theme.css', cachebust=true) }}">
 {# And after THAT, the faces themselves. The stack above names a family;
    this is what makes a visitor who has never installed it see it.
    Generated from static/fonts/ by tools/fonts.py, and empty — not one
    rule — until a file is dropped. `font-src` needs no permission of its
    own: `default-src 'self'` already covers it, and nothing is loaded
    from anywhere else. #}
-<link rel="stylesheet" href="{{ get_url(path='css/fonts.css') }}">
+<link rel="stylesheet" href="{{ get_url(path='css/fonts.css', cachebust=true) }}">
