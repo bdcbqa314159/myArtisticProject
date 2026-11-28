@@ -34,22 +34,22 @@
    THE FURNITURE                         264     323
    GRIDS, CARDS AND THE SHOWREEL SLOT    587     175
    CROSSING BETWEEN SECTIONS             762      58
-   A DOCUMENT BEHIND A CONCEPT           820     120
-   THE FIELDS THE WORK SITS IN           940     549
-   MOTION                               1489      62
-   WIDER                                1551      51
-   THE LOADER                           1602      96
-   THE MENU, BELOW THE BREAKPOINT       1698      46
-   OFFSETS                              1744     173
-   OFFSETS, SECOND ATTEMPT              1917      31
-   CENTRED SECTION HEADINGS             1948      40
-   FULL-BLEED PHOTOGRAPHS               1988      34
-   BOTH BUTTONS, AND TIME TO SEE THEM   2022      59
-   HOW WE CAN WORK TOGETHER             2081     140
-   THE TWO PHRASES, EXCHANGING PLACES   2221      74
-   THE WORK, AT THREE LEVELS            2295     877
-   THE FORM BEHIND "LET'S TALK"         3172     134
-   PRINT                                3306      40
+   A DOCUMENT BEHIND A CONCEPT           820     136
+   THE FIELDS THE WORK SITS IN           956     549
+   MOTION                               1505      62
+   WIDER                                1567      51
+   THE LOADER                           1618      96
+   THE MENU, BELOW THE BREAKPOINT       1714      46
+   OFFSETS                              1760     173
+   OFFSETS, SECOND ATTEMPT              1933      31
+   CENTRED SECTION HEADINGS             1964      40
+   FULL-BLEED PHOTOGRAPHS               2004      34
+   BOTH BUTTONS, AND TIME TO SEE THEM   2038      59
+   HOW WE CAN WORK TOGETHER             2097     140
+   THE TWO PHRASES, EXCHANGING PLACES   2237      74
+   THE WORK, AT THREE LEVELS            2311     909
+   THE FORM BEHIND "LET'S TALK"         3220     134
+   PRINT                                3354      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -874,6 +874,28 @@ html.js.crossing.arrived .veil {
 
 html.js .dossier[open] > .leaves {
   position: fixed;
+  /* MEASURED LIKE THE PAGE, NOT LIKE THE WINDOW.
+     
+     `inset: 0` on a fixed element uses the LAYOUT viewport — the same
+     coordinate system the document itself uses. On a phone whose
+     toolbar floats OVER the page, that viewport does not shrink when
+     the bar appears; the page simply carries on underneath it, which
+     is exactly what a reader sees when scrolling the front page.
+     
+     This was changed to `height: 100lvh` to stop the toolbar affecting
+     it, and that did the opposite. Viewport units do not follow the
+     layout viewport — they follow the VISIBLE area, which is precisely
+     the thing the toolbar changes. So the overlay was re-measured
+     against the one number that moves, and its edge came into view
+     every time the bar slid in. Six attempts were spent tuning that
+     number instead of removing it.
+     
+     Nothing here is sized to the window any more. The box is the page's
+     own viewport; the photograph inside it is bigger than that box and
+     is not clipped; and the ground behind is opaque. Those are the two
+     properties the front page has and this never did: no edge that can
+     come into view, and nothing behind to see. */
+  inset: 0;
   /* THE SAME RULE AS THE PATCHWORK IT OPENS FROM.
      
      Two properties, and both were missing here while five rounds were
@@ -882,12 +904,6 @@ html.js .dossier[open] > .leaves {
      sized in it shrinks the moment the bar slides in. TWO: the ground
      is opaque, because a see-through backdrop turns every pixel this
      surface fails to cover into a window onto the page underneath. */
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: auto;
-  height: 100vh;
-  height: 100lvh;
   z-index: 70;
   display: flex;
   flex-direction: column;
@@ -2553,6 +2569,28 @@ html.js [data-copy] { display: inline-flex; }
    the same rule that has already caught this page twice. */
 html.js .group[open] > .group-front {
   position: fixed;
+  /* MEASURED LIKE THE PAGE, NOT LIKE THE WINDOW.
+     
+     `inset: 0` on a fixed element uses the LAYOUT viewport — the same
+     coordinate system the document itself uses. On a phone whose
+     toolbar floats OVER the page, that viewport does not shrink when
+     the bar appears; the page simply carries on underneath it, which
+     is exactly what a reader sees when scrolling the front page.
+     
+     This was changed to `height: 100lvh` to stop the toolbar affecting
+     it, and that did the opposite. Viewport units do not follow the
+     layout viewport — they follow the VISIBLE area, which is precisely
+     the thing the toolbar changes. So the overlay was re-measured
+     against the one number that moves, and its edge came into view
+     every time the bar slid in. Six attempts were spent tuning that
+     number instead of removing it.
+     
+     Nothing here is sized to the window any more. The box is the page's
+     own viewport; the photograph inside it is bigger than that box and
+     is not clipped; and the ground behind is opaque. Those are the two
+     properties the front page has and this never did: no edge that can
+     come into view, and nothing behind to see. */
+  inset: 0;
   /* ANCHORED AT THE TOP, WITH A HEIGHT. NOT BOTH ENDS AND A HEIGHT.
      
      This was `inset: 0` plus `height`, which is over-constrained —
@@ -2564,10 +2602,6 @@ html.js .group[open] > .group-front {
      
      So there is nothing left to resolve. Top, left and right pin three
      edges; the height decides the fourth. */
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: auto;
   z-index: 50;
   display: grid;
   place-items: center;
@@ -2631,8 +2665,6 @@ html.js .group[open] > .group-front {
      it has always meant the toolbar-hidden screen, which is the same
      answer. Nothing is over-constrained now, so the height is the
      height. */
-  height: 100vh;
-  height: 100lvh;
   /* FULL BLEED, both surfaces. There was a gutter here — 23px on a
      phone, 64px on a wide screen — so the photograph that supports the
      arrangement stopped short of every edge and the ground showed
@@ -2889,6 +2921,28 @@ html.js .shots[open] > summary .shots-name { display: block; }
    on this box, unlike the one above: nothing inside it is fixed. */
 html.js .shots[open] > .reel {
   position: fixed;
+  /* MEASURED LIKE THE PAGE, NOT LIKE THE WINDOW.
+     
+     `inset: 0` on a fixed element uses the LAYOUT viewport — the same
+     coordinate system the document itself uses. On a phone whose
+     toolbar floats OVER the page, that viewport does not shrink when
+     the bar appears; the page simply carries on underneath it, which
+     is exactly what a reader sees when scrolling the front page.
+     
+     This was changed to `height: 100lvh` to stop the toolbar affecting
+     it, and that did the opposite. Viewport units do not follow the
+     layout viewport — they follow the VISIBLE area, which is precisely
+     the thing the toolbar changes. So the overlay was re-measured
+     against the one number that moves, and its edge came into view
+     every time the bar slid in. Six attempts were spent tuning that
+     number instead of removing it.
+     
+     Nothing here is sized to the window any more. The box is the page's
+     own viewport; the photograph inside it is bigger than that box and
+     is not clipped; and the ground behind is opaque. Those are the two
+     properties the front page has and this never did: no edge that can
+     come into view, and nothing behind to see. */
+  inset: 0;
   /* THE SAME RULE AS THE PATCHWORK IT OPENS FROM.
      
      Two properties, and both were missing here while five rounds were
@@ -2897,10 +2951,6 @@ html.js .shots[open] > .reel {
      sized in it shrinks the moment the bar slides in. TWO: the ground
      is opaque, because a see-through backdrop turns every pixel this
      surface fails to cover into a window onto the page underneath. */
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: auto;
   z-index: 70;
   margin: 0;
   /* THE SAME STATED HEIGHT AS THE PATCHWORK IT OPENS FROM.
@@ -2912,8 +2962,6 @@ html.js .shots[open] > .reel {
      fixed, full-screen box with the same exposure, and it was left on
      `inset` only because it had not been seen to misbehave. Being
      unobserved is not the same as being right. */
-  height: 100vh;
-  height: 100lvh;
   /* THE BAND, ON ALL FOUR SIDES. It was `0 var(--gutter)`: 23px at the
      sides and nothing at all above or below, so the only ground to
      press for the way back was a sliver beside the photograph. The
