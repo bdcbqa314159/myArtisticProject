@@ -43,7 +43,32 @@ export function sharpenOnOpen(): void {
    * takes that project's photographs. */
   for (const group of document.querySelectorAll<HTMLDetailsElement>(".group")) {
     group.addEventListener("toggle", () => {
-      if (group.open) upgrade(group, "summary[data-big]");
+      if (!group.open) return;
+      /* WHERE THE PAGE IS, SO THE FRONT CAN JOIN IT.
+       *
+       * Measured on the phone that has the fault: the page is told its
+       * viewport is 641px tall — `innerHeight` and `clientHeight` agree
+       * and the difference between them is zero — while the screen
+       * plainly shows content below that line, under the floating
+       * toolbar. Safari paints a strip it never told the page about,
+       * and the page's own scrolling content is drawn into it. That is
+       * why the site looks continuous under the bar.
+       *
+       * A `position: fixed` element is not drawn there. It is pinned to
+       * the 641 the page was given, so it stops exactly at the top of
+       * that strip and the page shows beneath it. No height can reach
+       * past the end of the world the element was handed — seven
+       * attempts at bigger numbers proved that the slow way.
+       *
+       * So the front stops being fixed and becomes ordinary document
+       * content, parked at the scroll position. Scrolling is frozen
+       * while a patchwork is open, so it does not move; and because it
+       * is now part of the page, it is painted into the same strip the
+       * page is.
+       */
+      const where = `${Math.round(window.scrollY)}px`;
+      document.documentElement.style.setProperty("--open-at", where);
+      upgrade(group, "summary[data-big]");
     });
   }
   for (const shots of document.querySelectorAll<HTMLDetailsElement>(".shots")) {
