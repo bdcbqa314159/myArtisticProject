@@ -83,11 +83,19 @@
     return out.join(" ");
   }
 
+  /* A STAMP, SO THERE IS NO GUESSING WHICH PROBE IS ON SCREEN.
+   * Bumped by hand whenever this file changes in a way that matters.
+   * Without it the only way to tell a stale copy from a fresh one is
+   * to remember which lines the old one printed, which is a poor thing
+   * to ask of somebody holding a phone. */
+  var VERSION = "probe 3";
+
   function read() {
     var vv = window.visualViewport;
     var front = document.querySelector(".group[open] > .group-front");
     var img = document.querySelector(".group[open] .group-front .fridge > .slot-1 img");
     var rows = [
+      VERSION + "   " + new Date().toTimeString().slice(0, 8),
       "inner   " + window.innerWidth + "x" + window.innerHeight
         + "   visual " + (vv ? Math.round(vv.height) + " off" + Math.round(vv.offsetTop) : "-"),
       "units   svh " + px("svh") + "  lvh " + px("lvh") + "  dvh " + px("dvh"),
