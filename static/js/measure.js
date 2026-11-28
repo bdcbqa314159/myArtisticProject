@@ -76,9 +76,17 @@
    * viewport. This is the question the boxes cannot answer. */
   function painted() {
     var w = Math.round(window.innerWidth / 2), h = window.innerHeight, out = [];
-    [0.08, 0.3, 0.6, 0.88, 0.98].forEach(function (f) {
+    [0.5, 0.98].forEach(function (f) {
       var y = Math.min(h - 2, Math.round(h * f));
       out.push(Math.round(f * 100) + "%:" + name(document.elementFromPoint(w, y)));
+    });
+    /* AND INTO THE BAND, past the bottom of the visible viewport.
+     * `elementFromPoint` answers in viewport coordinates, so a point
+     * below `inner` is outside it and comes back null — which is
+     * itself the answer: nothing of ours is reachable there. */
+    [10, 40, 90].forEach(function (d) {
+      var el = document.elementFromPoint(w, h + d);
+      out.push("+" + d + ":" + (el ? name(el) : "OUTSIDE"));
     });
     return out.join(" ");
   }
@@ -88,7 +96,7 @@
    * Without it the only way to tell a stale copy from a fresh one is
    * to remember which lines the old one printed, which is a poor thing
    * to ask of somebody holding a phone. */
-  var VERSION = "probe 3";
+  var VERSION = "probe 4";
 
   function read() {
     var vv = window.visualViewport;
@@ -99,6 +107,16 @@
       "inner   " + window.innerWidth + "x" + window.innerHeight
         + "   visual " + (vv ? Math.round(vv.height) + " off" + Math.round(vv.offsetTop) : "-"),
       "units   svh " + px("svh") + "  lvh " + px("lvh") + "  dvh " + px("dvh"),
+      /* THE BAND. `inner` is the area above the floating toolbar; the
+       * page itself carries on below it, down to the layout viewport.
+       * If `doc` is bigger than `inner`, there is a strip the probe has
+       * never looked at — and that strip is exactly where the page has
+       * been showing. A fixed element that cannot paint there can
+       * never be made to by changing its size. */
+      "doc     clientH " + document.documentElement.clientHeight
+        + "  bodyH " + Math.round(document.body.getBoundingClientRect().height)
+        + "  scrollY " + Math.round(window.scrollY)
+        + "  band " + (document.documentElement.clientHeight - window.innerHeight),
     ];
     if (front) {
       var b = front.getBoundingClientRect();
