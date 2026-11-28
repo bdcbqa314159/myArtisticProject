@@ -96,7 +96,7 @@
    * Without it the only way to tell a stale copy from a fresh one is
    * to remember which lines the old one printed, which is a poor thing
    * to ask of somebody holding a phone. */
-  var VERSION = "probe 4";
+  var VERSION = "probe 5";
 
   function read() {
     var vv = window.visualViewport;
@@ -121,7 +121,10 @@
     if (front) {
       var b = front.getBoundingClientRect();
       rows.push("FRONT   " + Math.round(b.width) + "x" + Math.round(b.height)
-        + " top" + Math.round(b.top) + " bot" + Math.round(b.bottom));
+        + " top" + Math.round(b.top) + " bot" + Math.round(b.bottom)
+        + "  " + getComputedStyle(front).position
+        + " openAt " + (getComputedStyle(document.documentElement)
+            .getPropertyValue("--open-at").trim() || "unset"));
     }
     if (img) {
       var i = img.getBoundingClientRect();

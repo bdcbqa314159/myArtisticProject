@@ -47,9 +47,9 @@
    BOTH BUTTONS, AND TIME TO SEE THEM   2064      59
    HOW WE CAN WORK TOGETHER             2123     140
    THE TWO PHRASES, EXCHANGING PLACES   2263      74
-   THE WORK, AT THREE LEVELS            2337     961
-   THE FORM BEHIND "LET'S TALK"         3298     134
-   PRINT                                3432      40
+   THE WORK, AT THREE LEVELS            2337     975
+   THE FORM BEHIND "LET'S TALK"         3312     134
+   PRINT                                3446      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -2594,7 +2594,27 @@ html.js [data-copy] { display: inline-flex; }
    and level three would anchor to this instead of the screen, which is
    the same rule that has already caught this page twice. */
 html.js .group[open] > .group-front {
-  position: fixed;
+  position: absolute;
+  top: var(--open-at, 0px);
+  left: 0;
+  right: 0;
+  height: 100lvh;
+  /* NOT FIXED. PART OF THE PAGE.
+     
+     A fixed element is confined to the viewport the page was given —
+     measured here as 641px, with `clientHeight` agreeing and the band
+     between them reading zero — while the screen shows a strip below
+     that line where the browser paints the page's own scrolling
+     content under the floating toolbar. Fixed does not reach it. The
+     page does.
+     
+     So this is absolute, parked at the scroll position the patchwork
+     was opened from (`--open-at`, written by src/work.ts). Scrolling
+     is frozen while it is open, so it sits still; and being document
+     content, it is painted into the same strip as everything else.
+     
+     Nothing between here and <body> is positioned, so the offset is
+     measured against the document itself. */
   /* MEASURED LIKE THE PAGE, NOT LIKE THE WINDOW.
      
      `inset: 0` on a fixed element uses the LAYOUT viewport — the same
@@ -2637,12 +2657,6 @@ html.js .group[open] > .group-front {
      
      Three edges, not four, plus a height: `inset: 0` with a height is
      over-constrained and the browser picks which to drop. */
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: auto;
-  height: 100vh;
-  height: 100lvh;
   /* ANCHORED AT THE TOP, WITH A HEIGHT. NOT BOTH ENDS AND A HEIGHT.
      
      This was `inset: 0` plus `height`, which is over-constrained —
@@ -2793,7 +2807,7 @@ html.js .group[open] > .group-front > .way-out {
 
 html.js .group[open] > .group-front::before {
   content: "";
-  position: fixed;
+  position: absolute;
   /* PAST EVERY TOOLBAR STATE. Sized to the layout viewport, this
      stopped exactly where the photograph used to stop, so the two
      agreed about where the screen ended and both were wrong together.

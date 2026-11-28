@@ -66,13 +66,23 @@ SIZES.forEach(([w, h]) => {
                  * it — the page sets `overflow: hidden` on <body> while
                  * a patchwork is open, and walking past the front
                  * reported that as the culprit. */
+                /* VERTICALLY, and only as far as the overlay. The
+                 * overhang is 200px of top and bottom, so a horizontal
+                 * clip is irrelevant — `body` is `overflow: clip
+                 * visible`, which cuts sideways and not downwards, and
+                 * reading the shorthand reported it as the culprit. And
+                 * the walk stops at the front itself: the front used to
+                 * be `position: fixed`, so stopping at the first fixed
+                 * ancestor found it by accident; it is absolute now,
+                 * and the walk ran on to <body>. */
                 var a = support.parentElement, cut = "n";
                 while (a && a !== d.documentElement) {
                   var s = f.contentWindow.getComputedStyle(a);
-                  if (s.overflow !== "visible") {
+                  if (s.overflowY !== "visible") {
                     cut = (a.className || "").split(" ")[0] || a.tagName;
                     break;
                   }
+                  if (a.classList.contains("group-front")) break;
                   if (s.position === "fixed") break;
                   a = a.parentElement;
                 }
