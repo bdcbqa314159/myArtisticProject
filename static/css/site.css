@@ -34,22 +34,22 @@
    THE FURNITURE                         264     323
    GRIDS, CARDS AND THE SHOWREEL SLOT    587     175
    CROSSING BETWEEN SECTIONS             762      58
-   A DOCUMENT BEHIND A CONCEPT           820     162
-   THE FIELDS THE WORK SITS IN           982     549
-   MOTION                               1531      62
-   WIDER                                1593      51
-   THE LOADER                           1644      96
-   THE MENU, BELOW THE BREAKPOINT       1740      46
-   OFFSETS                              1786     173
-   OFFSETS, SECOND ATTEMPT              1959      31
-   CENTRED SECTION HEADINGS             1990      40
-   FULL-BLEED PHOTOGRAPHS               2030      34
-   BOTH BUTTONS, AND TIME TO SEE THEM   2064      59
-   HOW WE CAN WORK TOGETHER             2123     140
-   THE TWO PHRASES, EXCHANGING PLACES   2263      74
-   THE WORK, AT THREE LEVELS            2337     975
-   THE FORM BEHIND "LET'S TALK"         3312     134
-   PRINT                                3446      40
+   A DOCUMENT BEHIND A CONCEPT           820     167
+   THE FIELDS THE WORK SITS IN           987     549
+   MOTION                               1536      62
+   WIDER                                1598      51
+   THE LOADER                           1649      96
+   THE MENU, BELOW THE BREAKPOINT       1745      46
+   OFFSETS                              1791     173
+   OFFSETS, SECOND ATTEMPT              1964      31
+   CENTRED SECTION HEADINGS             1995      40
+   FULL-BLEED PHOTOGRAPHS               2035      34
+   BOTH BUTTONS, AND TIME TO SEE THEM   2069      59
+   HOW WE CAN WORK TOGETHER             2128     140
+   THE TWO PHRASES, EXCHANGING PLACES   2268      74
+   THE WORK, AT THREE LEVELS            2342     978
+   THE FORM BEHIND "LET'S TALK"         3320     134
+   PRINT                                3454      40
    ---- end of contents ------------------------------------------------------ */
 
 /* ============================================================================
@@ -873,7 +873,18 @@ html.js.crossing.arrived .veil {
 .dossier:not([open]) .leaves { display: none; }
 
 html.js .dossier[open] > .leaves {
-  position: fixed;
+  /* THE SAME, BUT IT IS NOT INSIDE ANYTHING.
+     
+     The document opens straight over the page rather than from within
+     a patchwork, so it carries its own `--open-at` — written by
+     src/work.ts when it opens. Absolute for the same reason as the
+     rest: a fixed element cannot paint into the strip under the
+     browser's toolbar, and ordinary page content can. */
+  position: absolute;
+  top: var(--open-at, 0px);
+  left: 0;
+  right: 0;
+  height: 100lvh;
   /* MEASURED LIKE THE PAGE, NOT LIKE THE WINDOW.
      
      `inset: 0` on a fixed element uses the LAYOUT viewport — the same
@@ -916,12 +927,6 @@ html.js .dossier[open] > .leaves {
      
      Three edges, not four, plus a height: `inset: 0` with a height is
      over-constrained and the browser picks which to drop. */
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: auto;
-  height: 100vh;
-  height: 100lvh;
   /* THE SAME RULE AS THE PATCHWORK IT OPENS FROM.
      
      Two properties, and both were missing here while five rounds were
@@ -2986,7 +2991,16 @@ html.js .shots[open] > summary .shots-name { display: block; }
 /* The carousel blurs what is behind it — the group it came from. Safe
    on this box, unlike the one above: nothing inside it is fixed. */
 html.js .shots[open] > .reel {
-  position: fixed;
+  /* IT FILLS THE PATCHWORK IT OPENED FROM.
+     
+     A carousel only ever exists inside `.group-front`, which is itself
+     parked at the scroll position — so filling that is filling the
+     screen, including the strip the browser paints below the viewport
+     it told the page about. Fixed could not reach that strip; this is
+     not fixed, and does not have to know where the page is because its
+     parent already does. */
+  position: absolute;
+  inset: 0;
   /* MEASURED LIKE THE PAGE, NOT LIKE THE WINDOW.
      
      `inset: 0` on a fixed element uses the LAYOUT viewport — the same
@@ -3029,12 +3043,6 @@ html.js .shots[open] > .reel {
      
      Three edges, not four, plus a height: `inset: 0` with a height is
      over-constrained and the browser picks which to drop. */
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: auto;
-  height: 100vh;
-  height: 100lvh;
   /* THE SAME RULE AS THE PATCHWORK IT OPENS FROM.
      
      Two properties, and both were missing here while five rounds were

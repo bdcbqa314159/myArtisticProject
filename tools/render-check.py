@@ -773,7 +773,28 @@ def check_document(chrome: str, out: Path, url: str) -> "list[str]":
         bad.append(f"doc: there are {f['links']} links inside the document. A "
                    f"dossier is shown, never handed over — nothing in it may "
                    f"point at a file")
-    if f["pos"] != "fixed" or f["covers"] != "y":
+    # ABSOLUTE, NOT FIXED — and that is the fix, not a regression.
+    #
+    # Measured on the phone that had the fault: the page is told its
+    # viewport is 641px tall, `clientHeight` agrees, and every point
+    # past it reads OUTSIDE — while the screen shows content below that
+    # line, under the floating toolbar. The browser paints a strip it
+    # never told the page about and draws the page's own scrolling
+    # content into it. A fixed element is NOT drawn there, so it stops
+    # at the top of that strip and the page shows beneath it. Seven
+    # attempts at a bigger fixed box failed for that reason.
+    #
+    # So these surfaces are parked at the scroll position and are
+    # ordinary document content. `fixed` here would be the bug coming
+    # back.
+    if f["pos"] == "fixed":
+        bad.append(
+            "doc: the reading surface is `position: fixed` again. A fixed "
+            "element cannot paint into the strip the browser keeps below "
+            "the viewport it reports, which is where the page showed "
+            "through for a week. It is parked at the scroll position "
+            "instead — see --open-at in src/work.ts")
+    if f["pos"] != "absolute" or f["covers"] != "y":
         bad.append(f"doc: the reading surface is not the page ({verdict}). A "
                    f"transformed or filtered ancestor becomes the containing "
                    f"block for `position: fixed`, and the document ends up in "
@@ -1049,6 +1070,24 @@ def check_lost(chrome: str, out: Path, url: str) -> "list[str]":
 # Surfaces that cover the screen and are MEANT to be seen through, with
 # the reason. Everything else that covers the screen must be opaque and
 # must not be sized by the browser's chrome.
+# Fixed on purpose, with the reason. Everything else that covers the
+# screen must be parked at the scroll position instead — see below.
+FIXED_ON_PURPOSE = {
+    ".veil": "a blur over the page for a few hundred milliseconds while a "
+             "jump happens. It is never the thing a reader is looking at, "
+             "and it holds no photograph.",
+    ".loader": "the cover, which is up before there is a scroll position to "
+               "park at.",
+    ".menu[open] > .links": "KNOWN EXPOSURE, NOT YET CONVERTED. The menu "
+        "panel has the same fault as the patchwork did: fixed, so the page "
+        "will show in the strip beneath it when the toolbar is out. It is "
+        "not a one-line change because the panel lives inside a `position: "
+        "sticky` header, which would become the containing block for an "
+        "absolute child — the panel has to move in the DOM first. Nobody "
+        "has reported it; it is written down here so it is not mistaken "
+        "for a surface that is fine.",
+}
+
 SEE_THROUGH_ON_PURPOSE = {
     ".veil": "the crossing veil — a blur over the page for a few hundred "
              "milliseconds while a jump happens, which is the whole effect. "
@@ -1089,7 +1128,14 @@ def check_full_screen_surfaces(site_css: str) -> "list[str]":
     # repository have now been fooled by a comment; strip them before
     # reading anything.
     site_css = re.sub(r"/\*.*?\*/", " ", site_css, flags=re.S)
-    for m in re.finditer(r"(?m)^([^\n{}]+)\{([^}]*)\}", site_css):
+
+    # FLATTEN THE MEDIA QUERIES. The rule reader below takes everything
+    # before a `{` as a selector, so a rule inside `@media (max-width:
+    # 49.9375rem)` was reported as a surface called `49.9375rem)`. The
+    # mobile menu lives in one, and a check that cannot name what it
+    # found is a check nobody acts on.
+    flat = re.sub(r"@media[^{]*\{", " ", site_css)
+    for m in re.finditer(r"(?m)^([^\n{}]+)\{([^}]*)\}", flat):
         selector, body = m.group(1).strip(), m.group(2)
         if not re.search(r"(?m)^\s*position:\s*fixed", body):
             continue
@@ -1101,6 +1147,31 @@ def check_full_screen_surfaces(site_css: str) -> "list[str]":
             continue
         name = selector.split()[-1].split(">")[-1].strip()
         allowed = next((k for k in SEE_THROUGH_ON_PURPOSE if k in selector), None)
+
+        # FIXED CANNOT REACH THE WHOLE SCREEN ON A PHONE.
+        #
+        # Measured on the device that had the fault: the page is told
+        # its viewport is 641px tall, `clientHeight` agrees, and every
+        # point past it reads OUTSIDE — while the screen shows content
+        # below that line under the floating toolbar. The browser
+        # paints a strip it never tells the page about and draws the
+        # page's own scrolling content into it. A fixed element is not
+        # drawn there. It stops at the top of that strip, and the page
+        # shows beneath it.
+        #
+        # Seven fixes were spent on bigger fixed boxes before that was
+        # measured. A surface that must cover the screen is parked at
+        # the scroll position instead and becomes ordinary document
+        # content, which the browser does paint into the strip.
+        if re.search(r"(?m)^\s*position:\s*fixed", body) and not any(
+                k in selector for k in FIXED_ON_PURPOSE):
+            bad.append(
+                f"surfaces: {name} covers the screen with `position: fixed`. "
+                f"A fixed element cannot paint into the strip the browser "
+                f"keeps below the viewport it reports, so the page shows "
+                f"through underneath it. Park it at the scroll position "
+                f"(`--open-at`, written by src/work.ts) and let it be part "
+                f"of the page")
 
         if re.search(r"(?m)^\s*height:\s*100dvh", body):
             bad.append(
@@ -1507,10 +1578,17 @@ def check_fixed(chrome: str, out: Path, url: str) -> "list[str]":
     f = dict(kv.split("=", 1) for kv in verdict.split())
 
     bad = []
-    if int(f["seen"]) < 3:
-        bad.append(f"fixed: only {f['seen']} fixed element(s) found. The "
-                   f"overlays are fixed when open, so the probe is not "
-                   f"opening them and is checking almost nothing")
+    # WHAT IS LEFT THAT IS FIXED. The three full-screen surfaces are
+    # not, deliberately — they are parked at the scroll position so the
+    # browser paints them into the strip below the reported viewport,
+    # which a fixed element never reaches. What remains fixed is the
+    # veil and the cover, and the containing-block trap still matters
+    # for those: a transformed ancestor captures them exactly as it
+    # would have captured the overlays.
+    if int(f["seen"]) < 1:
+        bad.append(f"fixed: no fixed element at all ({f['seen']}). The veil "
+                   f"and the cover are fixed, so finding none means the probe "
+                   f"is measuring a page it never managed to load")
     if f["caught"] != "none":
         bad.append(f"fixed: {f['caught']} — an ancestor is the containing "
                    f"block, so this is not fixed to the screen but to a box "

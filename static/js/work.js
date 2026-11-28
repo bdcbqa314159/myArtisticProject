@@ -6,6 +6,24 @@
  */
 import { PHOTOGRAPHS } from "./photographs.js";
 import { horizonFor } from "./horizon.js";
+/** Where the page is, so a full-screen surface can join it there.
+ *
+ *  Measured on the phone that had the fault: the page is told its
+ *  viewport is 641px tall — `innerHeight` and `clientHeight` agree and
+ *  the difference between them is zero — while the screen shows content
+ *  below that line, under the floating toolbar. Safari paints a strip
+ *  it never tells the page about and draws the page's own scrolling
+ *  content into it. A `position: fixed` element is not drawn there,
+ *  because it is pinned to the viewport the page was handed.
+ *
+ *  So a surface that must cover the screen is parked at the scroll
+ *  position instead and becomes ordinary document content. Scrolling is
+ *  frozen while any of them is open, so none of them moves.
+ */
+export function parkAtTheScrollPosition() {
+    const where = `${Math.round(window.scrollY)}px`;
+    document.documentElement.style.setProperty("--open-at", where);
+}
 export function sharpenOnOpen() {
     const upgrade = (root, which) => {
         for (const el of root.querySelectorAll(which)) {
@@ -64,9 +82,16 @@ export function sharpenOnOpen() {
              * is now part of the page, it is painted into the same strip the
              * page is.
              */
-            const where = `${Math.round(window.scrollY)}px`;
-            document.documentElement.style.setProperty("--open-at", where);
+            parkAtTheScrollPosition();
             upgrade(group, "summary[data-big]");
+        });
+    }
+    /* The document opens over the page like a patchwork does, and is not
+     * inside one, so it needs its own note of where the page was. */
+    for (const doc of document.querySelectorAll(".dossier")) {
+        doc.addEventListener("toggle", () => {
+            if (doc.open)
+                parkAtTheScrollPosition();
         });
     }
     for (const shots of document.querySelectorAll(".shots")) {
